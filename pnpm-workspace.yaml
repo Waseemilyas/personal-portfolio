@@ -1,6 +1,9 @@
 overrides:
   # Remove once @11ty/eleventy declares @11ty/recursive-copy: ^5.
   '@11ty/recursive-copy': ^5.0.2
+  # GHSA-g3hv-75wg-m249: recursive-copy only uses the retained minimatch.match API.
+  # Remove once recursive-copy requires minimatch >=11.0.1.
+  '@11ty/recursive-copy>minimatch': ^11.0.3
   # Build-time advisories in Eleventy's transitive tree (GHSA-5p4m-2wfm-xmqj,
   # GHSA-rgw5-rvv9-x895). Nothing here ships to the browser, but the patched
   # versions are drop-in, so we take them. Remove once Eleventy ships them itself.
