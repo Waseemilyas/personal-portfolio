@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.11.01.2 — 1 November 2026
+
+### Behind the scenes
+
+- Internal plumbing maintenance; no user-facing behaviour changed. <!-- commits: 1 -->
 ## v2026.10.27.1 — 27 October 2026
 
 Behind-the-scenes housekeeping to the checks that keep passwords and keys out of the site's code; nothing on the site changes.
