@@ -6,6 +6,7 @@ settings:
 
 overrides:
   '@11ty/recursive-copy': ^5.0.2
+  '@11ty/recursive-copy>minimatch': ^11.0.3
   js-yaml@^3: ^3.15.2
   js-yaml@^4: ^4.3.2
   brace-expansion@^5: ^5.0.9
@@ -145,6 +146,9 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@isaacs/nonrecursive-glob-match@1.0.3':
+    resolution: {integrity: sha512-SI7kyKHq4XXDRozw+r9GlRZkia1ZkFrpLW98r2IC2Bpr8YkFGE3fvjzmxCG0x78A++69HmDNrDvSMYBZmHGpKA==}
 
   '@oxlint/binding-android-arm-eabi@1.88.0':
     resolution: {integrity: sha512-k6Fgkf86ubfeH4GvqYsRolfuVAp0pfYVZvifSlXNHPdMaWUOfxUrmLEeDD7hF6U2oJuhsVxhSWq86/xCJ+9MmA==}
@@ -611,8 +615,8 @@ packages:
     engines: {node: '>=10.0.0'}
     hasBin: true
 
-  minimatch@10.2.6:
-    resolution: {integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==}
+  minimatch@11.0.3:
+    resolution: {integrity: sha512-iny/40PEGkNJQ5/Pv6z3nm6FbRAby32GeZRjCUJk2WnNDbgPSTcdI+DDvLqsgBdD4cD5sMtMheqPPnehCCa8Nw==}
     engines: {node: 18 || 20 || >=22}
 
   minimist@1.2.8:
@@ -962,7 +966,7 @@ snapshots:
     dependencies:
       errno: 1.0.0
       junk: 3.1.0
-      minimatch: 10.2.6
+      minimatch: 11.0.3
 
   '@asamuzakjp/css-color@7.1.7':
     dependencies:
@@ -1008,6 +1012,8 @@ snapshots:
   '@csstools/css-tokenizer@4.0.2': {}
 
   '@exodus/bytes@1.16.0': {}
+
+  '@isaacs/nonrecursive-glob-match@1.0.3': {}
 
   '@oxlint/binding-android-arm-eabi@1.88.0':
     optional: true
@@ -1362,8 +1368,9 @@ snapshots:
 
   mime@3.0.0: {}
 
-  minimatch@10.2.6:
+  minimatch@11.0.3:
     dependencies:
+      '@isaacs/nonrecursive-glob-match': 1.0.3
       brace-expansion: 5.0.12
 
   minimist@1.2.8: {}
