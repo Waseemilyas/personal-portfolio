@@ -5,7 +5,8 @@ published to the open internet at <https://waseemilyas.uk> and is indexed,
 archived, and screenshotted by parties nobody controls. There is no staging gate
 between a commit and the public site. Treat every edit as a press release.
 
-Origin: <https://github.com/Waseemilyas/waseemilyas.github.io.git>. The local
+Origin: <https://github.com/Waseemilyas/personal-portfolio.git> (renamed from
+`waseemilyas.github.io` on 29 Oct 2026). The local
 checkout is called `portfolio`; there is no `Waseemilyas/portfolio` repository.
 
 Before content changes, read the private project record identified by the estate's
