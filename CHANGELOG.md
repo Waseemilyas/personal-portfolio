@@ -1,5 +1,16 @@
 # Release notes
 
+## v2026.11.06.1 — 6 November 2026
+
+The work pages are easier to scan, with clearer titles and text that wraps more neatly.
+
+### Reading and navigation
+
+- On phones, footer links are evenly spaced and easier to tap.
+- Work titles line up across rows, and on small screens each reference sits above its heading.
+- Work card subtitles and timeline proof lists are easier to read at a glance.
+
+
 ## v2026.11.01.2 — 1 November 2026
 
 ### Behind the scenes
