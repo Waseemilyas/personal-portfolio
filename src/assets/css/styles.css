@@ -90,6 +90,7 @@ img, svg { max-width: 100%; }
 a { color: inherit; }
 ::selection { background: var(--signal); color: var(--on-signal); }
 h1, h2, h3 { font-weight: 700; line-height: 1.04; letter-spacing: -0.03em; text-wrap: balance; }
+p, li { text-wrap: pretty; }
 .mono { font-family: var(--mono); font-weight: 500; letter-spacing: 0.02em; }
 .label { font-family: var(--mono); font-size: var(--step--1); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bone-mute); }
 .shell { max-width: var(--maxw); margin-inline: auto; padding-inline: var(--space-shell-inline); }
@@ -180,7 +181,7 @@ h1, h2, h3 { font-weight: 700; line-height: 1.04; letter-spacing: -0.03em; text-
 .section-head .ref { font-family: var(--mono); font-size: var(--step--1); color: var(--signal); letter-spacing: .06em; }
 .section-head h1, .section-head h2 { font-size: var(--step-3); font-weight: 700; }
 .section-head p { color: var(--bone-mute); max-width: 42ch; margin-left: auto; font-size: var(--step-0); }
-@media (max-width: 620px) { .section-head p { margin-left: 0; } }
+@media (max-width: 620px) { .section-head p { margin-left: 0; } .section-head .ref { flex-basis: 100%; } }
 .essay .section-head .ref { color: var(--signal-deep); }
 .essay .section-head h1, .essay .section-head h2 { color: var(--ink); }
 .essay .section-head p { color: var(--ink-mute); }
@@ -212,9 +213,9 @@ h1, h2, h3 { font-weight: 700; line-height: 1.04; letter-spacing: -0.03em; text-
 .worklist { display: grid; gap: 1px; border: 1px solid var(--line-dark); border-radius: var(--rounded-xl); overflow: hidden; background: var(--line-dark); }
 .workcard { display: grid; grid-template-columns: auto 1fr auto; gap: 1.2rem; align-items: center; padding: 1.4rem var(--space-card-inline); background: var(--graphite-900); text-decoration: none; transition: background .2s var(--ease); }
 .workcard:hover { background: var(--graphite-800); }
-.workcard .ref { font-family: var(--mono); font-size: var(--step--1); color: var(--signal); letter-spacing: .05em; white-space: nowrap; align-self: start; padding-top: .2rem; }
+.workcard .ref { min-width: 11ch; font-family: var(--mono); font-size: var(--step--1); color: var(--signal); letter-spacing: .05em; white-space: nowrap; align-self: start; padding-top: .2rem; }
 .workcard h2, .workcard h3 { font-size: var(--step-2); letter-spacing: -0.02em; }
-.workcard .kick { color: var(--bone-mute); margin-top: .3rem; font-size: var(--step-0); }
+.workcard .kick { display: block; color: var(--bone-mute); margin-top: .3rem; font-size: var(--step-0); text-wrap: pretty; }
 .workcard .go { color: var(--bone-mute); font-family: var(--mono); font-size: var(--step--1); transition: color .2s var(--ease), transform .2s var(--ease); }
 .workcard:hover .go { color: var(--signal); transform: translateX(3px); }
 @media (max-width: 620px) { .workcard { grid-template-columns: 1fr; gap: .5rem; } .workcard .go { display: none; } }
@@ -268,7 +269,7 @@ h1, h2, h3 { font-weight: 700; line-height: 1.04; letter-spacing: -0.03em; text-
 .milestone .era { font-family: var(--mono); font-size: var(--step--1); color: var(--signal); letter-spacing: .05em; }
 .milestone h3 { font-size: var(--step-1); margin: .25rem 0 .4rem; letter-spacing: -0.02em; }
 .milestone p { color: var(--bone-mute); max-width: 60ch; }
-.proof { margin: 1rem 0 0 0; padding: 1rem 1.2rem; border: 1px solid var(--line-dark); border-radius: var(--rounded-md); background: var(--graphite-800); list-style: none; }
+.proof { max-width: 60ch; margin: 1rem 0 0 0; padding: 1rem 1.2rem; border: 1px solid var(--line-dark); border-radius: var(--rounded-md); background: var(--graphite-800); list-style: none; }
 .proof li { display: flex; gap: .6rem; padding: .35rem 0; color: var(--bone); font-size: var(--step--1); }
 .proof li::before { content: "→"; color: var(--signal); font-family: var(--mono); }
 
@@ -442,6 +443,10 @@ h1, h2, h3 { font-weight: 700; line-height: 1.04; letter-spacing: -0.03em; text-
 .foot a { color: var(--bone); text-decoration: none; }
 .foot a:hover { color: var(--signal); }
 .foot .fnav { display: flex; gap: 1.2rem; flex-wrap: wrap; }
+@media (max-width: 620px) {
+  .foot .fnav { display: grid; grid-template-columns: repeat(4, max-content); justify-content: space-between; gap: .2rem 0; }
+  .foot .fnav a { display: inline-block; padding-block: .45rem; }
+}
 .foot .meta { color: var(--bone-mute); }
 .foot .meta + .meta { margin-top: .4rem; }
 

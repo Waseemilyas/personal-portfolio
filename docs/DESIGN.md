@@ -326,10 +326,12 @@ rather than a new one.
   the constraint that actually holds is **never body copy**.
 - Headings tighten as they grow: the global rule is `font-weight: 700`,
   `line-height: 1.04`, `letter-spacing: -0.03em`, `text-wrap: balance`; the hero
-  goes further to `800` / `-0.038em`.
+  goes further to `800` / `-0.038em`. Paragraphs and list items use
+  `text-wrap: pretty` so a last line is never a lone word.
 - Measure is capped per context and those caps are load-bearing. Among them: hero
   `16ch`, hero lede `46ch`, section-head copy `42ch`, case title `20ch`, prose
-  `68ch` (container `70ch`), about lede `24ch`. Other blocks carry their own caps —
+  `68ch` (container `70ch`), about lede `24ch`, timeline proof list `60ch` (the
+  milestone paragraph's cap). Other blocks carry their own caps —
   check the rule before adding a new one.
 - Body line-height is `1.55`; long-form prose relaxes to `1.62`.
 
