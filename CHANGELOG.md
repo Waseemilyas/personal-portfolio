@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.11.08.1 — 8 November 2026
+
+Links in the navigation, footer and contact section are easier to tap on phones and tablets.
+
+
 ## v2026.11.06.1 — 6 November 2026
 
 The work pages are easier to scan, with clearer titles and text that wraps more neatly.
