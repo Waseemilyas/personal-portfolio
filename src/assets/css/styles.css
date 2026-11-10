@@ -99,6 +99,7 @@ p, li { text-wrap: pretty; }
 /* skip link */
 .skip { position: absolute; left: -999px; top: 0; z-index: 100; background: var(--signal); color: var(--on-signal); padding: .6rem 1rem; border-radius: 0 0 var(--rounded-sm) 0; font-weight: 600; }
 .skip:focus { left: 0; }
+.skip { min-height: 44px; box-sizing: border-box; }
 
 /* ---------- top bar ---------- */
 .topbar { position: sticky; top: 0; z-index: 40; background: color-mix(in oklch, var(--graphite-900) 88%, transparent); border-bottom: 1px solid var(--line-dark); -webkit-backdrop-filter: saturate(1.2) blur(6px); backdrop-filter: saturate(1.2) blur(6px); }
@@ -461,3 +462,8 @@ p, li { text-wrap: pretty; }
   .panel .phead .live .blip { animation: none; }
   .nav, .nav-toggle svg path { transition: none; }
 }
+
+/* ---------- 44px tap targets (t17654) ---------- */
+.wordmark, .nav a, .foot a, .contact-close a, .casenav a, .email-big { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; box-sizing: border-box; }
+.wordmark { justify-content: flex-start; }
+@media (max-width: 720px) { .nav a { justify-content: flex-start; } .nav .cta { justify-content: center; } }
