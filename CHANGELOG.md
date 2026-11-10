@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.11.10.1 — 10 November 2026
+
+Links in the header, footer, contact area and case navigation are easier to tap on touch screens.
+
+
 ## v2026.11.08.1 — 8 November 2026
 
 Links in the navigation, footer and contact section are easier to tap on phones and tablets.
