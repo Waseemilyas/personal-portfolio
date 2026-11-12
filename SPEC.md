@@ -1,7 +1,7 @@
 # Portfolio behaviour
 
 Observed specification of the current public site; this does not change its copy or design.
-Last verified: 2026-10-16 on Linux.
+Last verified: 2026-10-16 on Linux; the security policy on 2026-11-12.
 
 Visitors read the main pages, open anonymised case studies, browse published notes,
 follow the Atom feed, inspect capabilities and find contact links. The source of
@@ -46,6 +46,17 @@ The rendered checker owns headings, metadata, links, feed/sitemap structure and
 parity, draft absence and revision bytes. OG checks inspect image headers, not
 pixel decoding. GitHub Pages serves the artifact built by the main workflow and
 its post-deploy verifier compares the live revision body exactly.
+
+Every page carries a Content Security Policy as the first element after
+`<meta charset>`, written at build time by `scripts/csp.mjs` (GitHub Pages cannot
+send headers). It allows only this site's own files, each inline script by the
+SHA-256 of its exact text, and Sentry's loader, SDK and ingest origins when the
+production build has a DSN. It has no `'unsafe-inline'`, `'unsafe-eval'` or
+wildcard, and blocks forms, `<base>` and plugins. Anything it blocks in a visitor's
+browser is reported to Sentry once per page as "CSP blocked <directive> <URL>",
+without the URL's query; extension and Sentry URLs are skipped. Pages also send
+`strict-origin-when-cross-origin` as their referrer policy. The meta form cannot set
+`frame-ancestors`, HSTS or `X-Content-Type-Options`; those need response headers.
 
 The unlinked prayer-time audio files remain intentional HTTP assets. Browser
 verification checks that they are served, without playback or touching the external
