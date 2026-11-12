@@ -74,14 +74,21 @@ its post-deploy verifier compares the live revision body exactly.
 
 Every page carries a Content Security Policy as the first element after
 `<meta charset>`, written at build time by `scripts/csp.mjs` (GitHub Pages cannot
-send headers). It allows only this site's own files, each inline script by the
-SHA-256 of its exact text, and Sentry's loader, SDK and ingest origins when the
-production build has a DSN. It has no `'unsafe-inline'`, `'unsafe-eval'` or
-wildcard, and blocks forms, `<base>` and plugins. Anything it blocks in a visitor's
-browser is reported to Sentry once per page as "CSP blocked <directive> <URL>",
-without the URL's query; extension and Sentry URLs are skipped. Pages also send
-`strict-origin-when-cross-origin` as their referrer policy. The meta form cannot set
-`frame-ancestors`, HSTS or `X-Content-Type-Options`; those need response headers.
+send headers). It allows only this site's own files and each inline script by the
+SHA-256 of its exact text; no outside origin may run script. The only outside
+origin is Sentry's ingest, in `connect-src`, when the production build has a DSN.
+It has no `'unsafe-inline'`, `'unsafe-eval'` or wildcard, and blocks forms, `<base>`
+and plugins. Pages also send `strict-origin-when-cross-origin` as their referrer
+policy. The meta form cannot set `frame-ancestors`, HSTS or `X-Content-Type-Options`;
+those need response headers.
+
+Browser errors go to Sentry, and a normal visit makes no request for it. The first
+error or blocked resource on a page downloads the pinned Sentry SDK
+(`vendor/sentry-<version>.min.js`, served as `/assets/js/`, checked by SHA-384 at
+build and by the browser's integrity check), which then reports it and everything
+after it. Anything the policy blocks is reported once per page as "CSP blocked
+<directive> <URL>", without the URL's query; extension and Sentry URLs are skipped.
+No Sentry dashboard setting can change the code visitors run.
 
 A shared link shows a 1200×630 preview card. Each note and case study has its own,
 carrying its label, title and (for a case study) kicker in the site's fonts; every

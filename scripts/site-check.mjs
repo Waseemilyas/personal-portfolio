@@ -17,7 +17,8 @@
 //   sitemap     built pages and sitemap URLs match both ways (404.html is not listed)
 //   drafts      a `draft: true` post has no built page and no sitemap/feed reference
 //   csp         one Content Security Policy meta, first after <meta charset>, default-src 'none',
-//               no 'unsafe-*', listing the hash of every inline script; no inline handlers
+//               no 'unsafe-*', listing the hash of every inline script and no outside
+//               script origin (outside code is pinned and served from this site); no inline handlers
 //               or style attributes (the policy would block them); a Referrer-Policy meta
 //
 // Usage: node scripts/site-check.mjs [--site-dir _site] [--posts-dir src/notes/posts]
@@ -149,6 +150,11 @@ export function runSiteChecks({
     }
     if (!policy.startsWith("default-src 'none';")) bad("csp", "policy must start with default-src 'none'");
     if (/'unsafe-|\*/.test(policy)) bad("csp", "policy must not use 'unsafe-*' or wildcards");
+    for (const source of scriptSrc.split(" ").slice(1)) {
+      if (source !== "'self'" && !/^'sha256-[A-Za-z0-9+/]+=*'$/.test(source)) {
+        bad("csp", `script-src allows ${source}; pin outside code and serve it from this site`);
+      }
+    }
     for (const source of inlineScripts(html)) {
       if (!scriptSrc.split(" ").includes(scriptHash(source))) bad("csp", `inline script "${source.trim().slice(0, 40)}" is not in script-src`);
     }
