@@ -3,18 +3,18 @@ layout: base.njk
 ---
 <article class="essay section" aria-labelledby="case-title">
   <div class="shell">
-    <div class="casehead" data-cal>
+    <div class="casehead" data-cal="0">
       <span class="ref">{{ ref }}</span>
       <h1 id="case-title">{{ title }}</h1>
       <p class="kick">{{ kicker }}</p>
     </div>
 
     <div class="casegrid">
-      <div class="prose" data-cal>
+      <div class="prose" data-cal="1">
         {{ content | safe }}
       </div>
 
-      <aside class="datasheet" data-cal aria-label="Case datasheet">
+      <aside class="datasheet" data-cal="2" aria-label="Case datasheet">
         <div class="dh">Datasheet</div>
         <dl>
           {%- for row in datasheet %}

@@ -209,8 +209,12 @@ every transition and all three keyframe animations. New motion uses it.
 ### Progressive enhancement, and its one exception
 
 Motion is an enhancement, never a gate: `[data-cal]` elements are visible by
-default and the `.in` reveal only animates when JS runs and the user has not asked
-for reduced motion. The capability map is server-rendered with the first node's
+default and nothing animates when the user has asked for reduced motion.
+First-screen blocks carry their stagger slot (`data-cal="0"` to `"4"`, 110 ms
+apart) and rise in CSS alone from the first frame, so a painted block is never
+hidden again. Bare `data-cal` marks a below-the-fold block: `site.js` hides it
+(`.cal-wait`) only while it is off-screen and reveals it (`.in`) when scrolled to,
+so content never depends on the script. The capability map is server-rendered with the first node's
 copy already in place, so it reads fine with JS disabled.
 
 **The mobile nav drawer is the exception.** Below 720px `.nav` is fixed and
@@ -481,7 +485,8 @@ labelled this way.
 - Reserve mono for metadata. Refs, keys, eras, captions, labels — never body copy.
 - Follow the heading-hierarchy contract when adding a route, and widen an existing
   selector (`.foo h2, .foo h3`) rather than forking a component to change its level.
-- Keep content reachable without JS. Add `data-cal` for the reveal; never rely on it.
+- Keep content reachable without JS. Add `data-cal` for the reveal (a slot number
+  for the first screen, bare below the fold); never rely on it.
 - Honour `prefers-reduced-motion` for anything new that moves, and use `--ease`.
 - Cap the measure on new text blocks — an uncapped paragraph reads as a bug here.
 

@@ -7,14 +7,14 @@ eleventyExcludeFromCollections: true
 ---
 <section class="essay section" aria-label="Notes">
   <div class="shell">
-    <div class="casehead" data-cal>
+    <div class="casehead" data-cal="0">
       <span class="ref">NOTES</span>
       <h1>Notes</h1>
       <p class="kick">Occasional writing on AI, automation, and building useful things.</p>
     </div>
 
     {%- if collections.notes and collections.notes.length %}
-    <div class="notes-list" data-cal>
+    <div class="notes-list" data-cal="1">
       {%- for note in collections.notes %}
       <article class="note-item">
         <span class="date"><time datetime="{{ note.date | isoDate }}">{{ note.date | readableDate }}</time></span>
@@ -24,7 +24,7 @@ eleventyExcludeFromCollections: true
       {%- endfor %}
     </div>
     {%- else %}
-    <div class="notes-empty" data-cal>
+    <div class="notes-empty" data-cal="1">
       <p>No notes published yet — the first one is in the works. Until then, the <a href="/work/">selected work</a> and <a href="/lab/">lab</a> are the best places to look.</p>
     </div>
     {%- endif %}

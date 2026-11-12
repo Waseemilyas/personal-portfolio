@@ -135,7 +135,7 @@ try:
     require("!document.getElementById('primary-nav').inert && !document.getElementById('primary-nav').hasAttribute('aria-hidden')")
     receipts.append("mobile drawer open/Escape focus/link close/desktop breakpoint state")
     run("set", "media", "light", "reduced-motion"); run("open", base + "/")
-    require("Array.from(document.querySelectorAll('[data-cal],.reg')).every(e=>e.classList.contains('in'))")
+    require("!document.querySelector('.cal-wait') && Array.from(document.querySelectorAll('[data-cal]')).every(e=>getComputedStyle(e).opacity==='1') && document.getAnimations().every(a=>a.animationName!=='rise'&&a.animationName!=='fadein')")
     capture("desktop-reduced-motion")
     # Read-only contracts: never activate email or external destinations or play audio.
     for route, marker in [("/notes/feed.xml", b"<feed"), ("/sitemap.xml", b"<urlset"), ("/audio/adhan.mp3", b"ID3"), ("/audio/iftar.mp3", b"ID3"), ("/audio/sehri.mp3", b"ID3")]:

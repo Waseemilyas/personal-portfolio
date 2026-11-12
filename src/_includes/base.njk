@@ -48,15 +48,31 @@
 
 {% if monitoring.sentryLoaderUrl %}
 <!-- Error monitoring is configured only in production builds via SENTRY_DSN.
-     The loader stays lazy: the SDK bundle downloads only after an error. -->
+     The loader is fetched asynchronously so a third-party origin never blocks
+     first paint; errors raised before it arrives are held and reported once it
+     does. The loader stays lazy: the SDK bundle downloads only after an error. -->
 <script>
   window.sentryOnLoad = function () {
     Sentry.init({ dsn: {{ monitoring.sentryDsnJson | safe }}, release: "{{ siteRevision }}" });
     Sentry.setTag("site", "waseemilyas.uk");
     Sentry.setTag("deployment", "github-pages");
   };
+  (function () {
+    var early = [];
+    var hold = function (e) { early.push(e.error || e.reason || e.message); };
+    addEventListener("error", hold);
+    addEventListener("unhandledrejection", hold);
+    var s = document.createElement("script");
+    s.src = "{{ monitoring.sentryLoaderUrl }}";
+    s.crossOrigin = "anonymous";
+    s.onload = function () {
+      removeEventListener("error", hold);
+      removeEventListener("unhandledrejection", hold);
+      early.forEach(function (err) { Sentry.captureException(err); });
+    };
+    document.head.appendChild(s);
+  })();
 </script>
-<script src="{{ monitoring.sentryLoaderUrl }}" crossorigin="anonymous"></script>
 {% endif %}
 
 <script type="application/ld+json">
