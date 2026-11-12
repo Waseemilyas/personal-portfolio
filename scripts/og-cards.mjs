@@ -131,13 +131,15 @@ async function render(pages) {
   const profile = mkdtempSync(join(tmpdir(), "og-cards-"));
   let socket;
   const chrome = spawn(executable, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
+    // Hosted CI restricts user namespaces; this browser renders only our inlined card HTML.
+    ...(process.env.CI ? ["--no-sandbox"] : []),
     "--no-first-run", "--hide-scrollbars", "--force-color-profile=srgb", "about:blank"], { stdio: ["ignore", "ignore", "pipe"] });
   try {
     const wsUrl = await new Promise((resolve, reject) => {
       let log = "";
       const timer = setTimeout(() => reject(new Error(`Chromium gave no DevTools address:\n${log}`)), 20_000);
       chrome.once("error", (error) => { clearTimeout(timer); reject(error); });
-      chrome.once("exit", (code) => { clearTimeout(timer); reject(new Error(`Chromium exited before rendering (${code})`)); });
+      chrome.once("exit", (code) => { clearTimeout(timer); reject(new Error(`Chromium exited before rendering (${code}):\n${log}`)); });
       chrome.stderr?.on("data", (d) => {
         log += d;
         const m = log.match(/ws:\/\/\S+/);
@@ -188,7 +190,7 @@ async function render(pages) {
   } finally {
     socket?.close();
     chrome.kill();
-    await new Promise((r) => (chrome.pid && chrome.exitCode === null ? chrome.once("exit", r) : r(null)));
+    await new Promise((r) => (chrome.pid && chrome.exitCode === null && chrome.signalCode === null ? chrome.once("exit", r) : r(null)));
     rmSync(profile, { recursive: true, force: true });
   }
 }
