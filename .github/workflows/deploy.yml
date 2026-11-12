@@ -29,6 +29,11 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.12"
+      - name: Install preview-card compression
+        run: python3 -m pip install Pillow==12.0.0
       - run: pnpm install --frozen-lockfile
       - name: Privacy guard on the source being published
         run: node scripts/content-guard.mjs

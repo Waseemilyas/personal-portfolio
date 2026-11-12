@@ -1,30 +1,16 @@
-#!/usr/bin/env node
-// Social preview cards: one 1200x630 PNG per note and case study, plus the site's
-// default card, drawn in the site's own fonts and colours by headless Chromium.
-//
-//   pnpm build && node scripts/og-cards.mjs && pnpm build
-//
-// Card text comes only from the built page (its <h1>, label and kicker), so a card
-// can never say more than the page already publishes. The PNGs land in
-// src/assets/img/og/ and src/_data/ogCards.json maps each page URL to its card;
-// base.njk reads that map. site-check fails when a page has no card or its card's
-// text no longer matches the page, so a renamed note cannot ship a stale preview.
-// Rendering needs a local Chromium (CHROME=/path/to/chrome to choose one); CI only
-// checks the committed cards.
+// Social preview cards are built from the rendered pages in Eleventy's normal
+// build/watch loop. No generated source images or duplicate text manifest.
+// Rendering needs Chromium (CHROME=/path/to/chrome to choose one).
 
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { JSDOM } from "jsdom";
 
-export const CARD_DIR = "src/assets/img/og";
-export const MANIFEST = "src/_data/ogCards.json";
 const FONT_DIR = "src/assets/fonts";
 
 /** @typedef {{label: string, title: string, subtitle: string}} CardText */
-/** @typedef {CardText & {image: string, alt: string}} Card */
 
 /** The default card: the home page's own headline. */
 const DEFAULT_CARD = {
@@ -69,7 +55,7 @@ export const cardAlt = (t) =>
   [t.label, t.title, t.subtitle].filter(Boolean).map((s) => (/[.?!]$/.test(s) ? s : `${s}.`)).join(" ");
 
 /** @param {string} s */
-const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /**
  * One self-contained card page: fonts inlined, nothing fetched.
@@ -141,24 +127,32 @@ function findChrome() {
  * @returns {Promise<Buffer[]>}
  */
 async function render(pages) {
+  const executable = findChrome();
   const profile = mkdtempSync(join(tmpdir(), "og-cards-"));
-  const chrome = spawn(findChrome(), ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
+  let socket;
+  const chrome = spawn(executable, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
     "--no-first-run", "--hide-scrollbars", "--force-color-profile=srgb", "about:blank"], { stdio: ["ignore", "ignore", "pipe"] });
   try {
     const wsUrl = await new Promise((resolve, reject) => {
       let log = "";
       const timer = setTimeout(() => reject(new Error(`Chromium gave no DevTools address:\n${log}`)), 20_000);
+      chrome.once("error", (error) => { clearTimeout(timer); reject(error); });
+      chrome.once("exit", (code) => { clearTimeout(timer); reject(new Error(`Chromium exited before rendering (${code})`)); });
       chrome.stderr?.on("data", (d) => {
         log += d;
         const m = log.match(/ws:\/\/\S+/);
         if (m) { clearTimeout(timer); resolve(m[0]); }
       });
     });
-    const ws = new WebSocket(wsUrl);
+    const ws = socket = new WebSocket(wsUrl);
     await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
     let seq = 0;
     /** @type {Map<number, {resolve: (v: any) => void, reject: (e: Error) => void}>} */
     const waiting = new Map();
+    ws.onclose = () => {
+      for (const w of waiting.values()) w.reject(new Error("Chromium connection closed"));
+      waiting.clear();
+    };
     ws.onmessage = (e) => {
       const m = JSON.parse(String(e.data));
       const w = waiting.get(m.id);
@@ -168,8 +162,12 @@ async function render(pages) {
     };
     /** @param {string} method @param {object} [params] @param {string} [sessionId] @returns {Promise<any>} */
     const send = (method, params = {}, sessionId) => new Promise((resolve, reject) => {
-      waiting.set(++seq, { resolve, reject });
-      ws.send(JSON.stringify({ id: seq, method, params, sessionId }));
+      const id = ++seq;
+      const timer = setTimeout(() => { waiting.delete(id); reject(new Error(`Chromium timed out: ${method}`)); }, 15_000);
+      const finish = (/** @type {any} */ value) => { clearTimeout(timer); resolve(value); };
+      const fail = (/** @type {Error} */ error) => { clearTimeout(timer); reject(error); };
+      waiting.set(id, { resolve: finish, reject: fail });
+      ws.send(JSON.stringify({ id, method, params, sessionId }));
     });
 
     const { targetId } = await send("Target.createTarget", { url: "about:blank" });
@@ -180,15 +178,17 @@ async function render(pages) {
     const shots = [];
     for (const html of pages) {
       await send("Page.setDocumentContent", { frameId: frameTree.frame.id, html }, sessionId);
-      await send("Runtime.evaluate", { expression: FIT_TITLE, awaitPromise: true, returnByValue: true }, sessionId);
+      const fit = await send("Runtime.evaluate", { expression: FIT_TITLE, awaitPromise: true, returnByValue: true }, sessionId);
+      if (fit.exceptionDetails) throw new Error(`Card layout failed: ${fit.exceptionDetails.text}`);
       const { data } = await send("Page.captureScreenshot", { format: "png", clip: { x: 0, y: 0, width: 1200, height: 630, scale: 1 } }, sessionId);
       shots.push(Buffer.from(data, "base64"));
     }
     ws.close();
     return shots;
   } finally {
+    socket?.close();
     chrome.kill();
-    await new Promise((r) => (chrome.exitCode === null ? chrome.once("exit", r) : r(null)));
+    await new Promise((r) => (chrome.pid && chrome.exitCode === null ? chrome.once("exit", r) : r(null)));
     rmSync(profile, { recursive: true, force: true });
   }
 }
@@ -206,51 +206,66 @@ function squeeze(files) {
   if (run.status !== 0) console.warn(`Cards left unquantized (python3 with Pillow not available):\n${run.stderr || run.error}`);
 }
 
-/** Every built page of the site with its URL. @param {string} siteDir */
-export function builtPages(siteDir) {
-  /** @type {{file: string, url: string}[]} */
-  const out = [];
-  /** @param {string} dir */
-  const walk = (dir) => {
-    for (const e of readdirSync(join(siteDir, dir), { withFileTypes: true })) {
-      const rel = dir ? `${dir}/${e.name}` : e.name;
-      if (e.isDirectory()) walk(rel);
-      else if (e.name === "index.html") out.push({ file: rel, url: `/${rel.slice(0, -"index.html".length)}` });
+/**
+ * Wire card metadata and PNGs into the same build that writes their pages.
+ * @param {{
+ * on(event: "eleventy.before", callback: () => void): void,
+ * on(event: "eleventy.after", callback: (event: {directories: {output: string}, incremental: boolean}) => Promise<void>): void,
+ * addTransform(name: string, transform: (this: {page: {outputPath: string | false, url: string}}, content: string) => string): void
+ * }} config
+ */
+export function addShareCards(config) {
+  /** @type {Map<string, string>} */
+  const cards = new Map();
+  // Watch builds reuse unchanged images, but a fresh build needs no saved cache.
+  /** @type {Map<string, string>} */
+  const rendered = new Map();
+  config.on("eleventy.before", () => {
+    cards.clear();
+    cards.set("/assets/img/og-card.png", cardHtml(DEFAULT_CARD));
+  });
+  config.addTransform("share-card", function (content) {
+    if (!this.page.outputPath || !this.page.outputPath.endsWith(".html")) return content;
+    const dom = new JSDOM(content);
+    try {
+      const doc = dom.window.document;
+      const text = cardText(doc, this.page.url);
+      if (!text) return content;
+      if (!text.title) throw new Error(`${this.page.url} has no <h1> to put on its card`);
+      const image = cardImage(this.page.url);
+      cards.set(image, cardHtml({ label: esc(text.label), title: esc(text.title), subtitle: esc(text.subtitle) }));
+      const canonical = doc.querySelector('link[rel="canonical"]')?.getAttribute("href");
+      if (!canonical) throw new Error(`${this.page.url} has no canonical URL`);
+      const url = new URL(image, canonical).href;
+      // Replace only metadata, leaving inline script bytes (and CSP hashes) intact.
+      return content.replace(/(<meta (?:property|name)="(?:og|twitter):image(:alt)?" content=")[^"]*(")/g,
+        (_match, start, alt, end) => `${start}${esc(alt ? cardAlt(text) : url)}${end}`);
+    } finally {
+      dom.window.close();
     }
-  };
-  walk("");
-  return out.sort((a, b) => a.url.localeCompare(b.url));
+  });
+  config.on("eleventy.after", async ({ directories, incremental }) => {
+    const changed = [...cards].filter(([image, html]) => rendered.get(image) !== html || !existsSync(join(directories.output, image)));
+    if (changed.length) {
+      const shots = await render(changed.map(([, html]) => html));
+      const targets = changed.map(([image]) => join(directories.output, image));
+      mkdirSync(join(directories.output, "assets/img/og"), { recursive: true });
+      shots.forEach((png, i) => writeFileSync(targets[i], png));
+      squeeze(targets);
+      for (const [image, html] of changed) rendered.set(image, html);
+    }
+    // A full rebuild also removes cards for articles that were deleted or drafted.
+    // Incremental builds only know the pages they rebuilt, so retain other cards.
+    const cardDir = join(directories.output, "assets/img/og");
+    if (!incremental && existsSync(cardDir)) {
+      for (const file of readdirSync(cardDir)) {
+        const image = `/assets/img/og/${file}`;
+        if (file.endsWith(".png") && !cards.has(image)) {
+          unlinkSync(join(cardDir, file));
+          rendered.delete(image);
+        }
+      }
+    }
+    console.log(`[share cards] Rendered ${changed.length} PNGs.`);
+  });
 }
-
-async function main() {
-  const siteDir = "_site";
-  if (!existsSync(join(siteDir, "index.html"))) throw new Error("Build the site first: pnpm build");
-  /** @type {Record<string, Card>} */
-  const manifest = {};
-  /** @type {string[]} */
-  const html = [];
-  /** @type {string[]} */
-  const targets = [];
-  for (const { file, url } of builtPages(siteDir)) {
-    const text = cardText(new JSDOM(readFileSync(join(siteDir, file), "utf8")).window.document, url);
-    if (!text) continue;
-    if (!text.title) throw new Error(`${url} has no <h1> to put on its card`);
-    manifest[url] = { image: cardImage(url), alt: cardAlt(text), ...text };
-    html.push(cardHtml({ label: esc(text.label), title: esc(text.title), subtitle: esc(text.subtitle) }));
-    targets.push(join("src", manifest[url].image));
-  }
-  html.push(cardHtml(DEFAULT_CARD));
-  targets.push("src/assets/img/og-card.png");
-
-  const shots = await render(html);
-  mkdirSync(CARD_DIR, { recursive: true });
-  const keep = new Set(targets);
-  for (const f of readdirSync(CARD_DIR)) if (!keep.has(join(CARD_DIR, f))) unlinkSync(join(CARD_DIR, f));
-  shots.forEach((png, i) => writeFileSync(targets[i], png));
-  squeeze(targets);
-  writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
-  for (const t of targets) console.log(`${t}: ${statSync(t).size} bytes`);
-  console.log(`${MANIFEST}: ${Object.keys(manifest).length} cards. Rebuild (pnpm build) to publish them.`);
-}
-
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();

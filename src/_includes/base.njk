@@ -10,10 +10,9 @@
 {% set fullTitle = pageTitle + " — " + site.shortTitle if title and page.url != "/" else site.title %}
 {% set pageDesc = description if description else site.description %}
 {% set canonical = site.url + page.url %}
-{#- Notes and case studies share their own card (scripts/og-cards.mjs); other pages share the default. #}
-{% set card = ogCards[page.url] %}
-{% set ogImage = site.url + (card.image if card else site.ogImage) %}
-{% set ogImageAlt = card.alt if card else site.ogImageAlt %}
+{#- The share-card transform fills article image metadata from the rendered page. #}
+{% set ogImage = site.url + site.ogImage %}
+{% set ogImageAlt = site.ogImageAlt %}
 {% set isNote = "note" in (tags or []) %}
 
 <title>{{ fullTitle }}</title>
