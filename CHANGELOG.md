@@ -1,5 +1,18 @@
 # Release notes
 
+## v2026.11.12.2 — 12 November 2026
+
+The site is easier to move around, with lighter page fonts and a next step at the end of each case study and note.
+
+### Improvements
+
+- Your browser now limits page content to the site’s own files and approved services.
+- Ordinary page text uses smaller font files, reducing the amount of font data your browser loads.
+- Text set in italics now uses a designed italic font, and the fonts loaded up front use fewer bytes.
+- Case studies and notes now end with a link to the next case study or note. Each link opens one item, and the sequence wraps back to the first.
+- Navigation links have more even spacing, and the GitHub link stays together on narrow screens.
+
+
 ## v2026.11.10.1 — 10 November 2026
 
 Links in the header, footer, contact area and case navigation are easier to tap on touch screens.
