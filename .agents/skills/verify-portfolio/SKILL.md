@@ -56,6 +56,9 @@ Never treat an older site's successful journey as proof of the new revision.
 ## Evidence
 
 Retain `commands.log`, `result.json` and all PNGs in the chosen output directory.
+Chrome cannot take a screenshot once scripts are disabled (`Page.captureScreenshot`
+times out on every page), so the JavaScript-disabled footer step has no PNG: its
+receipt says so, and its DOM checks and footer click still run.
 Read the screenshots: a passed DOM assertion cannot establish legibility. Copy or
 archive the directory outside a disposable checkout before removing it. The
 receipt records revision, actual actions, page coverage, process identities and

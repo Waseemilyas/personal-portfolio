@@ -47,11 +47,18 @@ def remember():
                 owned[entry.name] = (entry / "stat").read_text().split(") ", 1)[1].split()[19]
         except (FileNotFoundError, PermissionError, ProcessLookupError): pass
 
-def capture(name):
+def capture(name, image_optional=False):
     run("wait", "--fn", "document.fonts.status === 'loaded' && Array.from(document.images).every(i => i.complete)")
     run("wait", "--fn", "Array.from(document.querySelectorAll('[data-cal]')).filter(e => {const r=e.getBoundingClientRect();return r.top<innerHeight&&r.bottom>0}).every(e=>getComputedStyle(e).opacity==='1')")
     require("document.documentElement.scrollWidth <= innerWidth + 1")
-    run("screenshot", str(args.out / (name + ".png")))
+    try:
+        run("screenshot", str(args.out / (name + ".png")))
+    except AssertionError as error:
+        # Chrome's Page.captureScreenshot hangs once author scripts are disabled
+        # (--blink-settings=scriptEnabled=false), on every page. The DOM checks
+        # above and the click that follows still prove the no-JS journey.
+        if not image_optional or "Page.captureScreenshot" not in str(error): raise
+        receipts.append(name + ": screenshot unavailable (Chrome cannot capture with scripts disabled); DOM checks passed")
 
 def abort(_sig, _frame): raise TimeoutError("browser path exceeded 300 seconds")
 signal.signal(signal.SIGALRM, abort); signal.alarm(300)
@@ -157,7 +164,7 @@ try:
     require("document.querySelector('[data-bind=h]').textContent === " + json.dumps(nodes[0]["title"]))
     run("scrollintoview", '.foot .fnav a[href="/about/"]')
     run("wait", "--fn", "(()=>{const r=document.querySelector('.foot .fnav a[href=\"/about/\"]').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight})()")
-    capture("phone-nojs-footer")
+    capture("phone-nojs-footer", image_optional=True)
     run("click", '.foot .fnav a[href="/about/"]')
     require("location.pathname === '/about/'")
     receipts.append("JavaScript-disabled phone page: static capability text and footer navigation work")
