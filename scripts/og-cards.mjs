@@ -122,30 +122,57 @@ function findChrome() {
 }
 
 /**
+ * Launch headless Chromium and return its DevTools ws:// address.
+ * @param {string} executable @param {number} timeoutMs
+ * @returns {Promise<{chrome: import("node:child_process").ChildProcess, wsUrl: string, profile: string}>}
+ */
+function launchChrome(executable, timeoutMs) {
+  const profile = mkdtempSync(join(tmpdir(), "og-cards-"));
+  const chrome = spawn(executable, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
+    // Hosted CI restricts user namespaces; this browser renders only our inlined card HTML.
+    ...(process.env.CI ? ["--no-sandbox"] : []),
+    "--no-first-run", "--hide-scrollbars", "--force-color-profile=srgb", "about:blank"], { stdio: ["ignore", "ignore", "pipe"] });
+  return new Promise((resolve, reject) => {
+    let log = "";
+    const fail = (/** @type {Error} */ error) => {
+      clearTimeout(timer);
+      chrome.kill();
+      const done = () => { rmSync(profile, { recursive: true, force: true }); reject(error); };
+      if (chrome.pid && chrome.exitCode === null && chrome.signalCode === null) chrome.once("exit", done);
+      else done();
+    };
+    const timer = setTimeout(() => fail(new Error(`Chromium gave no DevTools address:\n${log}`)), timeoutMs);
+    chrome.once("error", (error) => fail(error));
+    chrome.once("exit", (code) => fail(new Error(`Chromium exited before rendering (${code}):\n${log}`)));
+    chrome.stderr?.on("data", (d) => {
+      log += d;
+      const m = log.match(/ws:\/\/\S+/);
+      if (m) { clearTimeout(timer); chrome.removeAllListeners("exit"); chrome.removeAllListeners("error"); resolve({ chrome, wsUrl: m[0], profile }); }
+    });
+  });
+}
+
+/**
  * Render card pages to PNG buffers in one headless Chromium.
  * @param {string[]} pages
  * @returns {Promise<Buffer[]>}
  */
 async function render(pages) {
   const executable = findChrome();
-  const profile = mkdtempSync(join(tmpdir(), "og-cards-"));
+  // A stalled first launch (seen on hosted CI: only dbus noise on stderr) is
+  // retried once with a longer budget before the build is allowed to fail.
+  /** @type {Awaited<ReturnType<typeof launchChrome>> | undefined} */
+  let launched;
+  /** @type {unknown} */
+  let lastError;
+  for (const timeout of [20_000, 60_000]) {
+    try { launched = await launchChrome(executable, timeout); break; }
+    catch (error) { lastError = error; console.warn(`Chromium launch failed, ${timeout === 20_000 ? "retrying once" : "giving up"}:`, error); }
+  }
+  if (!launched) throw lastError;
+  const { chrome, wsUrl, profile } = launched;
   let socket;
-  const chrome = spawn(executable, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
-    // Hosted CI restricts user namespaces; this browser renders only our inlined card HTML.
-    ...(process.env.CI ? ["--no-sandbox"] : []),
-    "--no-first-run", "--hide-scrollbars", "--force-color-profile=srgb", "about:blank"], { stdio: ["ignore", "ignore", "pipe"] });
   try {
-    const wsUrl = await new Promise((resolve, reject) => {
-      let log = "";
-      const timer = setTimeout(() => reject(new Error(`Chromium gave no DevTools address:\n${log}`)), 20_000);
-      chrome.once("error", (error) => { clearTimeout(timer); reject(error); });
-      chrome.once("exit", (code) => { clearTimeout(timer); reject(new Error(`Chromium exited before rendering (${code}):\n${log}`)); });
-      chrome.stderr?.on("data", (d) => {
-        log += d;
-        const m = log.match(/ws:\/\/\S+/);
-        if (m) { clearTimeout(timer); resolve(m[0]); }
-      });
-    });
     const ws = socket = new WebSocket(wsUrl);
     await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
     let seq = 0;
