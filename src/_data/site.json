@@ -12,6 +12,7 @@
   "automancer": "https://automancer.uk",
   "automancerRepo": "https://github.com/Waseemilyas/automancer-site",
   "ogImage": "/assets/img/og-card.png",
+  "ogImageAlt": "Waseem Ilyas / UK. Technologist who designs, builds, teaches, and automates. Automancer — AI & automation for small businesses.",
   "nav": [
     { "label": "Home", "url": "/" },
     { "label": "About", "url": "/about/" },

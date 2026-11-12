@@ -10,6 +10,11 @@
 {% set fullTitle = pageTitle + " — " + site.shortTitle if title and page.url != "/" else site.title %}
 {% set pageDesc = description if description else site.description %}
 {% set canonical = site.url + page.url %}
+{#- Notes and case studies share their own card (scripts/og-cards.mjs); other pages share the default. #}
+{% set card = ogCards[page.url] %}
+{% set ogImage = site.url + (card.image if card else site.ogImage) %}
+{% set ogImageAlt = card.alt if card else site.ogImageAlt %}
+{% set isNote = "note" in (tags or []) %}
 
 <title>{{ fullTitle }}</title>
 <meta name="description" content="{{ pageDesc }}">
@@ -19,21 +24,27 @@
 <meta name="theme-color" content="#2b2622">
 
 <!-- Open Graph -->
-<meta property="og:type" content="website">
+<meta property="og:type" content="{{ "article" if isNote else "website" }}">
 <meta property="og:site_name" content="{{ site.shortTitle }}">
 <meta property="og:title" content="{{ fullTitle }}">
 <meta property="og:description" content="{{ pageDesc }}">
 <meta property="og:url" content="{{ canonical }}">
 <meta property="og:locale" content="{{ site.locale }}">
-<meta property="og:image" content="{{ site.url }}{{ site.ogImage }}">
+<meta property="og:image" content="{{ ogImage }}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{ ogImageAlt }}">
+{%- if isNote %}
+<meta property="article:published_time" content="{{ page.date | isoDate }}">
+<meta property="article:author" content="{{ site.url }}/about/">
+{%- endif %}
 
 <!-- Twitter / X -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ fullTitle }}">
 <meta name="twitter:description" content="{{ pageDesc }}">
-<meta name="twitter:image" content="{{ site.url }}{{ site.ogImage }}">
+<meta name="twitter:image" content="{{ ogImage }}">
+<meta name="twitter:image:alt" content="{{ ogImageAlt }}">
 
 <!-- Icons -->
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
@@ -99,6 +110,22 @@
   "sameAs": ["{{ site.github }}", "{{ site.automancer }}"]
 }
 </script>
+{%- if isNote %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": {{ title | dump | safe }},
+  "description": {{ pageDesc | dump | safe }},
+  "datePublished": "{{ page.date | isoDate }}",
+  "url": "{{ canonical }}",
+  "mainEntityOfPage": "{{ canonical }}",
+  "image": "{{ ogImage }}",
+  "inLanguage": "en-GB",
+  "author": { "@type": "Person", "name": "{{ site.author }}", "url": "{{ site.url }}/about/" }
+}
+</script>
+{%- endif %}
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
