@@ -24,6 +24,16 @@ layout: base.njk
       </aside>
     </div>
 
+    {%- set next = collections.casestudies | getNextCollectionItem(page) or collections.casestudies | first %}
+    {%- if next and next.url != page.url %}
+    <a class="nextread" href="{{ next.url }}" data-cal>
+      <span class="nextread-k">Next case study · {{ next.data.ref }}</span>
+      <span class="nextread-t">{{ next.data.title }}</span>
+      <span class="nextread-d">{{ next.data.kicker }}</span>
+      <span class="nextread-go" aria-hidden="true">→</span>
+    </a>
+    {%- endif %}
+
     <nav class="casenav" aria-label="Case study">
       <a href="/work/">← All work</a>
       <a href="mailto:{{ site.email }}">Email Waseem →</a>

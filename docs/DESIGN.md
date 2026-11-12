@@ -326,7 +326,7 @@ rather than a new one.
   eras, the email link, and `.label` (uppercase, `0.08em` tracking). Note the rule
   is narrower than it sounds: mono also carries a few short UI affordances, among
   them the `.workcard .go` arrow, `.casenav a` links and the `.proof li::before`
-  bullet glyph (all `styles.css`). There are 20 `var(--mono)` consumers in all;
+  bullet glyph (all `styles.css`). There are 24 `var(--mono)` consumers in all;
   the constraint that actually holds is **never body copy**.
 - Headings tighten as they grow: the global rule is `font-weight: 700`,
   `line-height: 1.04`, `letter-spacing: -0.03em`, `text-wrap: balance`; the hero
@@ -436,7 +436,8 @@ extend rather than fork.
 | `.proof` | console | home, `/about/` | Bordered `→` list on `--graphite-800`; the 10px radius rung. |
 | `.datasheet` | essay | case studies, `/about/` | Sticky `top: 4.5rem` sidebar `dl`. |
 | `.prose` | essay | case studies, notes, `/about/` | Long-form container, `70ch`. |
-| `.casenav` | essay | case-study and note detail pages | Footer nav **inside** the `<article>`, not under it. A fixed pair — back-to-index link + `mailto` — **not** prev/next: no prev/next plumbing exists in `eleventy.config.js`. Mono in `--signal-deep`. |
+| `.nextread` | essay | case-study and note detail pages | One whole-card link to the next item, just above `.casenav`: the next case study by `order`, or the next older note, wrapping to the first at the end. Built in `case.njk` / `note.njk` with Eleventy's `getNextCollectionItem` over `collections.casestudies` / `collections.notes`, so drafts never appear. `--paper-sink` card, `--rounded-lg`, mono `--signal-deep` label (`.nextread-k`), `--step-2` title (`.nextread-t`, a span, not a heading, so the heading contract is untouched), `--ink-mute` kicker or summary (`.nextread-d`), arrow (`.nextread-go`). Hover borders and titles it in `--signal-deep`. |
+| `.casenav` | essay | case-study and note detail pages | Footer nav **inside** the `<article>`, not under it. A fixed pair: back-to-index link + `mailto`. Mono in `--signal-deep`. Directly after `.nextread` it drops its hairline and top padding. |
 | `.btn` (`-primary` / `-ghost`) | console | `/`, `/404`, `/automancer/`, `/contact/` | Every button ships on console. `.essay .btn-ghost` (+ hover) (`styles.css`) restates the ghost variant in ink, but no essay template uses a button — reserved, not shipped. |
 | `.ref` | both | every content route | Mono section/page reference. `--signal` on console, `--signal-deep` on essay. |
 
