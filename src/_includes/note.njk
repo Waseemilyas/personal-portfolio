@@ -22,7 +22,7 @@ layout: base.njk
     {%- endif %}
     <nav class="casenav" aria-label="Notes">
       <a href="/notes/">← All notes</a>
-      <a href="mailto:{{ site.email }}">Email Waseem →</a>
+      <a href="{{ site.email | mailto('About your note: ' + title) }}">Email Waseem →</a>
     </nav>
   </div>
 </article>

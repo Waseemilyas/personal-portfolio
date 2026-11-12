@@ -158,6 +158,14 @@ try:
             if route.endswith(".xml"): assert marker in body
     run("open", base + "/contact/")
     require("document.querySelector('a[href^=\"mailto:\"]').href.startsWith('mailto:')")
+    require("Array.from(document.querySelectorAll('a[href^=\"mailto:\"]')).every(a=>new URL(a.href).searchParams.get('subject'))")
+    # The copy button copies to the clipboard, never sends anything; headless Chrome may
+    # refuse the write, so either outcome must be announced to the visitor.
+    require("!document.querySelector('button.copy-email').hidden")
+    run("click", "button.copy-email")
+    run("wait", "--fn", "document.querySelector('.email-row [role=status]').textContent !== ''")
+    require("['Email address copied.','Could not copy. Select the address to copy it.'].includes(document.querySelector('.email-row [role=status]').textContent)")
+    receipts.append("contact email links carry a subject; copy button shown, clicked and announced: " + run("eval", "document.querySelector('.email-row [role=status]').textContent"))
     errors = run("errors")
     assert errors in ("", "No errors", "No page errors", "[]"), errors
     remember(); run("close")

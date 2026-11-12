@@ -432,7 +432,7 @@ extend rather than fork.
 | `.workcard` in `.worklist` | console | home, `/work/` | Three-column grid (ref · title+kick · go arrow) inside a 1px-gap list that fakes dividers via `background: var(--line-dark)`. Collapses to one column below 620px and drops the arrow. |
 | `.lab-card` in `.lab-grid` | console | home, `/lab/` | `auto-fit minmax(15rem, 1fr)`. Hover lifts 2px and borders in `--signal`. |
 | `.amancer` + `.diagram-panel` | console | home, `/automancer/` | Two-column copy + diagram block. The diagram is the shared partial `partials/diagram-workflow.njk`. |
-| `.contact-cta` / `.email-big` | console | home, `/contact/` | The primary CTA. `.email-big` is mono and display-scale, underlined in `--signal`; it is one of the sizes outside the type scale. |
+| `.contact-cta` / `.email-big` | console | home, `/contact/` | The primary CTA. `.email-big` is mono and display-scale, underlined in `--signal`; it is one of the sizes outside the type scale. Shares `.email-row` (`partials/email-cta.njk`) with a mono `.copy-email` ghost button, hidden until `site.js` finds a usable clipboard; `[data-copied]` turns it `--signal` while it reads "Copied ✓". |
 | `.milestone` in `.arc-line` | console | home, `/about/` | Timeline. `.key` milestones get a signal dot with glow. |
 | `.proof` | console | home, `/about/` | Bordered `→` list on `--graphite-800`; the 10px radius rung. |
 | `.datasheet` | essay | case studies, `/about/` | Sticky `top: 4.5rem` sidebar `dl`. |

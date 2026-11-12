@@ -14,7 +14,7 @@ permalink: "/contact/"
     </div>
     <div class="contact-cta" data-cal="1">
       <p class="contact-close">The fastest way to reach me is email. If you run a small business and want to know whether AI or automation is worth it for you, that is exactly the conversation I like having.</p>
-      <a class="email-big" href="mailto:{{ site.email }}">{{ site.email }}</a>
+      {% include "partials/email-cta.njk" %}
       <p class="contact-close">No funnel, no pitch deck. Just send a note.</p>
       <div class="actions">
         <a class="btn btn-ghost" href="{{ site.github }}" rel="me noopener">GitHub ↗</a>
