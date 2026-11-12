@@ -59,7 +59,17 @@ Retain `commands.log`, `result.json` and all PNGs in the chosen output directory
 Chrome cannot take a screenshot once scripts are disabled (`Page.captureScreenshot`
 times out on every page), so the JavaScript-disabled footer step has no PNG: its
 receipt says so, and its DOM checks and footer click still run.
-Read the screenshots: a passed DOM assertion cannot establish legibility. Copy or
+Read the screenshots: a passed DOM assertion cannot establish legibility. If
+your model cannot read images, use the local vision lane — in a factory lane
+the loopback gateway is unreachable, so point the helper at the estate router
+or every call looks like an empty answer (stderr says the gateway timed out):
+
+```bash
+GATEWAY_URL=http://auto-hst1:8100 bash ~/.agents/skills/local-models/vision/scripts/see-image.sh <png> "<question>"
+```
+
+Check `http://auto-hst1:8100/status/data` first, as the `local-models` skill
+says; if it does not answer, say the screenshots were unread, not fine. Copy or
 archive the directory outside a disposable checkout before removing it. The
 receipt records revision, actual actions, page coverage, process identities and
 port closure. A partially populated receipt after failure is not a pass.
