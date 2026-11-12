@@ -26,7 +26,8 @@ content comes from `src/_data/capabilities.json` through `src/index.njk` data
 attributes. Pointer selection, focus and Enter/Space activate a node. Selection
 changes the panel and the highlighted connection without changing the route.
 Without JavaScript, the first capability description is already rendered. On a narrow frame the same nodes are readable buttons instead of scaled SVG labels; selection, keyboard activation and the panel still belong to `setupCapabilityMap`.
-`setupReveals` owns decorative entry motion; reduced motion reveals immediately.
+First-screen entry motion is CSS alone (`data-cal` slots); `setupReveals` only defers
+below-the-fold blocks while they are off-screen. Reduced motion animates nothing.
 
 `src/notes/posts/posts.11tydata.js` suppresses a draft's page permalink and excludes
 it from collections. The notes collection also filters drafts in

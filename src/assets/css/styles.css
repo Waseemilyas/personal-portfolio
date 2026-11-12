@@ -452,13 +452,26 @@ p, li { text-wrap: pretty; }
 .foot .meta + .meta { margin-top: .4rem; }
 
 /* ---------- calibration motion ----------
-   Content is visible by DEFAULT. The reveal only enhances. */
+   Content is visible by DEFAULT. The reveal only enhances.
+   First-screen blocks carry their stagger slot (data-cal="0".."4") and rise from
+   the very first frame in CSS alone, so nothing is painted and then hidden.
+   Below-the-fold blocks (bare data-cal) are hidden only by site.js, only while
+   off-screen (.cal-wait), and rise when scrolled to (.in). */
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes fadein { from { opacity: 0; } to { opacity: .55; } }
-.js [data-cal].in { animation: rise .7s var(--ease) both; }
-.js .reg.in { animation: fadein .9s var(--ease) both; }
+@media (prefers-reduced-motion: no-preference) {
+  .js [data-cal]:not([data-cal=""]), .js [data-cal].in { animation: rise .7s var(--ease) both; }
+  .js [data-cal="0"] { animation-delay: 180ms; }
+  .js [data-cal="1"] { animation-delay: 290ms; }
+  .js [data-cal="2"] { animation-delay: 400ms; }
+  .js [data-cal="3"] { animation-delay: 510ms; }
+  .js [data-cal="4"] { animation-delay: 620ms; }
+  .js [data-cal].cal-wait { opacity: 0; }
+  .js .reg { animation: fadein .9s var(--ease) both; }
+  .js .reg.tl { animation-delay: 120ms; } .js .reg.tr { animation-delay: 210ms; }
+  .js .reg.bl { animation-delay: 300ms; } .js .reg.br { animation-delay: 390ms; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .js [data-cal].in, .js .reg.in { animation: none; }
   .panel .phead .live .blip { animation: none; }
   .nav, .nav-toggle svg path { transition: none; }
 }

@@ -7,12 +7,12 @@ permalink: "/work/"
 <section class="console section" aria-label="Selected work">
   <span class="reg tl" aria-hidden="true"></span><span class="reg tr" aria-hidden="true"></span>
   <div class="shell">
-    <div class="section-head" data-cal>
+    <div class="section-head" data-cal="0">
       <span class="ref">WORK</span>
       <h1>Selected work</h1>
       <p>A few projects where the mix mattered more than any single skill. Some are public. Some are anonymised to protect client privacy.</p>
     </div>
-    <div class="worklist" data-cal>
+    <div class="worklist" data-cal="1">
       {%- for cs in collections.casestudies %}
       <a class="workcard" href="{{ cs.url }}">
         <span class="ref">{{ cs.data.ref }}</span>

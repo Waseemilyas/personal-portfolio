@@ -45,20 +45,22 @@
     }
   }
 
+  /* First-screen blocks (data-cal="0".."4") and corner marks animate in CSS alone.
+     This only defers below-the-fold blocks: one already on screen is never hidden,
+     and one hidden here rises once its top crosses 88% of the viewport. */
   function setupReveals() {
-    var cals = Array.from(document.querySelectorAll("[data-cal]"));
-    var regs = Array.from(document.querySelectorAll(".reg"));
-    if (rm || !("IntersectionObserver" in window)) {
-      cals.forEach(function (el) { el.classList.add("in"); });
-      regs.forEach(function (el) { el.classList.add("in"); });
-    } else {
-      regs.forEach(function (el, i) { setTimeout(function () { el.classList.add("in"); }, 120 + i * 90); });
-      var io = new IntersectionObserver(function (es) {
-        es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
-      }, { threshold: 0.18, rootMargin: "0px 0px -8% 0px" });
-      cals.forEach(function (el) { io.observe(el); });
-      cals.slice(0, 5).forEach(function (el, i) { setTimeout(function () { el.classList.add("in"); }, 180 + i * 110); });
-    }
+    if (rm || !("IntersectionObserver" in window)) return;
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.replace("cal-wait", "in"); io.unobserve(e.target); }
+      });
+    }, { rootMargin: "0px 0px -12% 0px" });
+    document.querySelectorAll('[data-cal=""]').forEach(function (el) {
+      var r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight && r.bottom > 0) return;
+      el.classList.add("cal-wait");
+      io.observe(el);
+    });
   }
 
   function setupCapabilityMap() {
