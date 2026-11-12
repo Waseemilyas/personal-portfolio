@@ -1,5 +1,24 @@
 # Release notes
 
+## v2026.11.12.3 — 12 November 2026
+
+Visitors can move between pages more smoothly, contact Waseem in fewer steps, and share notes and case studies with previews tailored to each article.
+
+### Improvements
+
+- On a phone, each selected-work card has a clear “Read” link, and the footer links are easier to scan and tap.
+- Notes and case studies have a print edition that keeps source details with the article across page breaks.
+
+### Contact
+
+- Copy Waseem’s email address with one tap on the Home and Contact pages. The button confirms when it’s copied.
+- Email links open a message with a subject that reflects the page you’re contacting Waseem about.
+
+### Sharing
+
+- Shared notes and case studies show a preview card with that article’s title and details.
+
+
 ## v2026.11.12.2 — 12 November 2026
 
 The site is easier to move around, with lighter page fonts and a next step at the end of each case study and note.
