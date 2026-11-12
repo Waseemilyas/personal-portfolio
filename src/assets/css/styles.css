@@ -599,12 +599,14 @@ p, li { text-wrap: pretty; }
   .reading-page .datasheet dt, .reading-page .datasheet dd { margin-block-start: 0; }
   .reading-page .print-source {
     display: block;
-    margin-block-start: 16pt;
-    padding-block-start: 9pt;
+    margin-block-start: 6pt;
+    padding-block-start: 4pt;
     border-block-start: 1px solid var(--line-light);
     font-size: var(--step--1);
+    line-height: 1.3;
     color: var(--ink-mute);
     overflow-wrap: anywhere;
+    break-before: avoid;
     break-inside: avoid;
   }
 }
