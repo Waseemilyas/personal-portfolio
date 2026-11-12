@@ -134,7 +134,7 @@
 </script>
 {%- endif %}
 </head>
-<body>
+<body{% if isNote or "casestudy" in (tags or []) %} class="reading-page"{% endif %}>
 <a class="skip" href="#main">Skip to content</a>
 
 <header class="topbar">

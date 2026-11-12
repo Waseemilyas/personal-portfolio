@@ -59,6 +59,14 @@ the back-to-index pair: the next case by `order`, or the next older note, wrappi
 to the first. It is plain server-rendered HTML from the same collections, so it
 works without JavaScript and never links a draft.
 
+Browser Print / Save as PDF gives notes and case studies a reading edition on the
+visitor's chosen paper size. Navigation and next-article cards are omitted; the
+complete narrative, original vector diagrams and case datasheet remain. Deferred
+reveals are visible without scrolling, and entry animations stop. The datasheet
+follows the narrative in compact key/value rows. The edition ends with the author,
+email address and canonical page URL, rendered from site data. This source line is
+hidden on screen and printing requires no JavaScript.
+
 `src/notes/posts/posts.11tydata.js` suppresses a draft's page permalink and excludes
 it from collections. The notes collection also filters drafts in
 `eleventy.config.js`. Notes listing, feed and sitemap consume those collections.
