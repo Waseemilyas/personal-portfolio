@@ -89,6 +89,9 @@ try:
     for i, node in enumerate(nodes):
         selector = '.node[data-key="' + node["key"] + '"]'
         run("scrollintoview", selector)
+        # The map's block rises into place once scrolled to; a pointer placed
+        # mid-rise lands on a neighbouring node, so wait until it has settled.
+        run("wait", "--fn", "(() => { const b = document.querySelector(" + json.dumps(selector) + ").closest('[data-cal]'); return !b || (!b.classList.contains('cal-wait') && b.getAnimations().every(a => a.playState !== 'running')); })()")
         if i % 3 == 0: run("hover", selector)
         elif i % 3 == 1:
             run("focus", selector); run("press", "Enter")
