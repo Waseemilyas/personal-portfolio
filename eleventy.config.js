@@ -24,6 +24,8 @@ export default function (eleventyConfig) {
   // Static passthrough: assets, plus the root-level files GitHub Pages needs.
   eleventyConfig.addPassthroughCopy({ "src/assets": "assets" });
   eleventyConfig.addPassthroughCopy({ "src/static": "/" });
+  // The pinned Sentry SDK, fetched by pages only after an error (src/_data/monitoring.js).
+  eleventyConfig.addPassthroughCopy({ [`vendor/${monitoring.sdkFile}`]: `assets/js/${monitoring.sdkFile}` });
   // Prayer-time audio fetched over HTTP by Home Assistant; intentional, do not remove (see audio/README.md).
   eleventyConfig.addPassthroughCopy({ "audio/*.mp3": "audio" });
 
@@ -53,11 +55,11 @@ export default function (eleventyConfig) {
   );
 
   // Every page carries a Content Security Policy that allows only this site's own
-  // files, its inline scripts by hash, and Sentry when monitoring is configured.
+  // files and inline scripts by hash, plus Sentry's ingest when monitoring is configured.
   eleventyConfig.addTransform("content-security-policy", function (content) {
     const out = this.page.outputPath;
     return typeof out === "string" && out.endsWith(".html")
-      ? withPolicy(content, { scriptOrigins: monitoring.cspScriptOrigins, connectOrigins: monitoring.cspConnectOrigins })
+      ? withPolicy(content, { connectOrigins: monitoring.cspConnectOrigins })
       : content;
   });
 

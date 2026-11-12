@@ -57,22 +57,40 @@
 <link rel="stylesheet" href="/assets/css/styles.css">
 <link rel="alternate" type="application/atom+xml" title="{{ site.shortTitle }} — Notes" href="/notes/feed.xml">
 
-{% if monitoring.sentryLoaderUrl %}
+{% if monitoring.sentrySdkUrl %}
 <!-- Error monitoring is configured only in production builds via SENTRY_DSN.
-     The loader is fetched asynchronously so a third-party origin never blocks
-     first paint; errors raised before it arrives are held and reported once it
-     does. The loader stays lazy: the SDK bundle downloads only after an error. -->
+     Nothing third-party loads on a normal visit: the pinned Sentry SDK is served
+     from this site and downloaded only after the first error, which is held and
+     reported once it arrives, together with any that follow. -->
 <script>
-  window.sentryOnLoad = function () {
-    Sentry.init({ dsn: {{ monitoring.sentryDsnJson | safe }}, release: "{{ siteRevision }}" });
-    Sentry.setTag("site", "waseemilyas.uk");
-    Sentry.setTag("deployment", "github-pages");
-  };
   (function () {
-    var early = [];
-    var hold = function (e) { early.push(e.error || e.reason || e.message); };
-    addEventListener("error", hold);
-    addEventListener("unhandledrejection", hold);
+    var held = [];
+    var loading = false;
+    var send = function (item) { typeof item === "function" ? item() : Sentry.captureException(item); };
+    var onError = function (e) { report(e.error || e.message); };
+    var onRejection = function (e) { report(e.reason); };
+    function report(item) {
+      held.push(item);
+      if (loading) return;
+      loading = true;
+      var s = document.createElement("script");
+      s.src = "{{ monitoring.sentrySdkUrl }}";
+      s.integrity = "{{ monitoring.sentrySdkIntegrity }}";
+      s.onload = function () {
+        Sentry.init({ dsn: {{ monitoring.sentryDsnJson | safe }}, release: "{{ siteRevision }}" });
+        Sentry.setTag("site", "waseemilyas.uk");
+        Sentry.setTag("deployment", "github-pages");
+        // The SDK now catches errors itself.
+        removeEventListener("error", onError);
+        removeEventListener("unhandledrejection", onRejection);
+        report = function (item) { send(item); };
+        held.forEach(send);
+        held = [];
+      };
+      document.head.appendChild(s);
+    }
+    addEventListener("error", onError);
+    addEventListener("unhandledrejection", onRejection);
     // Anything the Content Security Policy blocks is reported once per page, so a
     // policy that stops part of the site shows up in Sentry. Browser extensions and
     // Sentry's own requests are skipped: neither is the site's to fix.
@@ -81,18 +99,8 @@
       var line = "CSP blocked " + e.effectiveDirective + " " + (e.blockedURI || "inline").replace(/[?#].*/, "");
       if (seen[line] || /^(chrome|moz|safari(-web)?)-extension:|sentry/.test(e.blockedURI)) return;
       seen[line] = 1;
-      var send = function () { Sentry.captureMessage(line, "warning"); };
-      if (window.Sentry) send(); else early.push(send);
+      report(function () { Sentry.captureMessage(line, "warning"); });
     });
-    var s = document.createElement("script");
-    s.src = "{{ monitoring.sentryLoaderUrl }}";
-    s.crossOrigin = "anonymous";
-    s.onload = function () {
-      removeEventListener("error", hold);
-      removeEventListener("unhandledrejection", hold);
-      early.forEach(function (item) { typeof item === "function" ? item() : Sentry.captureException(item); });
-    };
-    document.head.appendChild(s);
   })();
 </script>
 {% endif %}

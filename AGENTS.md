@@ -78,9 +78,11 @@ need Waseem's approval under the estate decision policy.
   otherwise.
 - Every page has a Content Security Policy (`scripts/csp.mjs`). Inline scripts are
   hashed automatically at build time; inline `style=`/`on*=` attributes, `data:`
-  images and any third-party origin are blocked. A new outside asset or service
-  means adding its exact origin in `scripts/csp.mjs` (or `src/_data/monitoring.js`
-  for Sentry), never `'unsafe-inline'` or a wildcard. `site-check` fails the build
+  images and any third-party origin are blocked. No outside origin may run script:
+  pin an outside library and serve it from this site, as `vendor/` does for the
+  Sentry SDK (`src/_data/monitoring.js` says how to update it and checks its hash).
+  A new outside service the page sends data to means adding its exact origin to
+  `connect-src`, never `'unsafe-inline'` or a wildcard. `site-check` fails the build
   otherwise.
 - **Prayer-time audio files (`audio/`)**: `audio/adhan.mp3`, `audio/iftar.mp3`, and
   `audio/sehri.mp3` are intentional assets fetched over HTTP by an external Home

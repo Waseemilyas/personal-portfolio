@@ -1,1 +1,2 @@
 * text=auto
+vendor/** -text -diff linguist-vendored

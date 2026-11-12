@@ -26,6 +26,7 @@ test("a normal build creates and refreshes share cards without publishing drafts
     // Use the normal src/ and _site/ paths in an isolated working directory.
     cpSync("package.json", join(root, "package.json"));
     cpSync("src", input, { recursive: true });
+    cpSync("vendor", join(root, "vendor"), { recursive: true });
     writeFileSync(note, text("A new note"));
     writeFileSync(join(input, "notes/posts/draft-probe.md"), text("Never publish this draft", true));
     build();

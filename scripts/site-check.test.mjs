@@ -89,6 +89,7 @@ const bad = {
   "inline script added after the policy": [(f) => (f["index.html"] = page("/").replace("</body>", "<script>steal()</script></body>")), "csp"],
   "unapproved speculation rules": [(f) => (f["index.html"] = page("/").replace("</body>", '<script type="speculationrules">{"prefetch":[{"urls":["https://outside.test/"]}]}</script></body>')), "csp"],
   "inline event handler": [(f) => (f["about/index.html"] = page("/about/", '<h1 onclick="x()">A</h1>')), "csp"],
+  "outside script origin allowed": [(f) => (f["about/index.html"] = page("/about/").replace("script-src 'self'", "script-src 'self' https://cdn.example")), "csp"],
   "policy missing": [(f) => (f["about/index.html"] = page("/about/").replace(/<meta http-equiv[^>]*>/, "")), "csp"],
   "share image without alt text": [(f) => (f["about/index.html"] = page("/about/").replace(/<meta property="og:image:alt"[^>]*>/, "")), "social"],
   "note retitled without a new card": [(f) => (f["notes/n/index.html"] = notePage({ body: NOTE_BODY.replace("A note", "A renamed note"), headline: "A renamed note" })), "social"],

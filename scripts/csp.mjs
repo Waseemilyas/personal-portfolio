@@ -4,8 +4,10 @@
 // placed straight after <meta charset>, before any script, style or font loads.
 // Inline scripts are allowed only by the SHA-256 of their exact text, computed from
 // the rendered page, so editing one can never silently break it. 'unsafe-inline'
-// and 'unsafe-eval' are never used. The meta form cannot carry frame-ancestors or
-// report-uri; violations are reported to Sentry from the page instead.
+// and 'unsafe-eval' are never used, and no third-party origin may run script: an
+// outside library is pinned and served from this site (as the Sentry SDK is). The
+// meta form cannot carry frame-ancestors or report-uri; violations are reported to
+// Sentry from the page instead.
 import { createHash } from "node:crypto";
 
 /** Script types a browser executes; anything else (JSON-LD) is a data block CSP ignores. */
@@ -34,14 +36,14 @@ export const scriptHash = (source) => `'sha256-${createHash("sha256").update(sou
 
 /**
  * @param {string} html a rendered page
- * @param {{ scriptOrigins?: string[], connectOrigins?: string[] }} [allow] third-party origins
+ * @param {{ connectOrigins?: string[] }} [allow] third-party origins the page may send data to
  * @returns {string} the policy for this page
  */
-export function policyFor(html, { scriptOrigins = [], connectOrigins = [] } = {}) {
+export function policyFor(html, { connectOrigins = [] } = {}) {
   const hashes = [...new Set(inlineScripts(html).map(scriptHash))];
   return [
     "default-src 'none'",
-    ["script-src 'self'", ...hashes, ...scriptOrigins].join(" "),
+    ["script-src 'self'", ...hashes].join(" "),
     "style-src 'self'",
     "img-src 'self'",
     "font-src 'self'",
@@ -57,7 +59,7 @@ export function policyFor(html, { scriptOrigins = [], connectOrigins = [] } = {}
 /**
  * Insert the page's policy as the first element after <meta charset>.
  * @param {string} html
- * @param {{ scriptOrigins?: string[], connectOrigins?: string[] }} [allow]
+ * @param {{ connectOrigins?: string[] }} [allow]
  */
 export function withPolicy(html, allow) {
   const charset = /<meta charset="utf-8">/i;
