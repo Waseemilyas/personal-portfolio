@@ -174,7 +174,7 @@ export function runSiteChecks({
     if (alt.length !== 1 || !alt[0]) bad("social", "expected exactly one non-empty og:image:alt");
     const card = cardText(doc, pagePath);
     if (card && (ogImage !== siteUrl + cardImage(pagePath) || alt[0] !== cardAlt(card))) {
-      bad("social", "its share card is missing or no longer matches the page: pnpm build && node scripts/og-cards.mjs && pnpm build");
+      bad("social", "its share card is missing or no longer matches the page: run pnpm build");
     }
     if (/^\/notes\/[^/]+\/$/.test(pagePath)) {
       if (metaContent('meta[property="og:type"]')[0] !== "article") bad("social", "a note must be og:type article");

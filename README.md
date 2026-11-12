@@ -13,7 +13,7 @@ GitHub Pages. Live domain: <https://waseemilyas.uk>.
 ## Develop
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm run serve     # local dev server with live reload
 pnpm run build     # static build → _site/
 ```
@@ -62,14 +62,14 @@ explicitly. A post with `draft: true` is never written to disk, so an unfinished
 sit in `posts/` safely.
 
 Each published note and case study shares its own preview card on social sites and chat
-apps. After adding or retitling one, redraw the cards (needs a local Chromium; Python with
-Pillow shrinks them) and commit the results:
+apps. `pnpm build` generates the cards and their metadata directly from the rendered
+pages; `pnpm serve` refreshes changed cards as you edit. Drafts produce no cards. There
+are no generated images or text manifests to commit.
 
-```bash
-pnpm build && node scripts/og-cards.mjs && pnpm build
-```
-
-CI's site check fails a note or case study whose card is missing or out of date.
+Builds need a local Chromium (`google-chrome` on the GitHub-hosted runner). Set
+`CHROME=/path/to/chrome` if it is not on PATH. Python 3 with Pillow compresses the
+cards; the release workflows install it. Without Pillow a local build leaves larger,
+full-colour PNGs. All images stay in `_site/`, alongside the HTML they describe.
 
 ## Deployment
 

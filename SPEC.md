@@ -78,10 +78,13 @@ without the URL's query; extension and Sentry URLs are skipped. Pages also send
 
 A shared link shows a 1200×630 preview card. Each note and case study has its own,
 carrying its label, title and (for a case study) kicker in the site's fonts; every
-other page shares the default card. `scripts/og-cards.mjs` draws them with a local
-headless Chromium from the built pages' own text, so a card never says more than its
-page, and writes `src/assets/img/og/` plus the URL map `src/_data/ogCards.json` that
-`base.njk` reads. Every page names its card's text in `og:image:alt`. Notes are
+other page shares the default card. `scripts/og-cards.mjs` draws them with headless
+Chromium during the normal Eleventy build, using the rendered pages' own text. A transform sets matching image
+metadata before the security policy is hashed, and the build waits for the PNGs in
+`_site/assets/img/og/`. No generated source image or text map needs committing.
+Watch builds reuse unchanged cards; changed text redraws the image. Drafts never
+enter that path, and a full rebuild removes cards for deleted or drafted articles.
+Every page names its card's text in `og:image:alt`. Notes are
 `og:type` article with `article:published_time` and a `BlogPosting` JSON-LD block.
 The rendered checker fails a note or case study whose card is missing or whose alt
 text no longer matches the page, so a retitled note cannot ship a stale preview.

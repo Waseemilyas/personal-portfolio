@@ -1,6 +1,7 @@
 // Eleventy config for WI-PF1 — Waseem Ilyas portfolio.
 // Source in src/, static output in _site/. No client framework; pure HTML/CSS/vanilla JS.
 import { revision } from "./scripts/revision.mjs";
+import { addShareCards } from "./scripts/og-cards.mjs";
 import { withPolicy } from "./scripts/csp.mjs";
 import monitoring from "./src/_data/monitoring.js";
 
@@ -8,14 +9,16 @@ import monitoring from "./src/_data/monitoring.js";
  * Only the Eleventy boundary used here; page data comes from front matter.
  * @typedef {{data: {order?: number, draft?: boolean}, date: Date}} CollectionItem
  * @param {{
+ * on: Parameters<typeof addShareCards>[0]["on"],
  * addGlobalData(name: string, value: string): void,
  * addPassthroughCopy(paths: Record<string, string>): void,
  * addCollection(name: string, collect: (api: {getFilteredByTag(tag: string): CollectionItem[]}) => CollectionItem[]): void,
  * addFilter(name: string, filter: (value: string, ...args: string[]) => string): void,
- * addTransform(name: string, transform: (this: {page: {outputPath: string | false}}, content: string) => string): void
+ * addTransform(name: string, transform: (this: {page: {outputPath: string | false, url: string}}, content: string) => string): void
  * }} eleventyConfig
  */
 export default function (eleventyConfig) {
+  addShareCards(eleventyConfig);
   eleventyConfig.addGlobalData("siteRevision", revision());
 
   // Static passthrough: assets, plus the root-level files GitHub Pages needs.
