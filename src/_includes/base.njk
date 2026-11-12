@@ -140,7 +140,7 @@
       {%- for item in site.nav %}
       <a href="{{ item.url }}"{% if page.url == item.url %} aria-current="page"{% endif %}>{{ item.label }}</a>
       {%- endfor %}
-      <a class="cta" href="mailto:{{ site.email }}">Email</a>
+      <a class="cta" href="{{ site.email | mailto }}">Email</a>
     </nav>
   </div>
 </header>
@@ -153,7 +153,7 @@
   <div class="shell">
     <div>
       <div class="meta">Waseem Ilyas · Automancer · United Kingdom</div>
-      <div class="meta"><a href="mailto:{{ site.email }}">{{ site.email }}</a> · <a href="{{ site.github }}" rel="me noopener">GitHub</a></div>
+      <div class="meta"><a href="{{ site.email | mailto }}">{{ site.email }}</a> · <a href="{{ site.github }}" rel="me noopener">GitHub</a></div>
     </div>
     <nav class="fnav" aria-label="Footer">
       {%- for item in site.nav %}

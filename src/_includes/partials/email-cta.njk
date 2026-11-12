@@ -1,0 +1,8 @@
+{#- The primary call to action. The address is a mail link; the copy button is for
+    visitors with no mail app set up, where a mail link does nothing. site.js shows
+    the button only where the browser can copy, so without JavaScript it stays hidden. -#}
+<div class="email-row">
+  <a class="email-big" href="{{ site.email | mailto }}">{{ site.email }}</a>
+  <button class="btn btn-ghost copy-email" type="button" data-copy="{{ site.email }}" hidden>Copy address</button>
+  <span class="visually-hidden" role="status"></span>
+</div>

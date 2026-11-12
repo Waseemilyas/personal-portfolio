@@ -127,6 +127,12 @@ export function runSiteChecks({
       }
     }
 
+    for (const el of doc.querySelectorAll('a[href^="mailto:"]')) {
+      if (!new URL(el.getAttribute("href") ?? "").searchParams.get("subject")?.trim()) {
+        bad("contact", "an email link has no subject, so mail from the site cannot be told apart: use the mailto filter");
+      }
+    }
+
     for (const literal of ["TODO", "FIXME", "[object Object]"]) if (html.includes(literal)) bad("text", `contains "${literal}"`);
     if (/\blorem ipsum\b/i.test(html)) bad("text", 'contains "lorem ipsum"');
     for (const el of doc.querySelectorAll("h1,h2,h3,p")) {

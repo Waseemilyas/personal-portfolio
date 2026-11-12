@@ -36,7 +36,7 @@ layout: base.njk
 
     <nav class="casenav" aria-label="Case study">
       <a href="/work/">← All work</a>
-      <a href="mailto:{{ site.email }}">Email Waseem →</a>
+      <a href="{{ site.email | mailto('About your case study: ' + title) }}">Email Waseem →</a>
     </nav>
   </div>
 </article>

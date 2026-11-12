@@ -14,7 +14,7 @@ description: "Waseem Ilyas runs Automancer, a UK automation consultancy helping 
       <h1 data-cal="1">Technologist who designs, builds, teaches, and <em>automates</em>.</h1>
       <p class="lede" data-cal="2">I run Automancer, a UK automation consultancy helping small businesses get real value from AI and practical digital systems. Before that: front-end web, instructional design, and fifteen-plus years of making digital things.</p>
       <div class="actions" data-cal="3">
-        <a class="btn btn-primary" href="mailto:{{ site.email }}">Email Waseem →</a>
+        <a class="btn btn-primary" href="{{ site.email | mailto }}">Email Waseem →</a>
         <a class="btn btn-ghost" href="#capability">Read the work ↓</a>
       </div>
     </div>
@@ -191,7 +191,7 @@ description: "Waseem Ilyas runs Automancer, a UK automation consultancy helping 
     </div>
     <div class="contact-cta" data-cal>
       <p class="contact-close">The fastest way to reach me is email. If you run a small business and want to know whether AI or automation is worth it for you, that is exactly the conversation I like having.</p>
-      <a class="email-big" href="mailto:{{ site.email }}">{{ site.email }}</a>
+      {% include "partials/email-cta.njk" %}
       <p class="contact-close">No funnel, no pitch deck. Just send a note. <span class="contact-alt">· <a href="{{ site.github }}" rel="me noopener">GitHub ↗</a></span></p>
     </div>
   </div>

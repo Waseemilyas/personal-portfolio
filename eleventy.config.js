@@ -11,7 +11,7 @@ import monitoring from "./src/_data/monitoring.js";
  * addGlobalData(name: string, value: string): void,
  * addPassthroughCopy(paths: Record<string, string>): void,
  * addCollection(name: string, collect: (api: {getFilteredByTag(tag: string): CollectionItem[]}) => CollectionItem[]): void,
- * addFilter(name: string, filter: (date: Date | string | number) => string): void,
+ * addFilter(name: string, filter: (value: string, ...args: string[]) => string): void,
  * addTransform(name: string, transform: (this: {page: {outputPath: string | false}}, content: string) => string): void
  * }} eleventyConfig
  */
@@ -41,6 +41,12 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("isoDate", (d) => new Date(d).toISOString());
   eleventyConfig.addFilter("readableDate", (d) =>
     new Date(d).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })
+  );
+
+  // Every email link opens with a subject, so mail that came from the site can be
+  // counted and found in the inbox without any tracking on the site itself.
+  eleventyConfig.addFilter("mailto", (email, subject = "Hello from waseemilyas.uk") =>
+    `mailto:${email}?subject=${encodeURIComponent(subject)}`
   );
 
   // Every page carries a Content Security Policy that allows only this site's own

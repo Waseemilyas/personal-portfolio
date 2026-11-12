@@ -93,7 +93,44 @@
     }
   }
 
+  /* The big address is a mail link, which does nothing for a visitor with no mail
+     app set up. Show its copy button only where the browser can copy. */
+  function setupCopyEmail() {
+    var clipboard = navigator.clipboard;
+    if (!clipboard || !window.isSecureContext) return;
+    document.querySelectorAll("button.copy-email").forEach(function (button) {
+      var status = button.nextElementSibling;
+      var address = button.getAttribute("data-copy");
+      if (button instanceof HTMLButtonElement && status && address) bindCopy(clipboard, button, status, address);
+    });
+  }
+
+  /** @param {Clipboard} clipboard @param {HTMLButtonElement} button @param {Element} status @param {string} address */
+  function bindCopy(clipboard, button, status, address) {
+    var label = button.textContent || "";
+    /** @type {number | undefined} */
+    var timer;
+    /** @param {string} text @param {string} said @param {boolean} copied */
+    var show = function (text, said, copied) {
+      button.textContent = text;
+      button.toggleAttribute("data-copied", copied);
+      status.textContent = said;
+    };
+    button.hidden = false;
+    button.addEventListener("click", function () {
+      window.clearTimeout(timer);
+      clipboard.writeText(address).then(function () {
+        show("Copied ✓", "Email address copied.", true);
+      }, function () {
+        show(label, "Could not copy. Select the address to copy it.", false);
+      }).then(function () {
+        timer = window.setTimeout(function () { show(label, "", false); }, 2500);
+      });
+    });
+  }
+
   setupNavigation();
   setupReveals();
   setupCapabilityMap();
+  setupCopyEmail();
 })();

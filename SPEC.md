@@ -1,7 +1,7 @@
 # Portfolio behaviour
 
 Observed specification of the current public site; this does not change its copy or design.
-Last verified: 2026-10-16 on Linux; the security policy and share cards on 2026-11-12.
+Last verified: 2026-10-16 on Linux; the security policy, share cards and contact links on 2026-11-12.
 
 Visitors read the main pages, open anonymised case studies, browse published notes,
 follow the Atom feed, inspect capabilities and find contact links. The source of
@@ -12,6 +12,16 @@ is owned by the shared layouts in `src/_includes/`. The feature map beside
 The site remains static HTML/CSS with progressive JavaScript enhancement. It has
 no sign-in, database, submission backend or local persistent user state. Contact
 links hand off to the visitor's mail application; verifying them does not send mail.
+Every email link is built with the `mailto` filter in `eleventy.config.js`, so it
+opens with a subject: "Hello from waseemilyas.uk", or "About your note: <title>" and
+"About your case study: <title>" at the end of a note or case study. That makes mail
+from the site countable in the inbox with no tracking on the site; `site-check`'s
+"contact" rule fails an email link without a subject. Beside the display-scale
+address on Home and Contact, `setupCopyEmail` shows a "Copy address" button where the
+browser can copy (a mail link does nothing for a visitor with no mail app set up). It
+copies the address, reads "Copied ✓" for 2.5 seconds and announces the result in a
+status line; a refused copy is announced too. Without JavaScript the button stays
+hidden and the mail link is unchanged.
 External links are destinations, not services this repository operates.
 
 `setupNavigation` in `src/assets/js/site.js` owns the mobile drawer. Its

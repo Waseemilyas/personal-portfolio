@@ -36,16 +36,28 @@ def require(expression):
     if state(expression) is not True:
         run("eval", "JSON.stringify({path:location.pathname,width:innerWidth,ready:document.readyState,nav:document.getElementById('primary-nav')?.outerHTML})")
         raise AssertionError(expression)
+def processes():
+    """(pid, start identity) of every process this run's browser session owns."""
+    if Path("/proc").is_dir():
+        for entry in Path("/proc").iterdir():
+            if not entry.name.isdigit(): continue
+            try:
+                command = (entry / "cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
+                executable = (entry / "comm").read_text().strip()
+                if executable in ("agent-browser", "chrome", "chromium", "chrome_crashpad") and (session in command or (entry / "cwd").resolve() == root):
+                    yield entry.name, (entry / "stat").read_text().split(") ", 1)[1].split()[19]
+            except (FileNotFoundError, PermissionError, ProcessLookupError): pass
+        return
+    # macOS has no /proc: pgrep finds this run's session by its command line and ps
+    # gives each pid's start time as its identity. Command lines are never printed.
+    found = subprocess.run(["pgrep", "-f", session], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=10).stdout.split()
+    for pid in found:
+        if int(pid) == os.getpid(): continue
+        begun = subprocess.run(["ps", "-o", "lstart=", "-p", pid], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=10).stdout.strip()
+        if begun: yield pid, begun
 def remember():
     # Retain exact PID/start identities owned by this session/profile, never a broad reap.
-    for entry in Path("/proc").iterdir():
-        if not entry.name.isdigit(): continue
-        try:
-            command = (entry / "cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
-            executable = (entry / "comm").read_text().strip()
-            if executable in ("agent-browser", "chrome", "chromium", "chrome_crashpad") and (session in command or (entry / "cwd").resolve() == root):
-                owned[entry.name] = (entry / "stat").read_text().split(") ", 1)[1].split()[19]
-        except (FileNotFoundError, PermissionError, ProcessLookupError): pass
+    owned.update(processes())
 
 def capture(name, image_optional=False):
     run("wait", "--fn", "document.fonts.status === 'loaded' && Array.from(document.images).every(i => i.complete)")
@@ -57,7 +69,8 @@ def capture(name, image_optional=False):
         # Chrome's Page.captureScreenshot hangs once author scripts are disabled
         # (--blink-settings=scriptEnabled=false), on every page. The DOM checks
         # above and the click that follows still prove the no-JS journey.
-        if not image_optional or "Page.captureScreenshot" not in str(error): raise
+        # On macOS the same hang surfaces as the daemon never answering.
+        if not image_optional or not any(m in str(error) for m in ("Page.captureScreenshot", "no response came back")): raise
         receipts.append(name + ": screenshot unavailable (Chrome cannot capture with scripts disabled); DOM checks passed")
 
 def abort(_sig, _frame): raise TimeoutError("browser path exceeded 300 seconds")
@@ -158,6 +171,14 @@ try:
             if route.endswith(".xml"): assert marker in body
     run("open", base + "/contact/")
     require("document.querySelector('a[href^=\"mailto:\"]').href.startsWith('mailto:')")
+    require("Array.from(document.querySelectorAll('a[href^=\"mailto:\"]')).every(a=>new URL(a.href).searchParams.get('subject'))")
+    # The copy button copies to the clipboard, never sends anything; headless Chrome may
+    # refuse the write, so either outcome must be announced to the visitor.
+    require("!document.querySelector('button.copy-email').hidden")
+    run("click", "button.copy-email")
+    run("wait", "--fn", "document.querySelector('.email-row [role=status]').textContent !== ''")
+    require("['Email address copied.','Could not copy. Select the address to copy it.'].includes(document.querySelector('.email-row [role=status]').textContent)")
+    receipts.append("contact email links carry a subject; copy button shown, clicked and announced: " + run("eval", "document.querySelector('.email-row [role=status]').textContent"))
     errors = run("errors")
     assert errors in ("", "No errors", "No page errors", "[]"), errors
     remember(); run("close")
@@ -186,10 +207,14 @@ finally:
         if server:
             server.shutdown(); server.server_close()
         survivors = []
-        for pid, start in owned.items():
-            try:
-                if (Path("/proc") / pid / "stat").read_text().split(") ", 1)[1].split()[19] == start: survivors.append(pid)
-            except FileNotFoundError: pass
+        alive = {}
+        for pid in owned:
+            if Path("/proc").is_dir():
+                try: alive[pid] = (Path("/proc") / pid / "stat").read_text().split(") ", 1)[1].split()[19]
+                except FileNotFoundError: pass
+            else:
+                alive[pid] = subprocess.run(["ps", "-o", "lstart=", "-p", pid], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=10).stdout.strip()
+        survivors = [pid for pid, start in owned.items() if alive.get(pid) == start]
         if port:
             with socket.socket() as probe: assert probe.connect_ex(("127.0.0.1", port)) != 0
         result = {"success": success and not survivors, "revision": revision, "sessions": sessions, "base": base if 'base' in locals() else None, "elapsed_seconds": time.monotonic()-started, "receipts": receipts, "owned_pid_identities": owned, "survivors": survivors, "port": port, "port_closed": True if port else None, "screenshots": sorted(p.name for p in args.out.glob("*.png"))}
