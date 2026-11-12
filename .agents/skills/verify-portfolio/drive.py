@@ -207,18 +207,14 @@ finally:
         if server:
             server.shutdown(); server.server_close()
         survivors = []
-        # Chrome's close acknowledgement can precede its process exits.
-        for _ in range(20):
-            alive = {}
-            for pid in owned:
-                if Path("/proc").is_dir():
-                    try: alive[pid] = (Path("/proc") / pid / "stat").read_text().split(") ", 1)[1].split()[19]
-                    except FileNotFoundError: pass
-                else:
-                    alive[pid] = subprocess.run(["ps", "-o", "lstart=", "-p", pid], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=10).stdout.strip()
-            survivors = [pid for pid, start in owned.items() if alive.get(pid) == start]
-            if not survivors: break
-            time.sleep(0.1)
+        alive = {}
+        for pid in owned:
+            if Path("/proc").is_dir():
+                try: alive[pid] = (Path("/proc") / pid / "stat").read_text().split(") ", 1)[1].split()[19]
+                except FileNotFoundError: pass
+            else:
+                alive[pid] = subprocess.run(["ps", "-o", "lstart=", "-p", pid], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=10).stdout.strip()
+        survivors = [pid for pid, start in owned.items() if alive.get(pid) == start]
         if port:
             with socket.socket() as probe: assert probe.connect_ex(("127.0.0.1", port)) != 0
         result = {"success": success and not survivors, "revision": revision, "sessions": sessions, "base": base if 'base' in locals() else None, "elapsed_seconds": time.monotonic()-started, "receipts": receipts, "owned_pid_identities": owned, "survivors": survivors, "port": port, "port_closed": True if port else None, "screenshots": sorted(p.name for p in args.out.glob("*.png"))}
