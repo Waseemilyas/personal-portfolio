@@ -6,6 +6,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
+import { withPolicy } from "./csp.mjs";
 import { runSiteChecks } from "./site-check.mjs";
 
 const SITE = "https://example.test";
@@ -21,14 +22,16 @@ const png = (width, height) => {
   return b;
 };
 
-const page = (path, body = "<h1>Title</h1><p>Text</p>") => `<!doctype html><html><head>
+const page = (path, body = "<h1>Title</h1><p>Text</p>") => withPolicy(`<!doctype html><html><head>
+<meta charset="utf-8"><meta name="referrer" content="strict-origin-when-cross-origin">
+<script>document.documentElement.className+=' js';</script>
 <meta name="description" content="d"><link rel="canonical" href="${SITE}${path}">
 <meta name="waseemilyas-revision" content="${REV}">
 <meta property="og:title" content="t"><meta property="og:description" content="d"><meta property="og:type" content="website">
 <meta property="og:url" content="${SITE}${path}"><meta property="og:image" content="${SITE}/og.png">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <script type="application/ld+json">{"@context":"https://schema.org"}</script></head>
-<body>${body}</body></html>`;
+<body>${body}</body></html>`);
 
 const sitemap = (...paths) =>
   `<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((p) => `<url><loc>${SITE}${p}</loc></url>`).join("")}</urlset>`;
@@ -72,6 +75,9 @@ const bad = {
   "page missing from sitemap": [(f) => (f["sitemap.xml"] = sitemap("/")), "sitemap"],
   "draft listed in sitemap": [(f) => (f["sitemap.xml"] = sitemap("/", "/about/", "/notes/wip/")), "drafts"],
   "og image of the wrong size": [(f) => (f["og.png"] = png(600, 315)), "og-image"],
+  "inline script added after the policy": [(f) => (f["index.html"] = page("/").replace("</body>", "<script>steal()</script></body>")), "csp"],
+  "inline event handler": [(f) => (f["about/index.html"] = page("/about/", '<h1 onclick="x()">A</h1>')), "csp"],
+  "policy missing": [(f) => (f["about/index.html"] = page("/about/").replace(/<meta http-equiv[^>]*>/, "")), "csp"],
   "stale revision.txt": [(f) => (f["revision.txt"] = `${"b".repeat(40)}\n`), "revision"],
 };
 for (const [name, [mutate, check_]] of Object.entries(bad)) {

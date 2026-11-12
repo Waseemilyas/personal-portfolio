@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <script>document.documentElement.className+=' js';</script>
 
 {% set pageTitle = title if title else site.shortTitle %}
@@ -62,13 +63,24 @@
     var hold = function (e) { early.push(e.error || e.reason || e.message); };
     addEventListener("error", hold);
     addEventListener("unhandledrejection", hold);
+    // Anything the Content Security Policy blocks is reported once per page, so a
+    // policy that stops part of the site shows up in Sentry. Browser extensions and
+    // Sentry's own requests are skipped: neither is the site's to fix.
+    var seen = {};
+    addEventListener("securitypolicyviolation", function (e) {
+      var line = "CSP blocked " + e.effectiveDirective + " " + (e.blockedURI || "inline").replace(/[?#].*/, "");
+      if (seen[line] || /^(chrome|moz|safari(-web)?)-extension:|sentry/.test(e.blockedURI)) return;
+      seen[line] = 1;
+      var send = function () { Sentry.captureMessage(line, "warning"); };
+      if (window.Sentry) send(); else early.push(send);
+    });
     var s = document.createElement("script");
     s.src = "{{ monitoring.sentryLoaderUrl }}";
     s.crossOrigin = "anonymous";
     s.onload = function () {
       removeEventListener("error", hold);
       removeEventListener("unhandledrejection", hold);
-      early.forEach(function (err) { Sentry.captureException(err); });
+      early.forEach(function (item) { typeof item === "function" ? item() : Sentry.captureException(item); });
     };
     document.head.appendChild(s);
   })();

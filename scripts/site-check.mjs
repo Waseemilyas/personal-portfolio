@@ -13,6 +13,9 @@
 //   xml         sitemap.xml (urlset) and notes/feed.xml (Atom) parse as XML with the right root
 //   sitemap     built pages and sitemap URLs match both ways (404.html is not listed)
 //   drafts      a `draft: true` post has no built page and no sitemap/feed reference
+//   csp         one Content Security Policy meta, first after <meta charset>, default-src 'none',
+//               no 'unsafe-*', listing the hash of every inline script; no inline handlers
+//               or style attributes (the policy would block them); a Referrer-Policy meta
 //
 // Usage: node scripts/site-check.mjs [--site-dir _site] [--posts-dir src/notes/posts]
 //        [--site-url https://waseemilyas.uk] [--revision <sha>]
@@ -22,6 +25,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { JSDOM } from "jsdom";
 
+import { inlineScripts, scriptHash } from "./csp.mjs";
 import { revision as buildRevision } from "./revision.mjs";
 
 const OG_SIZE = { width: 1200, height: 630 };
@@ -124,6 +128,26 @@ export function runSiteChecks({
     for (const el of doc.querySelectorAll("h1,h2,h3,p")) {
       if (!el.textContent?.trim() && !el.querySelector("img,svg,canvas,picture,video,audio,iframe")) bad("text", `empty <${el.tagName.toLowerCase()}>`);
     }
+
+    const csp = metaContent('meta[http-equiv="Content-Security-Policy"]');
+    const policy = csp[0] ?? "";
+    const scriptSrc = policy.split(";").map((d) => d.trim()).find((d) => d.startsWith("script-src ")) ?? "";
+    const headStart = doc.head.firstElementChild;
+    if (csp.length !== 1) bad("csp", "expected exactly one Content-Security-Policy meta");
+    else if (headStart?.getAttribute("charset") == null || headStart.nextElementSibling?.getAttribute("http-equiv") !== "Content-Security-Policy") {
+      bad("csp", "the policy must be the first element after <meta charset>");
+    }
+    if (!policy.startsWith("default-src 'none';")) bad("csp", "policy must start with default-src 'none'");
+    if (/'unsafe-|\*/.test(policy)) bad("csp", "policy must not use 'unsafe-*' or wildcards");
+    for (const source of inlineScripts(html)) {
+      if (!scriptSrc.split(" ").includes(scriptHash(source))) bad("csp", `inline script "${source.trim().slice(0, 40)}" is not in script-src`);
+    }
+    for (const el of doc.querySelectorAll("*")) {
+      for (const a of el.getAttributeNames()) {
+        if (a === "style" || /^on[a-z]+$/.test(a)) bad("csp", `<${el.tagName.toLowerCase()} ${a}> would be blocked by the policy`);
+      }
+    }
+    if (metaContent('meta[name="referrer"]').length !== 1) bad("csp", "expected exactly one referrer meta");
 
     const ogImage = metaContent('meta[property="og:image"]')[0];
     if (ogImage?.startsWith(`${siteUrl}/`) && exists(ogImage.slice(siteUrl.length + 1))) {

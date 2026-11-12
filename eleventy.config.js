@@ -1,6 +1,8 @@
 // Eleventy config for WI-PF1 — Waseem Ilyas portfolio.
 // Source in src/, static output in _site/. No client framework; pure HTML/CSS/vanilla JS.
 import { revision } from "./scripts/revision.mjs";
+import { withPolicy } from "./scripts/csp.mjs";
+import monitoring from "./src/_data/monitoring.js";
 
 /**
  * Only the Eleventy boundary used here; page data comes from front matter.
@@ -9,7 +11,8 @@ import { revision } from "./scripts/revision.mjs";
  * addGlobalData(name: string, value: string): void,
  * addPassthroughCopy(paths: Record<string, string>): void,
  * addCollection(name: string, collect: (api: {getFilteredByTag(tag: string): CollectionItem[]}) => CollectionItem[]): void,
- * addFilter(name: string, filter: (date: Date | string | number) => string): void
+ * addFilter(name: string, filter: (date: Date | string | number) => string): void,
+ * addTransform(name: string, transform: (this: {page: {outputPath: string | false}}, content: string) => string): void
  * }} eleventyConfig
  */
 export default function (eleventyConfig) {
@@ -39,6 +42,15 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("readableDate", (d) =>
     new Date(d).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })
   );
+
+  // Every page carries a Content Security Policy that allows only this site's own
+  // files, its inline scripts by hash, and Sentry when monitoring is configured.
+  eleventyConfig.addTransform("content-security-policy", function (content) {
+    const out = this.page.outputPath;
+    return typeof out === "string" && out.endsWith(".html")
+      ? withPolicy(content, { scriptOrigins: monitoring.cspScriptOrigins, connectOrigins: monitoring.cspConnectOrigins })
+      : content;
+  });
 
   return {
     dir: {
