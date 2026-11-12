@@ -163,5 +163,14 @@
 </footer>
 
 <script src="/assets/js/site.js" defer></script>
+<!-- Prepare internal pages only after link intent; other browsers keep normal navigation. -->
+<script type="speculationrules">
+{
+  "prerender": [{
+    "where": { "and": [{ "href_matches": "/*" }, { "selector_matches": "a[href$=\"/\"]" }] },
+    "eagerness": "moderate"
+  }]
+}
+</script>
 </body>
 </html>

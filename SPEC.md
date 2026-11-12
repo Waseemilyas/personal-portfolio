@@ -24,6 +24,13 @@ status line; a refused copy is announced too. Without JavaScript the button stay
 hidden and the mail link is unchanged.
 External links are destinations, not services this repository operates.
 
+Supporting browsers prepare an internal page after link intent (a short hover or
+pointer down), using native speculation rules with `moderate` eagerness. Only
+same-origin links ending in `/` qualify: files, fragments, email and external
+destinations do not. Nothing is speculated on initial load. The rules are hashed
+by the existing Content Security Policy; unsupported or resource-constrained
+browsers keep normal navigation. No client router or navigation interception is used.
+
 `setupNavigation` in `src/assets/js/site.js` owns the mobile drawer. Its
 `setDrawer` function writes open/expanded/hidden/inert state. Escape returns focus
 to the toggle. A link click closes it. Its media query and the stylesheet's mobile

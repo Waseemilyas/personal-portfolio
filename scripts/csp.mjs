@@ -9,7 +9,7 @@
 import { createHash } from "node:crypto";
 
 /** Script types a browser executes; anything else (JSON-LD) is a data block CSP ignores. */
-const EXECUTABLE = new Set(["", "text/javascript", "application/javascript", "module"]);
+const EXECUTABLE = new Set(["", "text/javascript", "application/javascript", "module", "speculationrules"]);
 
 /** @param {string} attrs raw attribute text of a <script> tag @param {string} name */
 const attr = (attrs, name) => attrs.match(new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
