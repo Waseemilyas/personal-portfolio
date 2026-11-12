@@ -1,5 +1,18 @@
 # Release notes
 
+## v2026.11.12.1 — 12 November 2026
+
+Your next read is one click away, and pages feel lighter while keeping their familiar look.
+
+### Improvements
+
+- Pages load less font data, while text keeps the characters covered before.
+- Italic text now uses a designed italic style.
+- Case studies and notes now end with a link to the next item. The link follows the listed order, loops back to the first item, and works without JavaScript.
+- Header and footer links have more even spacing, with the same tap area.
+- On phones, the GitHub link stays with the contact line instead of leaving a dot at the start of a new line.
+
+
 ## v2026.11.10.1 — 10 November 2026
 
 Links in the header, footer, contact area and case navigation are easier to tap on touch screens.
