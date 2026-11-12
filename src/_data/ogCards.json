@@ -1,0 +1,44 @@
+{
+  "/notes/buy-build-or-the-missing-ten-percent/": {
+    "image": "/assets/img/og/notes-buy-build-or-the-missing-ten-percent.png",
+    "alt": "Note · 12 AUG 2026. Buy, build, or build the missing ten percent.",
+    "label": "Note · 12 AUG 2026",
+    "title": "Buy, build, or build the missing ten percent",
+    "subtitle": ""
+  },
+  "/notes/unglamorous-half-of-automation/": {
+    "image": "/assets/img/og/notes-unglamorous-half-of-automation.png",
+    "alt": "Note · 8 AUG 2026. The unglamorous half of automation.",
+    "label": "Note · 8 AUG 2026",
+    "title": "The unglamorous half of automation",
+    "subtitle": ""
+  },
+  "/notes/what-an-operations-platform-is-made-of/": {
+    "image": "/assets/img/og/notes-what-an-operations-platform-is-made-of.png",
+    "alt": "Note · 11 AUG 2026. What an operations platform is actually made of.",
+    "label": "Note · 11 AUG 2026",
+    "title": "What an operations platform is actually made of",
+    "subtitle": ""
+  },
+  "/work/cs-auto/": {
+    "image": "/assets/img/og/work-cs-auto.png",
+    "alt": "Case study · CS·AUTO. Automancer. Automation consultancy for small businesses.",
+    "label": "Case study · CS·AUTO",
+    "title": "Automancer",
+    "subtitle": "Automation consultancy for small businesses"
+  },
+  "/work/cs-care/": {
+    "image": "/assets/img/og/work-cs-care.png",
+    "alt": "Case study · CS·CARE. Operational systems for a UK care provider. Anonymised client delivery · domiciliary care.",
+    "label": "Case study · CS·CARE",
+    "title": "Operational systems for a UK care provider",
+    "subtitle": "Anonymised client delivery · domiciliary care"
+  },
+  "/work/cs-product/": {
+    "image": "/assets/img/og/work-cs-product.png",
+    "alt": "Case study · CS·PRODUCT. A public web product for a professional-services firm. Anonymised client delivery · public product / web.",
+    "label": "Case study · CS·PRODUCT",
+    "title": "A public web product for a professional-services firm",
+    "subtitle": "Anonymised client delivery · public product / web"
+  }
+}

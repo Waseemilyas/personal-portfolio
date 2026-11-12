@@ -61,6 +61,16 @@ Atom feed (`/notes/feed.xml`) already exist, **Notes** is in the primary nav, an
 explicitly. A post with `draft: true` is never written to disk, so an unfinished note can
 sit in `posts/` safely.
 
+Each published note and case study shares its own preview card on social sites and chat
+apps. After adding or retitling one, redraw the cards (needs a local Chromium; Python with
+Pillow shrinks them) and commit the results:
+
+```bash
+pnpm build && node scripts/og-cards.mjs && pnpm build
+```
+
+CI's site check fails a note or case study whose card is missing or out of date.
+
 ## Deployment
 
 `.github/workflows/deploy.yml` builds and publishes `_site/` on a main push or

@@ -1,7 +1,7 @@
 # Portfolio behaviour
 
 Observed specification of the current public site; this does not change its copy or design.
-Last verified: 2026-10-16 on Linux; the security policy on 2026-11-12.
+Last verified: 2026-10-16 on Linux; the security policy and share cards on 2026-11-12.
 
 Visitors read the main pages, open anonymised case studies, browse published notes,
 follow the Atom feed, inspect capabilities and find contact links. The source of
@@ -57,6 +57,16 @@ browser is reported to Sentry once per page as "CSP blocked <directive> <URL>",
 without the URL's query; extension and Sentry URLs are skipped. Pages also send
 `strict-origin-when-cross-origin` as their referrer policy. The meta form cannot set
 `frame-ancestors`, HSTS or `X-Content-Type-Options`; those need response headers.
+
+A shared link shows a 1200×630 preview card. Each note and case study has its own,
+carrying its label, title and (for a case study) kicker in the site's fonts; every
+other page shares the default card. `scripts/og-cards.mjs` draws them with a local
+headless Chromium from the built pages' own text, so a card never says more than its
+page, and writes `src/assets/img/og/` plus the URL map `src/_data/ogCards.json` that
+`base.njk` reads. Every page names its card's text in `og:image:alt`. Notes are
+`og:type` article with `article:published_time` and a `BlogPosting` JSON-LD block.
+The rendered checker fails a note or case study whose card is missing or whose alt
+text no longer matches the page, so a retitled note cannot ship a stale preview.
 
 The unlinked prayer-time audio files remain intentional HTTP assets. Browser
 verification checks that they are served, without playback or touching the external

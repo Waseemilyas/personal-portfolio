@@ -10,6 +10,9 @@
 //   links       every same-site href/src resolves to a built file (a directory to its index.html)
 //   text        no TODO/FIXME/lorem/[object Object]; no empty <h1-h3> or <p>
 //   og-image    the og:image PNG header reports 1200x630, matching og:image:width/height
+//   social      every page has og:image:alt; each note and case study shares its own card
+//               (scripts/og-cards.mjs) whose text still matches the page; notes are
+//               og:type article with a BlogPosting block whose headline is the <h1>
 //   xml         sitemap.xml (urlset) and notes/feed.xml (Atom) parse as XML with the right root
 //   sitemap     built pages and sitemap URLs match both ways (404.html is not listed)
 //   drafts      a `draft: true` post has no built page and no sitemap/feed reference
@@ -26,6 +29,7 @@ import { pathToFileURL } from "node:url";
 import { JSDOM } from "jsdom";
 
 import { inlineScripts, scriptHash } from "./csp.mjs";
+import { cardAlt, cardImage, cardText } from "./og-cards.mjs";
 import { revision as buildRevision } from "./revision.mjs";
 
 const OG_SIZE = { width: 1200, height: 630 };
@@ -158,6 +162,22 @@ export function runSiteChecks({
       }
     } else {
       bad("og-image", "og:image is not a built file of this site");
+    }
+
+    const alt = metaContent('meta[property="og:image:alt"]');
+    if (alt.length !== 1 || !alt[0]) bad("social", "expected exactly one non-empty og:image:alt");
+    const card = cardText(doc, pagePath);
+    if (card && (ogImage !== siteUrl + cardImage(pagePath) || alt[0] !== cardAlt(card))) {
+      bad("social", "its share card is missing or no longer matches the page: pnpm build && node scripts/og-cards.mjs && pnpm build");
+    }
+    if (/^\/notes\/[^/]+\/$/.test(pagePath)) {
+      if (metaContent('meta[property="og:type"]')[0] !== "article") bad("social", "a note must be og:type article");
+      if (!metaContent('meta[property="article:published_time"]')[0]) bad("social", "a note needs article:published_time");
+      const posting = blocks.map((b) => { try { return JSON.parse(b.textContent ?? ""); } catch { return null; } })
+        .find((d) => d?.["@type"] === "BlogPosting");
+      if (posting?.headline !== doc.querySelector("h1")?.textContent?.trim() || !posting?.datePublished) {
+        bad("social", "a note needs a BlogPosting block with its <h1> as headline and a datePublished");
+      }
     }
   }
 
