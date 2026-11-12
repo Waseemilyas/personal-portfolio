@@ -159,7 +159,8 @@ The surface is chosen **per section**, not per route — see *Surface rule* belo
 
 The stack is Eleventy + hand-written CSS — **no framework, no utility classes, one
 stylesheet** (`src/assets/css/styles.css`, ~350 lines). Typefaces are self-hosted
-variable Geist and Geist Mono; there is no CDN dependency and no runtime style
+variable Geist (upright and its designed italic, which loads only where prose sets
+italic text) and Geist Mono; there is no CDN dependency and no runtime style
 system.
 
 ### What is actually tokenised
