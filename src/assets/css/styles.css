@@ -262,7 +262,10 @@ p, li { text-wrap: pretty; }
 .workcard .kick { display: block; color: var(--bone-mute); margin-top: .3rem; font-size: var(--step-0); text-wrap: pretty; }
 .workcard .go { color: var(--bone-mute); font-family: var(--mono); font-size: var(--step--1); transition: color .2s var(--ease), transform .2s var(--ease); }
 .workcard:hover .go { color: var(--signal); transform: translateX(3px); }
-@media (max-width: 620px) { .workcard { grid-template-columns: 1fr; gap: .5rem; } .workcard .go { display: none; } }
+/* On a phone the card has no hover to announce it, so the Read row becomes
+   part of the card: a full-width affordance on the next line, already in the
+   signal colour. Compact padding keeps three cards inside one screen. */
+@media (max-width: 620px) { .workcard { grid-template-columns: 1fr; gap: .5rem; padding: 1rem var(--space-card-inline); } .workcard .go { grid-column: 1; justify-self: start; color: var(--signal); } }
 
 /* ---------- essay / case study (paper) ---------- */
 .essay { background: var(--paper); color: var(--ink); }
@@ -507,9 +510,12 @@ p, li { text-wrap: pretty; }
 .foot a:hover { color: var(--signal); }
 .foot .fnav { display: flex; gap: .3rem; flex-wrap: wrap; }
 .foot .fnav a { padding-inline: .45rem; }
+/* Two columns of full-width 44px rows: seven links read 2+2+2+1, each easy
+   to spot and tap, instead of a space-between row that pushes Automancer
+   to the far edge. Rows are separated by the hairline on --line-dark. */
 @media (max-width: 620px) {
-  .foot .fnav { display: grid; grid-template-columns: repeat(4, max-content); justify-content: space-between; gap: .2rem 0; }
-  .foot .fnav a { display: inline-block; padding-block: .45rem; padding-inline: 0; }
+  .foot .fnav { display: grid; grid-template-columns: repeat(2, 1fr); gap: .2rem 1rem; }
+  .foot .fnav a { display: flex; align-items: center; min-block-size: 2.75rem; padding-block: .55rem; padding-inline: 0; border-bottom: 1px solid var(--line-dark); }
 }
 .foot .meta { color: var(--bone-mute); }
 .foot .meta + .meta { margin-top: .4rem; }
@@ -543,4 +549,10 @@ p, li { text-wrap: pretty; }
 /* ---------- 44px tap targets (t17654) ---------- */
 .wordmark, .nav a, .foot a, .contact-close a, .casenav a, .email-big { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; box-sizing: border-box; }
 .wordmark { justify-content: flex-start; }
+/* Inline links keep their baseline. A centred 44px box inside running text
+   stretches that line and leaves an uneven gap next to its neighbours; pin
+   the link to the baseline and offset the extra height instead, so the
+   target stays 44px tall while the text rhythm stays even. The offset is
+   small on purpose — these sit in their own lines, not mid-sentence. */
+.contact-close a, .foot .meta a { vertical-align: baseline; margin-block: -6px; }
 @media (max-width: 720px) { .nav a { justify-content: flex-start; } .nav .cta { justify-content: center; } }
