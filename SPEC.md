@@ -39,6 +39,14 @@ Without JavaScript, the first capability description is already rendered. On a n
 First-screen entry motion is CSS alone (`data-cal` slots); `setupReveals` only defers
 below-the-fold blocks while they are off-screen. Reduced motion animates nothing.
 
+On a narrow frame the chrome keeps its signposts: a selected-work card's "Read →"
+is a full-width row in the signal colour (a phone has no hover to announce the
+card as a link), and the footer navigation is two columns of full-width 44px
+rows. Inline 44px links — the home contact line and the footer contact lines —
+keep the text baseline with their extra height offset, so their lines do not
+gap further apart than their neighbours. `scripts/phone-chrome.test.mjs` holds
+that cascade; the browser walk owns the rendered proof.
+
 Each case study and note ends with one "Next case study" or "Next note" link above
 the back-to-index pair: the next case by `order`, or the next older note, wrapping
 to the first. It is plain server-rendered HTML from the same collections, so it
