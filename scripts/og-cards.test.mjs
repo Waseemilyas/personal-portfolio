@@ -3,27 +3,34 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { JSDOM } from "jsdom";
 
 test("a normal build creates and refreshes share cards without publishing drafts", { timeout: 90_000 }, () => {
-  const root = mkdtempSync("card-build-");
-  const input = join(root, "src"), output = join(root, "site");
+  const root = mkdtempSync(join(tmpdir(), "portfolio-cards-"));
+  const input = join(root, "src"), output = join(root, "_site");
   const note = join(input, "notes/posts/build-probe.md");
+  const command = resolve("node_modules/@11ty/eleventy/cmd.cjs");
+  const config = resolve("eleventy.config.js");
+  let buildLog = "";
   const build = () => {
-    const run = spawnSync(process.execPath, ["node_modules/@11ty/eleventy/cmd.cjs", `--input=${input}`, `--output=${output}`], { encoding: "utf8", timeout: 30_000 });
-    assert.equal(run.status, 0, run.stdout + run.stderr);
+    const run = spawnSync(process.execPath, [command, `--config=${config}`], { cwd: root, env: { ...process.env, SITE_REVISION: "a".repeat(40) }, encoding: "utf8", timeout: 30_000 });
+    buildLog = run.stdout + run.stderr;
+    assert.equal(run.status, 0, buildLog);
   };
   const text = (title, draft = false) => `---\ntitle: '${title}'\ndate: 2026-08-08\nsummary: Build fixture.\ndraft: ${draft}\n---\nBuild fixture.\n`;
   const metadata = () => new JSDOM(readFileSync(join(output, "notes/build-probe/index.html"), "utf8")).window.document;
   try {
+    // Use the normal src/ and _site/ paths in an isolated working directory.
+    cpSync("package.json", join(root, "package.json"));
     cpSync("src", input, { recursive: true });
     writeFileSync(note, text("A new note"));
     writeFileSync(join(input, "notes/posts/draft-probe.md"), text("Never publish this draft", true));
     build();
     const image = join(output, "assets/img/og/notes-build-probe.png");
-    assert.ok(existsSync(image), "a new note needs its own generated image after one build");
+    assert.ok(existsSync(image), "a new note needs its own generated image after one build\n" + buildLog);
     const before = readFileSync(image);
     assert.equal(before.readUInt32BE(16), 1200);
     assert.equal(before.readUInt32BE(20), 630);
