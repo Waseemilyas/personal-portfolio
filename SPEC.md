@@ -29,6 +29,11 @@ Without JavaScript, the first capability description is already rendered. On a n
 First-screen entry motion is CSS alone (`data-cal` slots); `setupReveals` only defers
 below-the-fold blocks while they are off-screen. Reduced motion animates nothing.
 
+Each case study and note ends with one "Next case study" or "Next note" link above
+the back-to-index pair: the next case by `order`, or the next older note, wrapping
+to the first. It is plain server-rendered HTML from the same collections, so it
+works without JavaScript and never links a draft.
+
 `src/notes/posts/posts.11tydata.js` suppresses a draft's page permalink and excludes
 it from collections. The notes collection also filters drafts in
 `eleventy.config.js`. Notes listing, feed and sitemap consume those collections.

@@ -11,6 +11,15 @@ layout: base.njk
     <div class="prose" data-cal="1">
       {{ content | safe }}
     </div>
+    {%- set next = collections.notes | getNextCollectionItem(page) or collections.notes | first %}
+    {%- if next and next.url != page.url %}
+    <a class="nextread" href="{{ next.url }}" data-cal>
+      <span class="nextread-k">Next note · <time datetime="{{ next.date | isoDate }}">{{ next.date | readableDate }}</time></span>
+      <span class="nextread-t">{{ next.data.title }}</span>
+      <span class="nextread-d">{{ next.data.summary }}</span>
+      <span class="nextread-go" aria-hidden="true">→</span>
+    </a>
+    {%- endif %}
     <nav class="casenav" aria-label="Notes">
       <a href="/notes/">← All notes</a>
       <a href="mailto:{{ site.email }}">Email Waseem →</a>

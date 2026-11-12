@@ -1,7 +1,9 @@
 # Read work and notes
 
 Open Work, follow every case-study card and return to the list. Open Notes, follow
-each article and return. All generated case studies and articles are included in
+each article and return. Every case study and note ends with a "Next" card
+(`.nextread`) leading to another published page of the same kind; the rendered
+checker validates its internal target like any other link. All generated case studies and articles are included in
 the two-width page coverage. Read the Atom feed and sitemap; the rendered checker
 owns XML structure, internal targets and publication parity.
 
