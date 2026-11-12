@@ -556,3 +556,55 @@ p, li { text-wrap: pretty; }
    small on purpose — these sit in their own lines, not mid-sentence. */
 .contact-close a, .foot .meta a { vertical-align: baseline; margin-block: -6px; }
 @media (max-width: 720px) { .nav a { justify-content: flex-start; } .nav .cta { justify-content: center; } }
+
+/* ---------- reading on paper ----------
+   Browser Print / Save as PDF uses the same article, without site navigation.
+   A named page leaves other routes and the visitor's paper size alone. */
+.print-source { display: none; }
+@page reading { margin: 16mm 18mm; }
+@media print {
+  .reading-page {
+    page: reading;
+    --step--1: 8.5pt;
+    --step-0: 11pt;
+    --step-1: 12pt;
+    --step-2: 16pt;
+    --step-3: 24pt;
+    color: var(--ink);
+    background: none;
+    min-block-size: 0;
+  }
+  .reading-page .topbar, .reading-page .foot, .reading-page .skip,
+  .reading-page .nextread, .reading-page .casenav { display: none; }
+  /* Printing before scrolling must include deferred blocks and stop entry motion. */
+  .reading-page [data-cal] { opacity: 1 !important; transform: none !important; animation: none !important; }
+  .reading-page .section { padding-block: 0; }
+  .reading-page .essay, .reading-page .figure, .reading-page .datasheet { background: none; }
+  .reading-page .shell { max-inline-size: none; padding-inline: 0; }
+  .reading-page .casehead { padding-block-end: 12pt; margin-block-end: 16pt; break-inside: avoid; }
+  .reading-page .casehead h1 { max-inline-size: none; }
+  .reading-page .casehead .kick { font-size: var(--step-0); line-height: 1.45; }
+  .reading-page .casegrid { display: block; }
+  .reading-page .prose, .reading-page .prose p { max-inline-size: none; }
+  .reading-page .prose p { margin-block-end: 9pt; line-height: 1.5; }
+  .reading-page p, .reading-page li { orphans: 3; widows: 3; }
+  .reading-page h2, .reading-page h3 { break-after: avoid; }
+  .reading-page .figure { break-inside: avoid; margin-block: 12pt; }
+  /* Paper has room for the vector original, even when printing from a phone. */
+  .reading-page .figure > svg { display: block; }
+  .reading-page .figure > .diagram-phone { display: none; }
+  .reading-page .datasheet { position: static; margin-block-start: 14pt; break-inside: avoid; }
+  .reading-page .datasheet .dh { padding: 8pt 10pt; }
+  .reading-page .datasheet dl { grid-template-columns: 1fr 3fr; gap: 5pt 12pt; padding: 8pt 10pt; }
+  .reading-page .datasheet dt, .reading-page .datasheet dd { margin-block-start: 0; }
+  .reading-page .print-source {
+    display: block;
+    margin-block-start: 16pt;
+    padding-block-start: 9pt;
+    border-block-start: 1px solid var(--line-light);
+    font-size: var(--step--1);
+    color: var(--ink-mute);
+    overflow-wrap: anywhere;
+    break-inside: avoid;
+  }
+}

@@ -340,6 +340,18 @@ rather than a new one.
   check the rule before adding a new one.
 - Body line-height is `1.55`; long-form prose relaxes to `1.62`.
 
+### Print reading edition
+
+Notes and case studies use a named `reading` page with 16mm vertical and 18mm
+horizontal margins; the visitor chooses the paper size. The same Geist faces
+print with an 11pt body, 24pt title and 8.5pt metadata. Paper backgrounds are
+unfilled, site navigation and next-article cards are omitted, and reveals are
+always visible. Figures keep the original vector diagram, including when printing
+from a narrow screen. The case datasheet follows the narrative as key/value rows;
+figures and datasheets stay together across page breaks. A `.print-source` line
+at the end carries author, email and canonical URL and is hidden on screen.
+Other routes keep their existing print behaviour.
+
 ### Heading hierarchy contract
 
 Fixed by an earlier accessibility pass and **binding on new routes**. Every rendered
