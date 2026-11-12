@@ -87,6 +87,7 @@ const bad = {
   "draft listed in sitemap": [(f) => (f["sitemap.xml"] = sitemap("/", "/about/", "/notes/n/", "/notes/wip/")), "drafts"],
   "og image of the wrong size": [(f) => (f["og.png"] = png(600, 315)), "og-image"],
   "inline script added after the policy": [(f) => (f["index.html"] = page("/").replace("</body>", "<script>steal()</script></body>")), "csp"],
+  "unapproved speculation rules": [(f) => (f["index.html"] = page("/").replace("</body>", '<script type="speculationrules">{"prefetch":[{"urls":["https://outside.test/"]}]}</script></body>')), "csp"],
   "inline event handler": [(f) => (f["about/index.html"] = page("/about/", '<h1 onclick="x()">A</h1>')), "csp"],
   "policy missing": [(f) => (f["about/index.html"] = page("/about/").replace(/<meta http-equiv[^>]*>/, "")), "csp"],
   "share image without alt text": [(f) => (f["about/index.html"] = page("/about/").replace(/<meta property="og:image:alt"[^>]*>/, "")), "social"],
