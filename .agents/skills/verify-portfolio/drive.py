@@ -69,7 +69,8 @@ def capture(name, image_optional=False):
         # Chrome's Page.captureScreenshot hangs once author scripts are disabled
         # (--blink-settings=scriptEnabled=false), on every page. The DOM checks
         # above and the click that follows still prove the no-JS journey.
-        if not image_optional or "Page.captureScreenshot" not in str(error): raise
+        # On macOS the same hang surfaces as the daemon never answering.
+        if not image_optional or not any(m in str(error) for m in ("Page.captureScreenshot", "no response came back")): raise
         receipts.append(name + ": screenshot unavailable (Chrome cannot capture with scripts disabled); DOM checks passed")
 
 def abort(_sig, _frame): raise TimeoutError("browser path exceeded 300 seconds")
