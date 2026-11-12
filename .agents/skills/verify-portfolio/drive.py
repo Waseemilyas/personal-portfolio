@@ -92,6 +92,9 @@ try:
         # The map's block rises into place once scrolled to; a pointer placed
         # mid-rise lands on a neighbouring node, so wait until it has settled.
         run("wait", "--fn", "(() => { const b = document.querySelector(" + json.dumps(selector) + ").closest('[data-cal]'); return !b || (!b.classList.contains('cal-wait') && b.getAnimations().every(a => a.playState !== 'running')); })()")
+        # scrollintoview returns before CSS smooth scrolling stops. Waiting for
+        # the reveal alone leaves later nodes moving under the pointer too.
+        run("eval", "new Promise(resolve => { const e = document.querySelector(" + json.dumps(selector) + "); let last, stable = 0; function frame() { const y = e.getBoundingClientRect().top; stable = y === last ? stable + 1 : 0; last = y; if (stable >= 8) resolve(true); else requestAnimationFrame(frame); } requestAnimationFrame(frame); })")
         if i % 3 == 0: run("hover", selector)
         elif i % 3 == 1:
             run("focus", selector); run("press", "Enter")
