@@ -215,8 +215,9 @@ First-screen blocks carry their stagger slot (`data-cal="0"` to `"4"`, 110 ms
 apart) and rise in CSS alone from the first frame, so a painted block is never
 hidden again. Bare `data-cal` marks a below-the-fold block: `site.js` hides it
 (`.cal-wait`) only while it is off-screen and reveals it (`.in`) when scrolled to,
-so content never depends on the script. The capability map is server-rendered with the first node's
-copy already in place, so it reads fine with JS disabled.
+so content never depends on the script. All capability descriptions and related
+links are server-rendered. The script adds the map controls and displays the
+selected description.
 
 **The mobile nav drawer is the exception.** Below 720px `.nav` is fixed and
 translated off-screen (the `.nav` rule in the 720px media query, `styles.css`);
@@ -317,7 +318,8 @@ they scale with the viewBox, not the page. That is the settled wide-canvas
 treatment: do not enlarge those user-unit sizes to chase a phone viewport, or
 the desktop composition changes. When the frame is narrower than the settled
 composition (36rem for the capability map and case-study figures, 28rem for the
-workflow panel), the same authored labels are shown again in HTML at `--step-0`.
+workflow panel), HTML controls or labels take their place at `--step-0`. The
+capability buttons use the full strand titles.
 See `.diagram-phone` and `.cap-phone` in `styles.css`. Outside SVG, use a step —
 if a value is not in the scale, the answer is almost always the nearest step
 rather than a new one.

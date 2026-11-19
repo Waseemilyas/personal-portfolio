@@ -12,7 +12,7 @@
 ## Fast traces for source changes
 
 - **Draft publication:** start at [`work-and-notes.md`](work-and-notes.md#draft-publication-fast-source-trace): directory data decides page output and collection exclusion; Eleventy config decides explicit note collection membership; Notes, feed and sitemap consume that collection. The page, collection and rendered-check fallback are distinct.
-- **Capability content/events/fallback:** start at [`capabilities.md`](capabilities.md#capability-map-fast-source-trace): JSON authors content → `src/index.njk` renders node attributes and initial description → `setupCapabilityMap` handles selection → CSS presents it. The first description is the no-JS fallback.
+- **Capability content/events/fallback:** start at [`capabilities.md`](capabilities.md#capability-map-fast-source-trace): JSON authors content → `src/index.njk` renders every description and related link → `setupCapabilityMap` adds selection → CSS presents it.
 
 The helper discovers built HTML files from `_site/` and checks each at both widths.
 This avoids maintaining a second route inventory. New interactions need an actual

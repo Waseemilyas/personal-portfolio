@@ -4,9 +4,9 @@
     {
       "key": "ai",
       "code": "AI·AUTO",
-      "label": "AI·AUTO",
       "title": "AI automation",
       "body": "Designing and building AI-assisted workflows and lightweight systems that do real work for small businesses.",
+      "reading": "/notes/unglamorous-half-of-automation/",
       "x": 140,
       "y": 96,
       "textY": -36,
@@ -15,9 +15,9 @@
     {
       "key": "digital",
       "code": "DIGITAL",
-      "label": "DIGITAL",
       "title": "Digital practice",
       "body": "Standing up a digital function inside an organisation, from zero to a meaningful share of the business.",
+      "reading": "/notes/what-an-operations-platform-is-made-of/",
       "x": 600,
       "y": 104,
       "textY": -36,
@@ -26,7 +26,6 @@
     {
       "key": "learn",
       "code": "LEARN",
-      "label": "LEARN",
       "title": "Learning design",
       "body": "Instructional design and e-learning production: turning complex topics into things people can learn from.",
       "x": 150,
@@ -37,9 +36,9 @@
     {
       "key": "web",
       "code": "WEB",
-      "label": "WEB",
       "title": "Web & product",
       "body": "Front-end and product delivery across static sites, apps, and internal tools.",
+      "reading": "/work/cs-product/",
       "x": 596,
       "y": 344,
       "textY": 46,
@@ -48,7 +47,6 @@
     {
       "key": "creative",
       "code": "CREATIVE",
-      "label": "CREATIVE",
       "title": "Creative roots",
       "body": "Graphic design and visual communication since age 15. The origin story, still in the toolkit.",
       "x": 360,
