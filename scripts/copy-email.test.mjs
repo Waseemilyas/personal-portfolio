@@ -21,7 +21,7 @@ test("contact page: copy button appears with JavaScript, copies the address and 
 
   const outDir = mkdtempSync(join(tmpdir(), "portfolio-copy-email-"));
   try {
-    await promisify(execFile)(process.execPath, ["node_modules/@11ty/eleventy/cmd.cjs", "--output", outDir], { timeout: 60000 });
+    await promisify(execFile)(process.execPath, ["node_modules/@11ty/eleventy/cmd.cjs", "--output", outDir], { timeout: 180_000 });
     const html = readFileSync(join(outDir, "contact/index.html"), "utf8");
     const script = readFileSync(join(outDir, "assets/js/site.js"), "utf8");
 

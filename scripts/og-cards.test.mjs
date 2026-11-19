@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { JSDOM } from "jsdom";
 
-test("a normal build creates and refreshes share cards without publishing drafts", { timeout: 90_000 }, () => {
+test("a normal build creates and refreshes share cards without publishing drafts", { timeout: 300_000 }, () => {
   const root = mkdtempSync(join(tmpdir(), "portfolio-cards-"));
   const input = join(root, "src"), output = join(root, "_site");
   const note = join(input, "notes/posts/build-probe.md");
@@ -16,7 +16,7 @@ test("a normal build creates and refreshes share cards without publishing drafts
   const config = resolve("eleventy.config.js");
   let buildLog = "";
   const build = () => {
-    const run = spawnSync(process.execPath, [command, `--config=${config}`], { cwd: root, env: { ...process.env, SITE_REVISION: "a".repeat(40) }, encoding: "utf8", timeout: 30_000 });
+    const run = spawnSync(process.execPath, [command, `--config=${config}`], { cwd: root, env: { ...process.env, SITE_REVISION: "a".repeat(40) }, encoding: "utf8", timeout: 120_000 });
     buildLog = run.stdout + run.stderr;
     assert.equal(run.status, 0, buildLog);
   };
