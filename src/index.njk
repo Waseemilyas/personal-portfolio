@@ -44,9 +44,9 @@ description: "Waseem Ilyas runs Automancer, a UK automation consultancy helping 
     </div>
 
     <div class="cap" data-cal>
-      <figure class="capfig" aria-label="Capability map: five domains wired to one practice hub. Activate a node to read its description.">
+      <figure class="capfig" hidden>
         <svg class="cap-settled" viewBox="0 0 720 440">
-          <g id="traces" stroke-linecap="round">
+          <g id="traces" stroke-linecap="round" aria-hidden="true">
             {%- for n in capabilities.nodes %}
             <path class="trace" data-for="{{ n.key }}" d="{{ n.trace }}"/>
             {%- endfor %}
@@ -55,30 +55,45 @@ description: "Waseem Ilyas runs Automancer, a UK automation consultancy helping 
             <circle cx="360" cy="220" r="30"/>
             <text x="360" y="224" text-anchor="middle">PRACTICE</text>
           </g>
-          {%- for n in capabilities.nodes %}
-          <g class="node" tabindex="0" role="button" aria-describedby="capread"
-             data-key="{{ n.key }}" data-code="{{ n.code }}" data-title="{{ n.title }}" data-body="{{ n.body }}"
-             transform="translate({{ n.x }},{{ n.y }})">
-            <circle class="ring" r="26"></circle><circle class="core" r="6"></circle>
-            <text x="0" y="{{ n.textY }}" text-anchor="middle">{{ n.label }}</text>
+          <g role="tablist" aria-label="Capabilities">
+            {%- for n in capabilities.nodes %}
+            <g class="node" role="tab" aria-label="{{ n.title }}" aria-controls="cap-{{ n.key }}"
+               data-key="{{ n.key }}" transform="translate({{ n.x }},{{ n.y }})">
+              <circle class="ring" r="26"></circle><circle class="core" r="6"></circle>
+              <text x="0" y="{{ n.textY }}" text-anchor="middle">{{ n.code }}</text>
+            </g>
+            {%- endfor %}
           </g>
-          {%- endfor %}
         </svg>
         <div class="cap-phone">
-          <p class="cap-phone-hub">PRACTICE</p>
-          <div class="cap-phone-grid">
+          <p class="cap-phone-hub" aria-hidden="true">PRACTICE</p>
+          <div class="cap-phone-grid" role="tablist" aria-label="Capabilities">
             {%- for n in capabilities.nodes %}
-            <button type="button" class="node" aria-describedby="capread" data-key="{{ n.key }}" data-code="{{ n.code }}" data-title="{{ n.title }}" data-body="{{ n.body }}">{{ n.label }}</button>
+            <button type="button" class="node" role="tab" aria-controls="cap-{{ n.key }}" data-key="{{ n.key }}">{{ n.title }}</button>
             {%- endfor %}
           </div>
         </div>
       </figure>
 
-      <div class="capread" id="capread" aria-live="polite">
-        <span class="k" data-bind="k">{{ capabilities.nodes[0].code }}</span>
-        <h3 data-bind="h">{{ capabilities.nodes[0].title }}</h3>
-        <p data-bind="p">{{ capabilities.nodes[0].body }}</p>
-        <p class="caphint">Hover, tap, or tab through the nodes to trace each strand.</p>
+      <div class="cap-panels">
+        {%- set reading = collections.notes.concat(collections.casestudies) %}
+        {%- for n in capabilities.nodes %}
+        <div class="capread" id="cap-{{ n.key }}">
+          <span class="k" aria-hidden="true">{{ n.code }}</span>
+          <h3 id="cap-title-{{ n.key }}">{{ n.title }}</h3>
+          <p>{{ n.body }}</p>
+          {%- if n.reading %}
+            {%- for item in reading %}
+              {%- if item.url == n.reading and not item.data.draft %}
+          <a class="cap-link" href="{{ item.url }}">
+            <span>{{ item.data.title }}</span>
+            <span aria-hidden="true">→</span>
+          </a>
+              {%- endif %}
+            {%- endfor %}
+          {%- endif %}
+        </div>
+        {%- endfor %}
       </div>
     </div>
   </div>

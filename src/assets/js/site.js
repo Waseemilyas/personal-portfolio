@@ -64,33 +64,69 @@
   }
 
   function setupCapabilityMap() {
-    var nodes = Array.from(document.querySelectorAll(".node"));
-    if (nodes.length) {
-      var traces = Array.from(document.querySelectorAll(".trace"));
-      var bind = {
-        k: document.querySelector("[data-bind=k]"),
-        h: document.querySelector("[data-bind=h]"),
-        p: document.querySelector("[data-bind=p]")
-      };
-      /** @param {Element} node */
-      var activate = function (node) {
-        if (!bind.k || !bind.h || !bind.p) return;
-        var key = node.getAttribute("data-key");
-        bind.k.textContent = node.getAttribute("data-code");
-        bind.h.textContent = node.getAttribute("data-title");
-        bind.p.textContent = node.getAttribute("data-body");
-        nodes.forEach(function (n) { n.classList.toggle("on", n === node); });
-        traces.forEach(function (t) { t.classList.toggle("on", t.getAttribute("data-for") === key); });
-      };
-      nodes.forEach(function (n) {
-        n.addEventListener("mouseenter", function () { activate(n); });
-        n.addEventListener("focus", function () { activate(n); });
-        n.addEventListener("click", function () { activate(n); });
-        n.addEventListener("keydown", function (e) {
-          if (e instanceof KeyboardEvent && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); activate(n); }
+    const map = document.querySelector(".cap");
+    const figure = map?.querySelector(".capfig");
+    if (!map || !figure) return;
+
+    const nodes = Array.from(figure.querySelectorAll(".node"));
+    const traces = figure.querySelectorAll(".trace");
+    const panels = map.querySelectorAll(".capread");
+
+    /** @param {Element} node */
+    function activate(node) {
+      const panelId = node.getAttribute("aria-controls");
+      const key = node.getAttribute("data-key");
+      // Keep the SVG and narrow layout in sync when the viewport changes.
+      nodes.forEach((tab) => {
+        const selected = tab.getAttribute("aria-controls") === panelId;
+        tab.setAttribute("aria-selected", String(selected));
+        tab.setAttribute("tabindex", selected ? "0" : "-1");
+      });
+      traces.forEach((trace) => trace.classList.toggle("on", trace.getAttribute("data-for") === key));
+      panels.forEach((panel) => panel.toggleAttribute("hidden", panel.id !== panelId));
+    }
+
+    figure.querySelectorAll('[role="tablist"]').forEach((list) => {
+      const tabs = Array.from(list.querySelectorAll(".node"));
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("pointermove", (event) => {
+          if (!(event instanceof PointerEvent) || event.pointerType === "touch" || tab.getAttribute("aria-selected") === "true") return;
+          // Require pointer movement so resize or scroll alone cannot select a tab.
+          // Keep the active panel available while it contains keyboard focus.
+          const focused = document.activeElement;
+          if (!focused || !map.contains(focused) || !focused.matches(":focus-visible")) activate(tab);
+        });
+        tab.addEventListener("focus", () => activate(tab));
+        tab.addEventListener("click", () => activate(tab));
+        tab.addEventListener("keydown", (event) => {
+          if (!(event instanceof KeyboardEvent)) return;
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            activate(tab);
+            return;
+          }
+          let next;
+          switch (event.key) {
+            case "ArrowLeft": next = tabs[(index + tabs.length - 1) % tabs.length]; break;
+            case "ArrowRight": next = tabs[(index + 1) % tabs.length]; break;
+            case "Home": next = tabs[0]; break;
+            case "End": next = tabs[tabs.length - 1]; break;
+            default: return;
+          }
+          event.preventDefault();
+          if (next instanceof HTMLElement || next instanceof SVGElement) next.focus();
         });
       });
-    }
+    });
+
+    panels.forEach((panel) => {
+      panel.setAttribute("role", "tabpanel");
+      panel.setAttribute("aria-labelledby", panel.querySelector("h3")?.id ?? "");
+      panel.setAttribute("tabindex", "0");
+    });
+    activate(nodes[0]);
+    map.setAttribute("data-enhanced", "");
+    figure.removeAttribute("hidden");
   }
 
   /* The big address is a mail link, which does nothing for a visitor with no mail
@@ -130,7 +166,7 @@
   }
 
   setupNavigation();
-  setupReveals();
   setupCapabilityMap();
+  setupReveals();
   setupCopyEmail();
 })();

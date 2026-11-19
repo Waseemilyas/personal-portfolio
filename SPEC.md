@@ -38,11 +38,13 @@ query must agree. At desktop width the closed drawer's links become available
 again. With JavaScript disabled, the footer navigation is the existing fallback;
 the mobile toggle does not work. The design document already records that exception.
 
-`setupCapabilityMap` owns panel selection and trace highlighting. The authored
-content comes from `src/_data/capabilities.json` through `src/index.njk` data
-attributes. Pointer selection, focus and Enter/Space activate a node. Selection
-changes the panel and the highlighted connection without changing the route.
-Without JavaScript, the first capability description is already rendered. On a narrow frame the same nodes are readable buttons instead of scaled SVG labels; selection, keyboard activation and the panel still belong to `setupCapabilityMap`.
+`src/index.njk` renders all capability descriptions from `src/_data/capabilities.json`
+with related links resolved from published notes and case studies. Without
+JavaScript all five descriptions and their links are available as a list.
+`setupCapabilityMap` enhances the list with the interactive map and shows one
+panel at a time. Pointer selection and keyboard focus activate a tab. Left/Right
+and Home/End move between tabs, and Tab moves to the active panel and its link.
+Narrow frames use full titles on buttons, with the same selection as the SVG map.
 First-screen entry motion is CSS alone (`data-cal` slots); `setupReveals` only defers
 below-the-fold blocks while they are off-screen. Reduced motion animates nothing.
 

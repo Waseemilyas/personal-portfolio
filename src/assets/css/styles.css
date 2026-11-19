@@ -241,17 +241,39 @@ p, li { text-wrap: pretty; }
 .node .core { fill: var(--bone-mute); transition: .25s var(--ease); }
 .node text { font-family: var(--mono); font-size: 11px; letter-spacing: .04em; fill: var(--bone-mute); transition: .25s var(--ease); }
 .trace { fill: none; stroke: var(--line-dark); stroke-width: 1.5; transition: .3s var(--ease); }
-.node:hover .core, .node:focus-visible .core, .node.on .core { fill: var(--signal); }
-.node:hover .ring, .node:focus-visible .ring, .node.on .ring { stroke: var(--signal); }
-.node:hover text, .node:focus-visible text, .node.on text { fill: var(--bone); }
+.node:hover .core, .node:focus-visible .core, .node[aria-selected="true"] .core { fill: var(--signal); }
+.node:hover .ring, .node:focus-visible .ring, .node[aria-selected="true"] .ring { stroke: var(--signal); }
+.node:hover text, .node:focus-visible text, .node[aria-selected="true"] text { fill: var(--bone); }
 .trace.on { stroke: var(--trace); stroke-width: 2.5; }
 .hub circle { fill: var(--graphite-700); stroke: var(--signal); stroke-width: 1.5; }
 .hub text { font-family: var(--mono); font-size: 10px; fill: var(--signal); letter-spacing: .08em; }
 .capread { border: 1px solid var(--line-dark); border-radius: var(--rounded-lg); padding: 1.2rem 1.3rem; background: var(--graphite-800); min-height: 9.5rem; }
 .capread .k { font-family: var(--mono); font-size: var(--step--1); color: var(--signal); letter-spacing: .06em; }
 .capread h3 { font-size: var(--step-1); margin: .5rem 0 .55rem; letter-spacing: -0.02em; }
-.capread p { color: var(--bone-mute); font-size: var(--step-0); }
-.caphint { margin-top: .9rem; font-size: var(--step--1); color: var(--bone-mute); }
+.capread p { color: var(--bone-mute); font-size: var(--step-0); max-width: 60ch; }
+.cap:not([data-enhanced]) { grid-template-columns: 1fr; }
+.cap:not([data-enhanced]) .cap-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr));
+  gap: .75rem;
+}
+.cap-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+  margin-top: .8rem;
+  padding-block: .4rem;
+  min-block-size: 2.75rem;
+  border-top: 1px solid var(--line-dark);
+  color: var(--bone);
+  font-size: var(--step-0);
+  font-weight: 500;
+  line-height: 1.35;
+  text-decoration: none;
+}
+.cap-link span:first-child { text-decoration: underline; text-underline-offset: .2em; text-wrap: pretty; }
+.cap-link span[aria-hidden] { color: var(--signal); }
 
 /* ---------- work / case-study index cards ---------- */
 .worklist { display: grid; gap: 1px; border: 1px solid var(--line-dark); border-radius: var(--rounded-xl); overflow: hidden; background: var(--line-dark); }
@@ -426,9 +448,9 @@ p, li { text-wrap: pretty; }
 .cap-phone-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
 .cap-phone .node {
   appearance: none;
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: var(--step-0);
-  letter-spacing: 0.04em;
+  font-weight: 500;
   line-height: 1.2;
   color: var(--bone-mute);
   background: var(--graphite-700);
@@ -440,7 +462,7 @@ p, li { text-wrap: pretty; }
   text-align: center;
 }
 .cap-phone .node[data-key="creative"] { grid-column: 1 / -1; }
-.cap-phone .node.on {
+.cap-phone .node[aria-selected="true"] {
   color: var(--bone);
   border-color: var(--signal);
   background: color-mix(in oklch, var(--signal) 16%, var(--graphite-700));

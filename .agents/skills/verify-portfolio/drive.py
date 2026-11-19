@@ -36,6 +36,18 @@ def require(expression):
     if state(expression) is not True:
         run("eval", "JSON.stringify({path:location.pathname,width:innerWidth,ready:document.readyState,nav:document.getElementById('primary-nav')?.outerHTML})")
         raise AssertionError(expression)
+
+def check_capability(node):
+    panel = '.capread[id="cap-' + node["key"] + '"]'
+    require("document.querySelectorAll('.capread:not([hidden])').length === 1")
+    require("document.querySelector(" + json.dumps(panel + ":not([hidden]) h3") + ").textContent === " + json.dumps(node["title"]))
+    require("document.querySelector(" + json.dumps(panel + ":not([hidden]) p") + ").textContent === " + json.dumps(node["body"]))
+    require("(document.querySelector(" + json.dumps(panel + " a") + ")?.getAttribute('href') ?? null) === " + json.dumps(node.get("reading")))
+    require("document.querySelector('.trace.on').getAttribute('data-for') === " + json.dumps(node["key"]))
+    for selector in [".capfig svg", ".cap-phone"]:
+        tabs = selector + " .node[aria-selected=true]"
+        require("document.querySelectorAll(" + json.dumps(tabs) + ").length === 1 && document.querySelector(" +
+                json.dumps(tabs) + ").getAttribute('data-key') === " + json.dumps(node["key"]))
 def processes():
     """(pid, start identity) of every process this run's browser session owns."""
     if Path("/proc").is_dir():
@@ -99,8 +111,9 @@ try:
     capture("desktop-home")
     # Operate actual nodes; compare the visible panel/connection state to authored data.
     nodes = json.loads((root / "src/_data/capabilities.json").read_text())["nodes"]
+    check_capability(nodes[0])
     for i, node in enumerate(nodes):
-        selector = '.node[data-key="' + node["key"] + '"]'
+        selector = '.capfig svg .node[data-key="' + node["key"] + '"]'
         run("scrollintoview", selector)
         # The map's block rises into place once scrolled to; a pointer placed
         # mid-rise lands on a neighbouring node, so wait until it has settled.
@@ -112,13 +125,20 @@ try:
         elif i % 3 == 1:
             run("focus", selector); run("press", "Enter")
         else: run("click", selector)
-        require("document.querySelector('[data-bind=h]').textContent === " + json.dumps(node["title"]))
-        require("document.querySelector('[data-bind=p]').textContent === " + json.dumps(node["body"]))
-        require("document.querySelectorAll('.node.on').length === 1 && document.querySelector('.trace.on').getAttribute('data-for') === " + json.dumps(node["key"]))
-    run("focus", '.node[data-key="' + nodes[0]["key"] + '"]'); run("press", "Space")
-    require("document.querySelector('[data-bind=h]').textContent === " + json.dumps(nodes[0]["title"]))
+        check_capability(node)
+    run("focus", '.capfig svg .node[aria-selected=true]')
+    run("press", "Home"); run("press", "Space")
+    check_capability(nodes[0])
     capture("desktop-capability")
-    receipts.append("capability hover/click/focus/Enter/Space changed actual panel and traces")
+    run("press", "ArrowRight")
+    check_capability(nodes[1])
+    run("press", "Tab")
+    require("document.activeElement.matches('.capread:not([hidden])')")
+    run("press", "Tab")
+    require("document.activeElement.matches('.capread:not([hidden]) a')")
+    run("press", "Enter")
+    require("location.pathname === " + json.dumps(nodes[1]["reading"]))
+    receipts.append("desktop capability map selects with pointer and keyboard; Tab reaches the selected reading link")
     nav = json.loads((root / "src/_data/site.json").read_text())["nav"]
     for item in nav:
         run("click", '#primary-nav a[href="' + item["url"] + '"]')
@@ -145,6 +165,21 @@ try:
             require("document.querySelector('meta[name=waseemilyas-revision]').content === " + json.dumps(revision))
             capture(label + "-page-" + str(i))
         receipts.append(label + ": all " + str(len(pages)) + " generated pages loaded without horizontal overflow")
+    run("open", base + "/")
+    for node in nodes:
+        selector = '.cap-phone .node[data-key="' + node["key"] + '"]'
+        run("click", selector)
+        check_capability(node)
+    run("click", '.cap-phone .node[data-key="web"]')
+    capture("phone-capability")
+    run("set", "viewport", "1440", "900")
+    check_capability(next(node for node in nodes if node["key"] == "web"))
+    require("document.querySelector('.capfig svg .node[aria-selected=true]').getClientRects().length > 0")
+    run("set", "viewport", "390", "844")
+    check_capability(next(node for node in nodes if node["key"] == "web"))
+    run("click", '#cap-web a')
+    require("location.pathname === " + json.dumps(next(node["reading"] for node in nodes if node["key"] == "web")))
+    receipts.append("phone capability tabs select all strands and follow a case study; selection survives the layout change")
     run("open", base + "/")
     require("document.getElementById('primary-nav').inert === true")
     run("click", ".nav-toggle")
@@ -188,13 +223,20 @@ try:
     run("set", "viewport", "390", "844")
     run("open", base + "/?nojs=" + session)
     require("document.getElementById('primary-nav').getAttribute('data-open') === null")
-    require("document.querySelector('[data-bind=h]').textContent === " + json.dumps(nodes[0]["title"]))
+    require("document.querySelector('.capfig').hidden")
+    require("Array.from(document.querySelectorAll('.capread')).every(panel => panel.getClientRects().length > 0)")
+    require("Array.from(document.querySelectorAll('.capread h3')).map(h => h.textContent).join('|') === " + json.dumps("|".join(node["title"] for node in nodes)))
+    require("Array.from(document.querySelectorAll('.capread p')).map(p => p.textContent).join('|') === " + json.dumps("|".join(node["body"] for node in nodes)))
+    require("Array.from(document.querySelectorAll('.capread a')).map(a => a.getAttribute('href')).join('|') === " + json.dumps("|".join(node["reading"] for node in nodes if "reading" in node)))
+    run("click", '.capread a')
+    require("location.pathname === " + json.dumps(nodes[0]["reading"]))
+    run("back")
     run("scrollintoview", '.foot .fnav a[href="/about/"]')
     run("wait", "--fn", "(()=>{const r=document.querySelector('.foot .fnav a[href=\"/about/\"]').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight})()")
     capture("phone-nojs-footer", image_optional=True)
     run("click", '.foot .fnav a[href="/about/"]')
     require("location.pathname === '/about/'")
-    receipts.append("JavaScript-disabled phone page: static capability text and footer navigation work")
+    receipts.append("JavaScript-disabled phone page: all capability text and links visible, a note and footer navigation open")
     errors = run("errors")
     assert errors in ("", "No errors", "No page errors", "[]"), errors
     receipts.append("feed/sitemap/audio HTTP bodies present; contact links inspected without sending")
