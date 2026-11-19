@@ -31,6 +31,11 @@ destinations do not. Nothing is speculated on initial load. The rules are hashed
 by the existing Content Security Policy; unsupported or resource-constrained
 browsers keep normal navigation. No client router or navigation interception is used.
 
+Every page carries the site stylesheet inline in its `<head>`, comments and spare
+whitespace removed, so the first paint needs no second request and a returning
+visitor never waits on a stylesheet revalidation. `/assets/css/styles.css` is
+still published, so a page cached from before inlining keeps its styles.
+
 `setupNavigation` in `src/assets/js/site.js` owns the mobile drawer. Its
 `setDrawer` function writes open/expanded/hidden/inert state. Escape returns focus
 to the toggle. A link click closes it. Its media query and the stylesheet's mobile
@@ -84,8 +89,8 @@ its post-deploy verifier compares the live revision body exactly.
 
 Every page carries a Content Security Policy as the first element after
 `<meta charset>`, written at build time by `scripts/csp.mjs` (GitHub Pages cannot
-send headers). It allows only this site's own files and each inline script by the
-SHA-256 of its exact text; no outside origin may run script. The only outside
+send headers). It allows only this site's own files and each inline script and inline
+style by the SHA-256 of its exact text; no outside origin may run script. The only outside
 origin is Sentry's ingest, in `connect-src`, when the production build has a DSN.
 It has no `'unsafe-inline'`, `'unsafe-eval'` or wildcard, and blocks forms, `<base>`
 and plugins. Pages also send `strict-origin-when-cross-origin` as their referrer

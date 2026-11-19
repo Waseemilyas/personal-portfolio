@@ -2,8 +2,9 @@
 //
 // GitHub Pages cannot send response headers, so the policy is a <meta http-equiv>
 // placed straight after <meta charset>, before any script, style or font loads.
-// Inline scripts are allowed only by the SHA-256 of their exact text, computed from
-// the rendered page, so editing one can never silently break it. 'unsafe-inline'
+// Inline scripts and the inlined stylesheet (scripts/inline-css.mjs) are allowed only
+// by the SHA-256 of their exact text, computed from the rendered page, so editing one
+// can never silently break it. 'unsafe-inline'
 // and 'unsafe-eval' are never used, and no third-party origin may run script: an
 // outside library is pinned and served from this site (as the Sentry SDK is). The
 // meta form cannot carry frame-ancestors or report-uri; violations are reported to
@@ -31,6 +32,15 @@ export function inlineScripts(html) {
     .map(([, , body]) => body ?? "");
 }
 
+/**
+ * Exact text of every inline <style> block.
+ * @param {string} html
+ * @returns {string[]}
+ */
+export function inlineStyles(html) {
+  return [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi)].map(([, body]) => body ?? "");
+}
+
 /** @param {string} source */
 export const scriptHash = (source) => `'sha256-${createHash("sha256").update(source, "utf8").digest("base64")}'`;
 
@@ -41,10 +51,11 @@ export const scriptHash = (source) => `'sha256-${createHash("sha256").update(sou
  */
 export function policyFor(html, { connectOrigins = [] } = {}) {
   const hashes = [...new Set(inlineScripts(html).map(scriptHash))];
+  const styleHashes = [...new Set(inlineStyles(html).map(scriptHash))];
   return [
     "default-src 'none'",
     ["script-src 'self'", ...hashes].join(" "),
-    "style-src 'self'",
+    ["style-src 'self'", ...styleHashes].join(" "),
     "img-src 'self'",
     "font-src 'self'",
     "media-src 'self'",

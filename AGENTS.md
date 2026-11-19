@@ -76,14 +76,18 @@ need Waseem's approval under the estate decision policy.
   they already allow.
 - Keep the site static and GitHub Pages-compatible unless Waseem approves
   otherwise.
-- Every page has a Content Security Policy (`scripts/csp.mjs`). Inline scripts are
-  hashed automatically at build time; inline `style=`/`on*=` attributes, `data:`
+- Every page has a Content Security Policy (`scripts/csp.mjs`). Inline scripts and the
+  inlined stylesheet are hashed automatically at build time; inline `style=`/`on*=` attributes, `data:`
   images and any third-party origin are blocked. No outside origin may run script:
   pin an outside library and serve it from this site, as `vendor/` does for the
   Sentry SDK (`src/_data/monitoring.js` says how to update it and checks its hash).
   A new outside service the page sends data to means adding its exact origin to
   `connect-src`, never `'unsafe-inline'` or a wildcard. `site-check` fails the build
   otherwise.
+- `src/assets/css/styles.css` is inlined into every page's `<head>` at build time
+  (`scripts/inline-css.mjs`), so the first paint waits for no second request. Edit
+  the file as usual; keep strings and `url()` free of comment markers and runs of
+  spaces (`scripts/inline-css.test.mjs`). Do not link it from a page again.
 - **Prayer-time audio files (`audio/`)**: `audio/adhan.mp3`, `audio/iftar.mp3`, and
   `audio/sehri.mp3` are intentional assets fetched over HTTP by an external Home
   Assistant automation. They are deliberately not linked anywhere on the site, but
