@@ -3,6 +3,7 @@
 import { revision } from "./scripts/revision.mjs";
 import { addShareCards } from "./scripts/og-cards.mjs";
 import { withPolicy } from "./scripts/csp.mjs";
+import { STYLESHEET, inlineStylesheet, readStylesheet } from "./scripts/inline-css.mjs";
 import monitoring from "./src/_data/monitoring.js";
 
 /**
@@ -14,7 +15,8 @@ import monitoring from "./src/_data/monitoring.js";
  * addPassthroughCopy(paths: Record<string, string>): void,
  * addCollection(name: string, collect: (api: {getFilteredByTag(tag: string): CollectionItem[]}) => CollectionItem[]): void,
  * addFilter(name: string, filter: (value: string, ...args: string[]) => string): void,
- * addTransform(name: string, transform: (this: {page: {outputPath: string | false, url: string}}, content: string) => string): void
+ * addTransform(name: string, transform: (this: {page: {outputPath: string | false, url: string}}, content: string) => string): void,
+ * addWatchTarget(path: string): void
  * }} eleventyConfig
  */
 export default function (eleventyConfig) {
@@ -54,8 +56,20 @@ export default function (eleventyConfig) {
     `mailto:${email}?subject=${encodeURIComponent(subject)}`
   );
 
+  // Every page carries the stylesheet inline, so nothing blocks its first paint
+  // (scripts/inline-css.mjs). Read once per build; a stylesheet edit rebuilds pages.
+  let css = "";
+  eleventyConfig.on("eleventy.before", () => {
+    css = readStylesheet();
+  });
+  eleventyConfig.addWatchTarget(STYLESHEET);
+  eleventyConfig.addTransform("inline-stylesheet", function (content) {
+    const out = this.page.outputPath;
+    return typeof out === "string" && out.endsWith(".html") ? inlineStylesheet(content, css) : content;
+  });
+
   // Every page carries a Content Security Policy that allows only this site's own
-  // files and inline scripts by hash, plus Sentry's ingest when monitoring is configured.
+  // files and inline scripts and styles by hash, plus Sentry's ingest when monitoring is configured.
   eleventyConfig.addTransform("content-security-policy", function (content) {
     const out = this.page.outputPath;
     return typeof out === "string" && out.endsWith(".html")

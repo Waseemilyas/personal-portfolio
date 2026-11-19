@@ -17,9 +17,10 @@
 //   sitemap     built pages and sitemap URLs match both ways (404.html is not listed)
 //   drafts      a `draft: true` post has no built page and no sitemap/feed reference
 //   csp         one Content Security Policy meta, first after <meta charset>, default-src 'none',
-//               no 'unsafe-*', listing the hash of every inline script and no outside
-//               script origin (outside code is pinned and served from this site); no inline handlers
-//               or style attributes (the policy would block them); a Referrer-Policy meta
+//               no 'unsafe-*', listing the hash of every inline script and inline style and no
+//               outside script or style origin (outside code is pinned and served from this site);
+//               no inline handlers or style attributes (the policy would block them); a
+//               Referrer-Policy meta; the stylesheet inlined, never a render-blocking link
 //
 // Usage: node scripts/site-check.mjs [--site-dir _site] [--posts-dir src/notes/posts]
 //        [--site-url https://waseemilyas.uk] [--revision <sha>]
@@ -29,7 +30,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { JSDOM } from "jsdom";
 
-import { inlineScripts, scriptHash } from "./csp.mjs";
+import { inlineScripts, inlineStyles, scriptHash } from "./csp.mjs";
 import { cardAlt, cardImage, cardText } from "./og-cards.mjs";
 import { revision as buildRevision } from "./revision.mjs";
 
@@ -142,7 +143,10 @@ export function runSiteChecks({
 
     const csp = metaContent('meta[http-equiv="Content-Security-Policy"]');
     const policy = csp[0] ?? "";
-    const scriptSrc = policy.split(";").map((d) => d.trim()).find((d) => d.startsWith("script-src ")) ?? "";
+    /** @param {string} name */
+    const directive = (name) => policy.split(";").map((d) => d.trim()).find((d) => d.startsWith(`${name} `)) ?? "";
+    const scriptSrc = directive("script-src");
+    const styleSrc = directive("style-src");
     const headStart = doc.head.firstElementChild;
     if (csp.length !== 1) bad("csp", "expected exactly one Content-Security-Policy meta");
     else if (headStart?.getAttribute("charset") == null || headStart.nextElementSibling?.getAttribute("http-equiv") !== "Content-Security-Policy") {
@@ -155,9 +159,17 @@ export function runSiteChecks({
         bad("csp", `script-src allows ${source}; pin outside code and serve it from this site`);
       }
     }
+    for (const source of styleSrc.split(" ").slice(1)) {
+      if (source !== "'self'" && !/^'sha256-[A-Za-z0-9+/]+=*'$/.test(source)) bad("csp", `style-src allows ${source}`);
+    }
     for (const source of inlineScripts(html)) {
       if (!scriptSrc.split(" ").includes(scriptHash(source))) bad("csp", `inline script "${source.trim().slice(0, 40)}" is not in script-src`);
     }
+    // An unlisted inline style is dropped by the browser: the page would ship unstyled.
+    for (const source of inlineStyles(html)) {
+      if (!styleSrc.split(" ").includes(scriptHash(source))) bad("csp", `inline style "${source.trim().slice(0, 40)}" is not in style-src`);
+    }
+    if (doc.querySelector('link[rel~="stylesheet"]')) bad("csp", "the stylesheet must be inlined (scripts/inline-css.mjs), not linked");
     for (const el of doc.querySelectorAll("*")) {
       for (const a of el.getAttributeNames()) {
         if (a === "style" || /^on[a-z]+$/.test(a)) bad("csp", `<${el.tagName.toLowerCase()} ${a}> would be blocked by the policy`);

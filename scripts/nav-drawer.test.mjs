@@ -38,8 +38,12 @@ test("mobile nav drawer: click opens, Escape closes and refocuses the toggle", {
     // viewport so the drawer is active (and rm, so no IntersectionObserver
     // is needed). The external /assets/js/site.js is root-relative, so
     // jsdom cannot fetch it — we eval the built file into the page instead.
+    // jsdom applies the inlined stylesheet but evaluates no media query, so the
+    // desktop rule would hide the toggle and block its focus. Real browsers are
+    // covered by the verify-portfolio walk; here the page is driven unstyled.
     const { JSDOM } = await import("jsdom");
-    const dom = new JSDOM(readFileSync(join(outDir, "index.html"), "utf8"), {
+    const html = readFileSync(join(outDir, "index.html"), "utf8").replace(/<style>[\s\S]*?<\/style>/g, "");
+    const dom = new JSDOM(html, {
       runScripts: "dangerously",
       url: "https://waseemilyas.uk/",
       beforeParse(window) {
