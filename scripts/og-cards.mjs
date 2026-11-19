@@ -165,9 +165,9 @@ async function render(pages) {
   let launched;
   /** @type {unknown} */
   let lastError;
-  for (const timeout of [20_000, 60_000]) {
+  for (const timeout of [60_000, 120_000]) {
     try { launched = await launchChrome(executable, timeout); break; }
-    catch (error) { lastError = error; console.warn(`Chromium launch failed, ${timeout === 20_000 ? "retrying once" : "giving up"}:`, error); }
+    catch (error) { lastError = error; console.warn(`Chromium launch failed, ${timeout === 60_000 ? "retrying once" : "giving up"}:`, error); }
   }
   if (!launched) throw lastError;
   const { chrome, wsUrl, profile } = launched;
@@ -192,7 +192,7 @@ async function render(pages) {
     /** @param {string} method @param {object} [params] @param {string} [sessionId] @returns {Promise<any>} */
     const send = (method, params = {}, sessionId) => new Promise((resolve, reject) => {
       const id = ++seq;
-      const timer = setTimeout(() => { waiting.delete(id); reject(new Error(`Chromium timed out: ${method}`)); }, 15_000);
+      const timer = setTimeout(() => { waiting.delete(id); reject(new Error(`Chromium timed out: ${method}`)); }, 60_000);
       const finish = (/** @type {any} */ value) => { clearTimeout(timer); resolve(value); };
       const fail = (/** @type {Error} */ error) => { clearTimeout(timer); reject(error); };
       waiting.set(id, { resolve: finish, reject: fail });
