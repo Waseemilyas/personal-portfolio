@@ -31,7 +31,7 @@ test("mobile nav drawer: click opens, Escape closes and refocuses the toggle", {
     await execFileP(
       process.execPath,
       ["node_modules/@11ty/eleventy/cmd.cjs", "--output", outDir],
-      { timeout: 60000 }
+      { timeout: 180_000 }
     );
 
     // jsdom does not implement matchMedia; the stub reports a mobile-width

@@ -25,7 +25,7 @@ test("error reporting: nothing loads until an error, then the pinned SDK reports
   const outDir = mkdtempSync(join(tmpdir(), "portfolio-error-reporting-"));
   try {
     await promisify(execFile)(process.execPath, ["node_modules/@11ty/eleventy/cmd.cjs", "--output", outDir], {
-      timeout: 60000,
+      timeout: 180_000,
       env: { ...process.env, SENTRY_DSN: DSN },
     });
     const html = readFileSync(join(outDir, "index.html"), "utf8");

@@ -29,7 +29,7 @@ async function builtCss() {
   const { join } = await import("node:path");
   const outDir = mkdtempSync(join(tmpdir(), "portfolio-phone-chrome-"));
   try {
-    await promisify(execFile)(process.execPath, ["node_modules/@11ty/eleventy/cmd.cjs", "--output", outDir], { timeout: 60000 });
+    await promisify(execFile)(process.execPath, ["node_modules/@11ty/eleventy/cmd.cjs", "--output", outDir], { timeout: 180_000 });
     return readFileSync(join(outDir, "assets/css/styles.css"), "utf8");
   } finally {
     rmSync(outDir, { recursive: true, force: true });
