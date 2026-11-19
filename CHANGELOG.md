@@ -1,5 +1,15 @@
 # Release notes
 
+## v2026.11.19.2 — 19 November 2026
+
+This release makes it quicker to get started and easier to explore what the site offers.
+
+### Improvements
+
+- Pages appear sooner, especially on slow mobile connections.
+- The homepage capability map is easier to explore.
+
+
 ## v2026.11.12.3 — 12 November 2026
 
 Visitors can move between pages more smoothly, contact Waseem in fewer steps, and share notes and case studies with previews tailored to each article.
