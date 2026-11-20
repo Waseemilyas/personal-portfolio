@@ -21,7 +21,7 @@ const skipReason = existsSync("node_modules/@11ty/eleventy/cmd.cjs")
   ? false
   : "eleventy not installed — run pnpm install";
 
-test("mobile nav drawer: click opens, Escape closes and refocuses the toggle", { skip: skipReason }, async () => {
+test("mobile nav drawer: click opens, Escape or leaving the drawer closes it", { skip: skipReason }, async () => {
   const { execFile } = await import("node:child_process");
   const { promisify } = await import("node:util");
   const { mkdtempSync, rmSync, readFileSync } = await import("node:fs");
@@ -92,6 +92,15 @@ test("mobile nav drawer: click opens, Escape closes and refocuses the toggle", {
     assert.equal(toggle.getAttribute("aria-expanded"), "false");
     assert.equal(nav.getAttribute("aria-hidden"), "true");
     assert.equal(document.activeElement, toggle, "Escape returns focus to the toggle");
+
+    // With the menu open, moving focus into the page closes it and keeps that focus.
+    toggle.click();
+    nav.querySelector(".cta").focus();
+    const firstLink = document.querySelector("main a");
+    firstLink.focus();
+    assert.equal(toggle.getAttribute("aria-expanded"), "false");
+    assert.equal(nav.getAttribute("aria-hidden"), "true");
+    assert.equal(document.activeElement, firstLink);
   } finally {
     rmSync(outDir, { recursive: true, force: true });
   }

@@ -6,8 +6,8 @@
   /* The phone menu is a native popover (`popover` on #primary-nav, `popovertarget` on the
      toggle), so it opens, light-dismisses and closes on Escape with focus back on the
      toggle before this script arrives and without it. This only mirrors the state into
-     aria-expanded, closes the menu when a link is chosen or the window widens past the
-     drawer breakpoint, and drives the same drawer for a browser without popovers. */
+     aria-expanded, closes the menu when a link is chosen, focus leaves, or the window
+     widens, and drives the same drawer for a browser without popovers. */
   function setupNavigation() {
     const toggle = document.querySelector("button.nav-toggle");
     const nav = document.getElementById("primary-nav");
@@ -62,6 +62,12 @@
     }
     nav.addEventListener("click", function (e) {
       if (e.target instanceof Element && e.target.tagName === "A") {
+        setDrawer(false);
+      }
+    });
+    document.addEventListener("focusin", function (e) {
+      // Let Tab leave the drawer without the open panel covering its next stop.
+      if (isOpen() && e.target instanceof Node && e.target !== toggle && !nav.contains(e.target)) {
         setDrawer(false);
       }
     });

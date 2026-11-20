@@ -165,14 +165,15 @@ system.
 
 ### What is actually tokenised
 
-`:root` (`styles.css`) declares **37** custom properties and no others:
+`:root` (`styles.css`) declares **38** custom properties and no others:
 
 - 15 colours — the console, essay and signal tables below, plus `--on-signal`.
 - 2 families — `--sans`, `--mono`.
 - 6 type steps — `--step--1` … `--step-4`.
 - 6 radius rungs — `--rounded-xs` … `--rounded-pill`.
 - 6 spacing measures — `--space-section-block` … `--space-head-below`.
-- `--ease` and `--maxw`.
+- `--ease`, `--maxw` and `--topbar-height`. The header and drawer share that height
+  with the document's scroll padding, which keeps focused links clear of the header.
 
 Every key in the colour, radius and spacing groups — and every `--step-*` — resolves
 as a `var()`. Use the variable, not the literal: `border-radius: var(--rounded-lg)`,
@@ -497,7 +498,8 @@ homepage status panel), `.casegrid` (case detail), `.about-grid` (`/about/`),
 `.essay .section-head .ref`, `.essay .section-head h1, h2`, `.essay .section-head p`,
 `.essay .label`. Prefer widening a base rule to adding a seventh.
 
-Accessibility baked into the components: a `.skip` link precedes the header,
+Accessibility baked into the components: a `.skip` link precedes the header and focuses
+the main landmark,
 `:focus-visible` is a `2px --signal` outline at `3px` offset on every focusable
 element, and the nav toggle's expanded state comes from its popover (the script also
 writes `aria-expanded`; the markup carries none, so it is never stale without JS). Each **detail-page**
