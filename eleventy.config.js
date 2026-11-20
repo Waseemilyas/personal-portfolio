@@ -1,10 +1,15 @@
 // Eleventy config for WI-PF1 — Waseem Ilyas portfolio.
 // Source in src/, static output in _site/. No client framework; pure HTML/CSS/vanilla JS.
+import { lstatSync, readdirSync, rmdirSync, unlinkSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { revision } from "./scripts/revision.mjs";
 import { addShareCards } from "./scripts/og-cards.mjs";
 import { withPolicy } from "./scripts/csp.mjs";
 import { STYLESHEET, inlineStylesheet, readStylesheet } from "./scripts/inline-css.mjs";
 import monitoring from "./src/_data/monitoring.js";
+
+const INPUT = "src";
+const OUTPUT = "_site";
 
 /**
  * Only the Eleventy boundary used here; page data comes from front matter.
@@ -77,12 +82,36 @@ export default function (eleventyConfig) {
       : content;
   });
 
+  // In a full build Eleventy reports every rendered page, but leaves obsolete HTML on disk.
+  // Reconcile the generated pages after Eleventy finishes writing its templates.
+  eleventyConfig.on("eleventy.after", ({ directories, incremental, outputMode, results }) => {
+    if (incremental || outputMode !== "fs" || results.length === 0) return;
+    if (directories.inputFile || directories.inputGlob || resolve(directories.input) !== resolve(INPUT)) return;
+    // Eleventy 3.1 omits CLI template format overrides from the event.
+    if (process.argv.some((arg) => /^--formats(?:=|$)/.test(arg))) return;
+    const output = resolve(directories.output);
+    if (output !== resolve(OUTPUT)) return;
+    if (!lstatSync(output, { throwIfNoEntry: false })?.isDirectory()) return;
+
+    const pages = new Set(results.map(({ outputPath }) => outputPath && resolve(outputPath)));
+    for (const entry of readdirSync(output, { recursive: true, withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith(".html")) continue;
+      const file = join(entry.parentPath, entry.name);
+      if (pages.has(file)) continue;
+
+      unlinkSync(file);
+      for (let dir = entry.parentPath; dir !== output && readdirSync(dir).length === 0; dir = dirname(dir)) {
+        rmdirSync(dir);
+      }
+    }
+  });
+
   return {
     dir: {
-      input: "src",
+      input: INPUT,
       includes: "_includes",
       data: "_data",
-      output: "_site",
+      output: OUTPUT,
     },
     markdownTemplateEngine: "njk",
     htmlTemplateEngine: "njk",

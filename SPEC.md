@@ -84,8 +84,10 @@ hidden on screen and printing requires no JavaScript.
 `src/notes/posts/posts.11tydata.js` suppresses a draft's page permalink and excludes
 it from collections. The notes collection also filters drafts in
 `eleventy.config.js`. Notes listing, feed and sitemap consume those collections.
-Publishing decisions belong to note front matter; navigation and generated-output
-checks do not approve content. A clean build is the publication boundary.
+Publishing decisions belong to note front matter. After a successful full build
+or preview rebuild, Eleventy’s rendered page list determines which HTML files
+remain in `_site/`. This removes obsolete HTML and empty route directories from
+reused output when a page is drafted, deleted or moved.
 
 Source privacy scanning cannot decide whether apparently anonymised copy identifies
 a client. `AGENTS.md` owns that judgement and the grandfathered-content exception.
