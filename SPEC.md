@@ -36,6 +36,10 @@ whitespace removed, so the first paint needs no second request and a returning
 visitor never waits on a stylesheet revalidation. `/assets/css/styles.css` is
 still published, so a page cached from before inlining keeps its styles.
 
+The skip link gives focus to the main landmark, including with scripts disabled.
+The document leaves scroll space above focused controls and anchor targets for
+the sticky header. A section's reveal yields while it contains focus.
+
 The mobile drawer is a native popover: `#primary-nav` carries `popover` and the
 header toggle `popovertarget`, so a phone visitor can open the menu from first paint,
 before `site.js` has arrived, and with JavaScript disabled. The browser closes it on
@@ -43,7 +47,8 @@ Escape (focus returns to the toggle) or a tap outside. Closed, the drawer is
 `visibility: hidden`, so its links leave the tab order and accessibility tree. On a
 short landscape phone the open drawer scrolls. `setupNavigation` in
 `src/assets/js/site.js` mirrors `aria-expanded`, closes the drawer when a link is
-chosen or the window widens past the breakpoint, and in a browser without popovers
+chosen, focus moves outside the menu and its toggle, or the window widens past the
+breakpoint, and in a browser without popovers
 removes the attribute and drives the drawer itself (`setDrawer`: open, expanded,
 hidden and inert state). Its media query and the stylesheet's mobile query must
 agree. At desktop width the links are a row in the bar; a menu opened on a phone
