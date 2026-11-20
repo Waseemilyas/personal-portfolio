@@ -115,10 +115,13 @@ those need response headers.
 Browser errors go to Sentry, and a normal visit makes no request for it. The first
 error or blocked resource on a page downloads the pinned Sentry SDK
 (`vendor/sentry-<version>.min.js`, served as `/assets/js/`, checked by SHA-384 at
-build and by the browser's integrity check), which then reports it and everything
-after it. Anything the policy blocks is reported once per page as "CSP blocked
-<directive> <URL>", without the URL's query; extension and Sentry URLs are skipped.
-No Sentry dashboard setting can change the code visitors run.
+build and by the browser's integrity check). Error reports retain the release,
+canonical page (including `/404.html` for missing pages), exception text, and
+source lines in the site's JavaScript. Reports omit the visitor's raw page URL,
+referrer, browsing breadcrumbs, and SDK-captured callback arguments or rejected
+objects. The SDK sends no session reports. Each distinct policy warning includes
+the directive and a public script path or resource category. Extension and Sentry
+URLs are skipped. No Sentry dashboard setting can change the code visitors run.
 
 A shared link shows a 1200×630 preview card. Each note and case study has its own,
 carrying its label, title and (for a case study) kicker in the site's fonts; every

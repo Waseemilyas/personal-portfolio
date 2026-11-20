@@ -69,6 +69,33 @@
     var send = function (item) { typeof item === "function" ? item() : Sentry.captureException(item); };
     var onError = function (e) { report(e.error || e.message); };
     var onRejection = function (e) { report(e.reason); };
+    var canonicalPage = document.querySelector('link[rel="canonical"]').href;
+
+    function sourceFile(filename) {
+      try {
+        var url = new URL(filename);
+        if (url.origin !== location.origin) return;
+        if (url.pathname === location.pathname) return canonicalPage;
+        if (/^\/assets\/js\/[\w.-]+\.js$/.test(url.pathname)) return url.origin + url.pathname;
+      } catch (e) {
+        // Native and anonymous frames need no URL.
+      }
+    }
+
+    function minimizeReport(event) {
+      // Use the published page even when GitHub Pages serves the 404 at a visitor's URL.
+      event.request = { url: canonicalPage };
+      delete event.breadcrumbs;
+      delete event.extra; // The SDK can attach callback arguments or rejected objects.
+      event.exception?.values?.forEach(function (exception) {
+        exception.stacktrace?.frames?.forEach(function (frame) {
+          frame.filename = sourceFile(frame.filename);
+          delete frame.abs_path;
+        });
+      });
+      return event;
+    }
+
     function report(item) {
       held.push(item);
       if (loading) return;
@@ -77,7 +104,23 @@
       s.src = "{{ monitoring.sentrySdkUrl }}";
       s.integrity = "{{ monitoring.sentrySdkIntegrity }}";
       s.onload = function () {
-        Sentry.init({ dsn: {{ monitoring.sentryDsnJson | safe }}, release: "{{ siteRevision }}" });
+        Sentry.init({
+          dsn: {{ monitoring.sentryDsnJson | safe }},
+          release: "{{ siteRevision }}",
+          sendDefaultPii: false,
+          sendClientReports: false,
+          transportOptions: { fetchOptions: { referrerPolicy: "no-referrer" } },
+          defaultIntegrations: false,
+          integrations: [
+            Sentry.eventFiltersIntegration(),
+            Sentry.functionToStringIntegration(),
+            Sentry.browserApiErrorsIntegration(),
+            Sentry.globalHandlersIntegration(),
+            Sentry.linkedErrorsIntegration(),
+            Sentry.dedupeIntegration()
+          ],
+          beforeSend: minimizeReport
+        });
         Sentry.setTag("site", "waseemilyas.uk");
         Sentry.setTag("deployment", "github-pages");
         // The SDK now catches errors itself.
@@ -94,11 +137,14 @@
     // Anything the Content Security Policy blocks is reported once per page, so a
     // policy that stops part of the site shows up in Sentry. Browser extensions and
     // Sentry's own requests are skipped: neither is the site's to fix.
-    var seen = {};
+    var seen = new Set();
     addEventListener("securitypolicyviolation", function (e) {
-      var line = "CSP blocked " + e.effectiveDirective + " " + (e.blockedURI || "inline").replace(/[?#].*/, "");
-      if (seen[line] || /^(chrome|moz|safari(-web)?)-extension:|sentry/.test(e.blockedURI)) return;
-      seen[line] = 1;
+      var blocked = e.blockedURI || "inline";
+      if (/^(chrome|moz|safari(-web)?)-extension:|sentry/.test(blocked)) return;
+      var description = /^(inline|eval|wasm-eval)$/.test(blocked) ? blocked : sourceFile(blocked) || "resource";
+      var line = "CSP blocked " + e.effectiveDirective + " " + description;
+      if (seen.has(line)) return;
+      seen.add(line);
       report(function () { Sentry.captureMessage(line, "warning"); });
     });
   })();
