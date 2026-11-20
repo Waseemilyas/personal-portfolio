@@ -173,8 +173,9 @@ function launchChrome(executable, timeoutMs) {
  * @param {string[]} pages
  * @returns {Promise<Buffer[]>}
  */
-async function render(pages) {
+async function render(pages, timing = { start: 0, draw: 0, first: 0 }) {
   const executable = findChrome();
+  const began = performance.now();
   // A stalled first launch (seen on hosted CI: only dbus noise on stderr) is
   // retried once with a longer budget before the build is allowed to fail.
   /** @type {Awaited<ReturnType<typeof launchChrome>> | undefined} */
@@ -191,6 +192,7 @@ async function render(pages) {
   try {
     const ws = socket = new WebSocket(wsUrl);
     await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
+    timing.start = performance.now() - began;
     let seq = 0;
     /** @type {Map<number, {resolve: (v: any) => void, reject: (e: Error) => void}>} */
     const waiting = new Map();
@@ -227,8 +229,10 @@ async function render(pages) {
       if (fit.exceptionDetails) throw new Error(`Card layout failed: ${fit.exceptionDetails.text}`);
       const { data } = await send("Page.captureScreenshot", { format: "png", clip: { x: 0, y: 0, width: 1200, height: 630, scale: 1 } }, sessionId);
       shots.push(Buffer.from(data, "base64"));
+      if (shots.length === 1) timing.first = performance.now() - began - timing.start;
     }
     ws.close();
+    timing.draw = performance.now() - began - timing.start;
     return shots;
   } finally {
     socket?.close();
@@ -296,12 +300,15 @@ export function addShareCards(config) {
   });
   config.on("eleventy.after", async ({ directories, incremental }) => {
     const changed = [...cards].filter(([image, html]) => rendered.get(image) !== html || !existsSync(join(directories.output, image)));
+    const timing = { start: 0, draw: 0, first: 0, squeeze: 0 };
     if (changed.length) {
-      const shots = await render(changed.map(([, html]) => html));
+      const shots = await render(changed.map(([, html]) => html), timing);
       const targets = changed.map(([image]) => join(directories.output, image));
       mkdirSync(join(directories.output, "assets/img/og"), { recursive: true });
       shots.forEach((png, i) => writeFileSync(targets[i], png));
+      const squeezing = performance.now();
       squeeze(targets);
+      timing.squeeze = performance.now() - squeezing;
       for (const [image, html] of changed) rendered.set(image, html);
     }
     // A full rebuild also removes cards for articles that were deleted or drafted.
@@ -316,6 +323,8 @@ export function addShareCards(config) {
         }
       }
     }
-    console.log(`[share cards] Rendered ${changed.length} PNGs.`);
+    const s = (/** @type {number} */ ms) => (ms / 1000).toFixed(1);
+    console.log(`[share cards] Rendered ${changed.length} PNGs.` + (changed.length
+      ? ` Chromium start ${s(timing.start)} s, render ${s(timing.draw)} s (first card ${s(timing.first)} s), compress ${s(timing.squeeze)} s.` : ""));
   });
 }
