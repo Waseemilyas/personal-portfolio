@@ -10,9 +10,6 @@ overrides:
   'js-yaml@^3': ^3.15.2
   'js-yaml@^4': ^4.3.2
   'brace-expansion@^5': ^5.0.9
-  # markdown-it quadratic-time parsing (GHSA-gfr2-rv44-r23c, GHSA-vfgh-jcmw-g37q),
-  # build-time only via Eleventy. Remove once Eleventy requires >= 14.3.3.
-  'markdown-it@^14': ^14.3.3
   # braces (GHSA-vfj7-8cjw-p6xm, deep-nesting stack exhaustion, <= 3.0.3) has no
   # patched release; 3.0.3 is still npm latest (checked 2026-10-13). Build-time
   # only via chokidar. Nothing to pin: bump when a release > 3.0.3 appears.
