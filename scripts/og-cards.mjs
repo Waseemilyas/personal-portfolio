@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { JSDOM } from "jsdom";
+import { parse } from "parse5";
 
 const FONT_DIR = "src/assets/fonts";
 
@@ -26,27 +26,75 @@ const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "
 /** Collapse whitespace the way a reader sees it. @param {string | null | undefined} s */
 const clean = (s) => (s ?? "").replace(/\s+/g, " ").trim();
 
+/** @typedef {import("parse5").DefaultTreeAdapterTypes.Node} HtmlNode */
+/** @typedef {import("parse5").DefaultTreeAdapterTypes.Element} HtmlElement */
+
+// Cards read a few fields from each rendered page. parse5 is the HTML parser jsdom itself
+// uses, without the DOM around it: jsdom costs about 1.5 s to load in every build process,
+// parse5 about 50 ms, and it parses a page in about 5 ms instead of 35 ms.
+
+/** @param {HtmlNode} node @returns {node is HtmlElement} */
+const isElement = (node) => "tagName" in node;
+
+/** @param {HtmlElement} el @param {string} name */
+const attr = (el, name) => el.attrs.find((a) => a.name === name)?.value ?? null;
+
+/** @param {HtmlElement} el @param {string} name */
+const hasClass = (el, name) => (attr(el, "class") ?? "").split(/\s+/).includes(name);
+
+/**
+ * The first element in document order that matches, like querySelector. With `within`,
+ * the element must also sit inside an element that matches `within` (a descendant selector).
+ * @param {HtmlNode} node @param {(el: HtmlElement) => boolean} match
+ * @param {(el: HtmlElement) => boolean} [within] @returns {HtmlElement | null}
+ */
+function find(node, match, within, inside = !within) {
+  // A <template>'s children sit in its content, which querySelector does not search either.
+  for (const child of "childNodes" in node ? node.childNodes : []) {
+    if (!isElement(child)) continue;
+    if (inside && match(child)) return child;
+    const found = find(child, match, within, inside || Boolean(within?.(child)));
+    if (found) return found;
+  }
+  return null;
+}
+
+/** Text of an element and its descendants, like textContent. @param {HtmlNode | null} node @returns {string} */
+const textOf = (node) => !node ? "" : node.nodeName === "#text" && "value" in node ? node.value
+  : "childNodes" in node ? node.childNodes.map(textOf).join("") : "";
+
+/** True for the pages that get a card of their own: notes and case studies. @param {string} url */
+const ownCard = (url) => /^\/(notes|work)\/[^/]+\/$/.test(url);
+
 /**
  * The card text for a built page, or null when the page uses the default card.
  * Notes and case studies get their own; everything else shares the default.
- * @param {Document} doc
+ * @param {string} html the rendered page
  * @param {string} url the page's path, e.g. "/notes/some-note/"
  * @returns {CardText | null}
  */
-export function cardText(doc, url) {
-  const title = clean(doc.querySelector("h1")?.textContent);
-  if (/^\/notes\/[^/]+\/$/.test(url)) {
-    const iso = doc.querySelector(".casehead time")?.getAttribute("datetime") ?? "";
+export const cardText = (html, url) => (ownCard(url) ? readCard(parse(html), url) : null);
+
+/** @param {HtmlNode} doc a parsed note or case study @param {string} url @returns {CardText} */
+function readCard(doc, url) {
+  const casehead = (/** @type {HtmlElement} */ el) => hasClass(el, "casehead");
+  const title = clean(textOf(find(doc, (el) => el.tagName === "h1")));
+  if (url.startsWith("/notes/")) {
+    const time = find(doc, (el) => el.tagName === "time", casehead);
+    const iso = time ? attr(time, "datetime") ?? "" : "";
     const d = new Date(iso);
     const date = Number.isNaN(d.getTime()) ? "" : ` · ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
     return { label: `Note${date}`, title, subtitle: "" };
   }
-  if (/^\/work\/[^/]+\/$/.test(url)) {
-    const ref = clean(doc.querySelector(".casehead .ref")?.textContent);
-    return { label: `Case study${ref ? ` · ${ref}` : ""}`, title, subtitle: clean(doc.querySelector(".casehead .kick")?.textContent) };
-  }
-  return null;
+  const ref = clean(textOf(find(doc, (el) => hasClass(el, "ref"), casehead)));
+  return { label: `Case study${ref ? ` · ${ref}` : ""}`, title, subtitle: clean(textOf(find(doc, (el) => hasClass(el, "kick"), casehead))) };
 }
+
+/** The page's canonical URL. @param {HtmlNode} doc */
+const canonicalOf = (doc) => {
+  const link = find(doc, (el) => el.tagName === "link" && attr(el, "rel") === "canonical");
+  return link && attr(link, "href");
+};
 
 /** Where a page's card lives in the built site. @param {string} url */
 export const cardImage = (url) => `/assets/img/og/${url.split("/").filter(Boolean).join("-")}.png`;
@@ -324,23 +372,18 @@ export function addShareCards(config) {
   });
   config.addTransform("share-card", function (content) {
     if (!this.page.outputPath || !this.page.outputPath.endsWith(".html")) return content;
-    const dom = new JSDOM(content);
-    try {
-      const doc = dom.window.document;
-      const text = cardText(doc, this.page.url);
-      if (!text) return content;
-      if (!text.title) throw new Error(`${this.page.url} has no <h1> to put on its card`);
-      const image = cardImage(this.page.url);
-      cards.set(image, cardHtml({ label: esc(text.label), title: esc(text.title), subtitle: esc(text.subtitle) }));
-      const canonical = doc.querySelector('link[rel="canonical"]')?.getAttribute("href");
-      if (!canonical) throw new Error(`${this.page.url} has no canonical URL`);
-      const url = new URL(image, canonical).href;
-      // Replace only metadata, leaving inline script bytes (and CSP hashes) intact.
-      return content.replace(/(<meta (?:property|name)="(?:og|twitter):image(:alt)?" content=")[^"]*(")/g,
-        (_match, start, alt, end) => `${start}${esc(alt ? cardAlt(text) : url)}${end}`);
-    } finally {
-      dom.window.close();
-    }
+    if (!ownCard(this.page.url)) return content;
+    const doc = parse(content);
+    const text = readCard(doc, this.page.url);
+    if (!text.title) throw new Error(`${this.page.url} has no <h1> to put on its card`);
+    const image = cardImage(this.page.url);
+    cards.set(image, cardHtml({ label: esc(text.label), title: esc(text.title), subtitle: esc(text.subtitle) }));
+    const canonical = canonicalOf(doc);
+    if (!canonical) throw new Error(`${this.page.url} has no canonical URL`);
+    const url = new URL(image, canonical).href;
+    // Replace only metadata, leaving inline script bytes (and CSP hashes) intact.
+    return content.replace(/(<meta (?:property|name)="(?:og|twitter):image(:alt)?" content=")[^"]*(")/g,
+      (_match, start, alt, end) => `${start}${esc(alt ? cardAlt(text) : url)}${end}`);
   });
   config.on("eleventy.after", async ({ directories, incremental }) => {
     const changed = [...cards].filter(([image, html]) => rendered.get(image) !== html || !existsSync(join(directories.output, image)));

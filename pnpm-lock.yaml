@@ -197,6 +197,9 @@ importers:
       oxlint:
         specifier: 1.94.0
         version: 1.94.0
+      parse5:
+        specifier: 8.1.1
+        version: 8.1.1
       tsrs:
         specifier: 7.1.0-beta.tsrs3
         version: 7.1.0-beta.tsrs3

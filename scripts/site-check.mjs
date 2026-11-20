@@ -204,7 +204,7 @@ export function runSiteChecks({
 
     const alt = metaContent('meta[property="og:image:alt"]');
     if (alt.length !== 1 || !alt[0]) bad("social", "expected exactly one non-empty og:image:alt");
-    const card = cardText(doc, pagePath);
+    const card = cardText(html, pagePath);
     if (card && (ogImage !== siteUrl + cardImage(pagePath) || alt[0] !== cardAlt(card))) {
       bad("social", "its share card is missing or no longer matches the page: run pnpm build");
     }
