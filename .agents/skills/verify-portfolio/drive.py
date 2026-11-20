@@ -201,6 +201,8 @@ try:
     require("document.querySelector('.capfig svg .node[aria-selected=true]').getClientRects().length > 0")
     run("set", "viewport", "390", "844")
     check_capability(next(node for node in nodes if node["key"] == "web"))
+    # Resizing wraps the tabs and moves the reading link below the viewport.
+    run("eval", "document.querySelector('#cap-web a').scrollIntoView({block:'center', behavior:'instant'})")
     run("click", '#cap-web a')
     require("location.pathname === " + json.dumps(next(node["reading"] for node in nodes if node["key"] == "web")))
     receipts.append("phone capability tabs select all strands and follow a case study; selection survives the layout change")
