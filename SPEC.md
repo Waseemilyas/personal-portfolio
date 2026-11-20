@@ -92,7 +92,8 @@ JavaScript all five descriptions and their links are available as a list.
 panel at a time. Pointer selection and keyboard focus activate a tab. Left/Right
 and Home/End move between tabs, and Tab moves to the active panel and its link.
 Narrow frames use full titles on buttons, with the same selection as the SVG map.
-First-screen entry motion is CSS alone (`data-cal` slots); `setupReveals` only defers
+Main headings are visible from first paint. Supporting blocks in the first
+screen enter with CSS alone (`data-cal` slots). `setupReveals` only defers
 below-the-fold blocks while they are off-screen. Reduced motion animates nothing.
 Entry motion plays only on arrival from outside the site: a click between pages
 (same-origin referrer, `.onsite`) shows the first screen at once. In browsers with
