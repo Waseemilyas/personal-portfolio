@@ -116,7 +116,16 @@
         Sentry.init({
           dsn: {{ monitoring.sentryDsnJson | safe }},
           release: "{{ siteRevision }}",
-          sendDefaultPii: false,
+          // SDK 11 collects these by default; userInfo would let Sentry infer the visitor's IP.
+          dataCollection: {
+            userInfo: false,
+            cookies: false,
+            httpHeaders: { request: false, response: false },
+            httpBodies: [],
+            urlQueryParams: false
+          },
+          // A report carries a stack trace only when the error itself has one, as in SDK 10.
+          attachStacktrace: false,
           sendClientReports: false,
           transportOptions: { fetchOptions: { referrerPolicy: "no-referrer" } },
           defaultIntegrations: false,

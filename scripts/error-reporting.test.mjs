@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { JSDOM, VirtualConsole, requestInterceptor } from "jsdom";
 import { builtSite, skipReason } from "./built-site.mjs";
+import monitoring from "../src/_data/monitoring.js";
 
 const site = "https://waseemilyas.uk";
 const probeScript = "/assets/js/probe.js";
@@ -109,7 +110,7 @@ test("error reporting sends errors and source lines without visitor browsing dat
     block();
     const policy = await waitFor((event) => event.message?.startsWith("CSP blocked img-src"));
 
-    assert.deepEqual(reporting(), ["https://waseemilyas.uk/assets/js/sentry-10.78.0.min.js"],
+    assert.deepEqual(reporting(), [`${site}/assets/js/${monitoring.sdkFile}`],
       "the first error loads only the pinned SDK, from this site");
     for (const marker of Object.values(sample)) {
       assert.ok(sent.every(({ body }) => !body.includes(marker)), `visitor data reached the ingest: ${marker}`);
@@ -122,6 +123,9 @@ test("error reporting sends errors and source lines without visitor browsing dat
     assert.equal(first.exception.values[0].type, "TypeError");
     assert.ok(first.exception.values[0].stacktrace.frames.some((frame) => frame.filename === site + probeScript && frame.lineno > 0));
     assert.equal(policy.message, "CSP blocked img-src resource");
+    // SDK 11 lets Sentry infer the sender's IP and attaches call-site stacks unless told not to.
+    assert.ok(events().every((event) => event.sdk.settings.infer_ip === "never" && !event.user), "never infer the visitor's IP");
+    assert.equal(policy.exception, undefined, "a policy warning carries no synthetic stack");
     assert.equal(policy.level, "warning");
   } finally {
     dom?.window.close();
