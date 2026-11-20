@@ -98,6 +98,13 @@ fails if production never serves it. Each HTML page also carries that SHA in its
 revision meta tag. The revision comes from `SITE_REVISION`, else `GITHUB_SHA`,
 else `git rev-parse HEAD` (`scripts/revision.mjs`).
 
+A last job then runs `node scripts/domain-check.mjs` (`.github/workflows/domain.yml`),
+which also runs daily: the domain's CAA records allow only Let's Encrypt and no
+wildcards, the served certificate comes from that authority with at least 21 days
+left, DNSSEC validates and `http://` redirects to `https://`. If GitHub Pages ever
+moves to another certificate authority, add it to `ALLOWED_CAS` in that script and as
+a CAA `issue` record in the Cloudflare zone before the old certificate runs out.
+
 `deploy.json` declares the live revision endpoint. Main is production; no staging
 or preview environment is needed. `.release-notes.json` enrolls shipped changes
 in the estate's release catch-up. The notes writer runs separately from Actions;

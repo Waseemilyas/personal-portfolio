@@ -1,0 +1,28 @@
+name: Domain check
+# Live checks on waseemilyas.uk that no build can see (scripts/domain-check.mjs): only
+# Let's Encrypt may issue its certificates, the served certificate comes from that CA
+# and is not near expiry, DNSSEC validates and http:// redirects to https://.
+# Runs after every release (deploy.yml) and daily, because a certificate renewal the
+# CAA blocks happens between releases.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  domain:
+    name: Check the live domain
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/domain-check.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+      - run: node scripts/domain-check.mjs
