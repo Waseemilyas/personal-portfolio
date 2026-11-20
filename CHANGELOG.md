@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.11.20.2 — 20 November 2026
+
+Phone visitors can open the site menu straight away, even with scripts turned off, and scroll it on a short landscape screen.
+
+
 ## v2026.11.19.2 — 19 November 2026
 
 This release makes it quicker to get started and easier to explore what the site offers.
