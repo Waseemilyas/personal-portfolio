@@ -18,6 +18,10 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      # Chrome's first start on a fresh runner takes about 16 s, and the share-card test
+      # must really render. Start it once in the background while the toolchain installs.
+      - name: Warm up Chrome in the background
+        run: (google-chrome --headless=new --no-sandbox --screenshot=/tmp/chrome-warmup.png --window-size=320,200 "data:text/html,<p>warm</p>" > /dev/null 2>&1 &)
       - name: Secret scan
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
@@ -54,11 +58,14 @@ jobs:
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: pnpm-${{ runner.os }}-node26-${{ hashFiles('pnpm-lock.yaml') }}
-      - name: TEMP diagnostic cold build
-        run: |
-          date +%T.%N; pnpm build 2>&1 | grep -E "share|Wrote"; date +%T.%N
-          CHROME_LOG_FILE=/tmp/c.log pnpm build 2>&1 | grep -E "share|Wrote"
-          rm -rf _site
+      # Kept share cards from main's Pages builds (scripts/og-cards.mjs), so the shared
+      # test build and the final build copy unchanged cards instead of starting Chrome.
+      - name: Restore kept share cards
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: node_modules/.cache/share-cards
+          key: share-cards-${{ github.sha }}
+          restore-keys: share-cards-
       - name: Quick lint, typecheck and privacy scan
         run: pnpm check
       - run: pnpm test
