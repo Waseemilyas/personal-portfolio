@@ -112,6 +112,12 @@ test("error reporting sends errors and source lines without visitor browsing dat
 
     assert.deepEqual(reporting(), [`${site}/assets/js/${monitoring.sdkFile}`],
       "the first error loads only the pinned SDK, from this site");
+    const sdk = window.document.querySelector(`script[src="/assets/js/${monitoring.sdkFile}"]`);
+    const sdkIntegrity = sdk.integrity;
+    const policyMeta = window.document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+    assert.match(sdkIntegrity, /^sha384-/);
+    assert.ok(policyMeta.content.split("; ").find((rule) => rule.startsWith("script-src "))?.split(" ").includes(`'${sdkIntegrity}'`),
+      "the policy authorises the SDK by the same integrity hash as its loader");
     for (const marker of Object.values(sample)) {
       assert.ok(sent.every(({ body }) => !body.includes(marker)), `visitor data reached the ingest: ${marker}`);
     }

@@ -1,15 +1,18 @@
 // Eleventy config for WI-PF1 — Waseem Ilyas portfolio.
 // Source in src/, static output in _site/. No client framework; pure HTML/CSS/vanilla JS.
-import { lstatSync, readdirSync, rmdirSync, unlinkSync } from "node:fs";
+import { lstatSync, readdirSync, readFileSync, rmdirSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { revision } from "./scripts/revision.mjs";
 import { addShareCards } from "./scripts/og-cards.mjs";
-import { withPolicy } from "./scripts/csp.mjs";
+import { scriptIntegrity, withPolicy } from "./scripts/csp.mjs";
 import { STYLESHEET, inlineStylesheet, readStylesheet } from "./scripts/inline-css.mjs";
 import monitoring from "./src/_data/monitoring.js";
+import site from "./src/_data/site.json" with { type: "json" };
 
 const INPUT = "src";
 const OUTPUT = "_site";
+const SITE_SCRIPT_URL = "/assets/js/site.js";
+const SITE_SCRIPT = `${INPUT}${SITE_SCRIPT_URL}`;
 
 /**
  * Only the Eleventy boundary used here; page data comes from front matter.
@@ -64,22 +67,37 @@ export default function (eleventyConfig) {
   // Every page carries the stylesheet inline, so nothing blocks its first paint
   // (scripts/inline-css.mjs). Read once per build; a stylesheet edit rebuilds pages.
   let css = "";
+  let siteScriptIntegrity = "";
   eleventyConfig.on("eleventy.before", () => {
     css = readStylesheet();
+    siteScriptIntegrity = scriptIntegrity(readFileSync(SITE_SCRIPT));
   });
   eleventyConfig.addWatchTarget(STYLESHEET);
+  eleventyConfig.addWatchTarget(SITE_SCRIPT);
   eleventyConfig.addTransform("inline-stylesheet", function (content) {
     const out = this.page.outputPath;
     return typeof out === "string" && out.endsWith(".html") ? inlineStylesheet(content, css) : content;
   });
 
-  // Every page carries a Content Security Policy that allows only this site's own
-  // files and inline scripts and styles by hash, plus Sentry's ingest when monitoring is configured.
+  // The digest in the URL keeps a new page from reusing a cached copy of an older script.
+  // An exact URL also allows the script on older browsers that support SRI but
+  // cannot use integrity metadata to match a CSP hash.
   eleventyConfig.addTransform("content-security-policy", function (content) {
     const out = this.page.outputPath;
-    return typeof out === "string" && out.endsWith(".html")
-      ? withPolicy(content, { connectOrigins: monitoring.cspConnectOrigins })
-      : content;
+    if (typeof out !== "string" || !out.endsWith(".html")) return content;
+    const html = content.replace(
+      `<script src="${SITE_SCRIPT_URL}" defer></script>`,
+      `<script src="${SITE_SCRIPT_URL}?v=${encodeURIComponent(siteScriptIntegrity)}" integrity="${siteScriptIntegrity}" defer></script>`,
+    );
+    return withPolicy(html, {
+      connectOrigins: monitoring.cspConnectOrigins,
+      externalScripts: [
+        { url: site.url + SITE_SCRIPT_URL, integrity: siteScriptIntegrity },
+        ...(monitoring.sentrySdkUrl
+          ? [{ url: site.url + monitoring.sentrySdkUrl, integrity: monitoring.sentrySdkIntegrity }]
+          : []),
+      ],
+    });
   });
 
   // In a full build Eleventy reports every rendered page, but leaves obsolete HTML on disk.

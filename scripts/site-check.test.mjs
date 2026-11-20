@@ -11,6 +11,8 @@ import { runSiteChecks } from "./site-check.mjs";
 
 const SITE = "https://example.test";
 const REV = "a".repeat(40);
+const SITE_SCRIPT = "void 0;";
+const SITE_SCRIPT_INTEGRITY = "sha256-T1YEXClWF9CUhD2vRqC2ZkctVhPSMrn+MCIkJI7U02I=";
 
 const png = (width, height) => {
   const b = Buffer.alloc(24);
@@ -32,7 +34,8 @@ const page = (path, body = "<h1>Title</h1><p>Text</p>", head = "") => withPolicy
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <script type="application/ld+json">{"@context":"https://schema.org"}</script>${head || `<meta property="og:type" content="website">
 <meta property="og:image" content="${SITE}/og.png"><meta property="og:image:alt" content="Default card.">`}</head>
-<body>${body}</body></html>`);
+<body>${body}<script src="/site.js" integrity="${SITE_SCRIPT_INTEGRITY}" defer></script></body></html>`,
+{ externalScripts: [{ url: `${SITE}/site.js`, integrity: SITE_SCRIPT_INTEGRITY }] });
 
 // A note shares its own card, whose alt text repeats the note's label and title.
 const NOTE_BODY = '<div class="casehead"><h1>A note</h1><p class="kick"><time datetime="2026-08-08T00:00:00.000Z">8 August 2026</time></p></div>';
@@ -59,6 +62,7 @@ function check(mutate = () => {}) {
     "notes/feed.xml": feed,
     "revision.txt": `${REV}\n`,
     "og.png": png(1200, 630),
+    "site.js": SITE_SCRIPT,
   };
   mutate(files);
   const root = mkdtempSync(join(tmpdir(), "site-check-"));
@@ -90,7 +94,12 @@ const bad = {
   "inline script added after the policy": [(f) => (f["index.html"] = page("/").replace("</body>", "<script>steal()</script></body>")), "csp"],
   "unapproved speculation rules": [(f) => (f["index.html"] = page("/").replace("</body>", '<script type="speculationrules">{"prefetch":[{"urls":["https://outside.test/"]}]}</script></body>')), "csp"],
   "inline event handler": [(f) => (f["about/index.html"] = page("/about/", '<h1 onclick="x()">A</h1>')), "csp"],
-  "outside script origin allowed": [(f) => (f["about/index.html"] = page("/about/").replace("script-src 'self'", "script-src 'self' https://cdn.example")), "csp"],
+  "outside script origin allowed": [(f) => (f["about/index.html"] = page("/about/").replace("script-src ", "script-src https://cdn.example ")), "csp"],
+  "all same-origin scripts allowed": [(f) => (f["about/index.html"] = page("/about/").replace("script-src ", "script-src 'self' ")), "csp"],
+  "a directory of same-origin scripts allowed": [(f) => (f["about/index.html"] = page("/about/").replace(`${SITE}/site.js`, `${SITE}/`)), "csp"],
+  "script element policy overrides the hashes": [(f) => (f["about/index.html"] = page("/about/").replace("script-src ", "script-src-elem 'self'; script-src ")), "csp"],
+  "external script missing integrity": [(f) => (f["about/index.html"] = page("/about/").replace(` integrity="${SITE_SCRIPT_INTEGRITY}"`, "")), "csp"],
+  "external script bytes changed after the policy": [(f) => (f["site.js"] = "void 1;"), "csp"],
   "inline style edited after the policy": [(f) => (f["index.html"] = page("/").replace("<style>", "<style>h1{color:red}")), "csp"],
   "outside style origin allowed": [(f) => (f["about/index.html"] = page("/about/").replace("style-src 'self'", "style-src 'self' https://cdn.example")), "csp"],
   "render-blocking stylesheet link": [(f) => (f["about/index.html"] = page("/about/").replace("</head>", '<link rel="stylesheet" href="/x.css"></head>')), "csp"],
