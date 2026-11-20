@@ -215,7 +215,21 @@ First-screen blocks carry their stagger slot (`data-cal="0"` to `"4"`, 110 ms
 apart) and rise in CSS alone from the first frame, so a painted block is never
 hidden again. Bare `data-cal` marks a below-the-fold block: `site.js` hides it
 (`.cal-wait`) only while it is off-screen and reveals it (`.in`) when scrolled to,
-so content never depends on the script. All capability descriptions and related
+so content never depends on the script. The first-screen stagger greets a visitor
+arriving from outside the site only: a same-origin referrer adds `.onsite` to the
+root in `<head>`, and those pages show their first screen at once.
+
+**Page to page.** Cross-document view transitions (`@view-transition`, Chromium
+and Safari 18.2+) bridge internal navigations: `.topbar` is its own group shown
+without animation, so the header holds still while the rest cross-fades in 200 ms.
+`.casehead h1` is named `page-title`; leaving for an article, `site.js` gives that
+name to the title of the clicked card or link on screen (`h2`, `h3` or
+`.nextread-t` inside it) and drops it from the page's own heading, so the article
+title grows out of what was clicked in 320 ms on `--ease`. Going Back from an
+article, the matching card on screen takes the name and the heading settles into
+it. Names are set in script through CSSOM (the CSP blocks `style=` attributes),
+reset on every reveal, and nothing transitions when reduced motion is requested.
+Other browsers navigate normally. All capability descriptions and related
 links are server-rendered. The script adds the map controls and displays the
 selected description.
 

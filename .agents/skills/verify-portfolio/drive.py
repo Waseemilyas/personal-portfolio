@@ -154,8 +154,10 @@ try:
         for route in routes:
             run("click", 'main a[href="' + route + '"]')
             require("location.pathname === " + json.dumps(route))
+            # A click within the site shows the article at once: no replayed entry rise.
+            require("document.documentElement.classList.contains('onsite') && (document.querySelector('main h1').closest('[data-cal]')?.getAnimations() || []).every(a => a.animationName !== 'rise')")
             run("back")
-        receipts.append(listing + ": clicked every listed entry and returned")
+        receipts.append(listing + ": clicked every listed entry and returned; each opened without replaying the entry motion")
     # Every generated HTML page is visited at desktop and phone dimensions, including 404.
     pages = sorted((root / "_site").rglob("*.html"))
     for width, height, label in [(1440, 900, "desktop"), (390, 844, "phone")]:
