@@ -75,9 +75,9 @@ apps. `pnpm build` generates the cards and their metadata directly from the rend
 pages; `pnpm serve` refreshes changed cards as you edit. Drafts produce no cards. There
 are no generated images or text manifests to commit.
 
-Builds need a local Chromium (`google-chrome` on the GitHub-hosted runner). On a Mac
-the build also finds Google Chrome, Chromium or Playwright's Chromium in their usual
-places. Elsewhere set `CHROME=/path/to/chrome` if it is not on PATH. Python 3 with Pillow compresses the
+Builds need a local Chromium (`google-chrome` on the GitHub-hosted runner). Off PATH,
+the build also finds Playwright's Chromium (macOS and Linux) and, on a Mac, Google Chrome
+or Chromium in their usual places. Otherwise set `CHROME=/path/to/chrome`. Python 3 with Pillow compresses the
 cards; the release workflows install it. Without Pillow a local build leaves larger,
 full-colour PNGs. All images stay in `_site/`, alongside the HTML they describe.
 

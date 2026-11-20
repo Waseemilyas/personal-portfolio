@@ -27,11 +27,27 @@ env = {**os.environ, "AGENT_BROWSER_DEFAULT_TIMEOUT": "15000", "AGENT_BROWSER_AR
 # A page cannot be hit while a view transition between pages runs (about 0.3 s),
 # so wait for any to finish before acting, as a visitor's next click would.
 TRANSITION_DONE = "document.getAnimations().every(a => !String(a.effect && a.effect.pseudoElement || '').startsWith('::view-transition'))"
+# Each agent-browser process costs about 50 ms before it does anything, so steps
+# that always go together share one `batch` process.
+def batch(*commands):
+    """Run commands in order in one agent-browser process; fail at the first error."""
+    begun = time.monotonic()
+    result = subprocess.run(["agent-browser", "--session", session, "batch", "--bail", "--json"], input=json.dumps([list(c) for c in commands]),
+                            cwd=root, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=40 * len(commands))
+    try: steps = json.loads(result.stdout)
+    except ValueError: steps = []
+    log.write(json.dumps({"batch": [list(c) for c in commands], "exit": result.returncode, "ms": round((time.monotonic() - begun) * 1000),
+                          "errors": [step.get("error") for step in steps], "output": result.stderr if steps else result.stdout + result.stderr}) + "\n"); log.flush()
+    assert result.returncode == 0 and len(steps) == len(commands) and all(step["success"] for step in steps), result.stdout + result.stderr
+    return [(step["result"] or {}).get("result") for step in steps]
 def run(*words):
-    if words[0] in ("click", "press", "back", "hover", "focus"): run("wait", "--fn", TRANSITION_DONE)
+    if words[0] in ("click", "press", "back", "hover", "focus"):
+        batch(("wait", "--fn", TRANSITION_DONE), words)
+        return ""
     command = ["agent-browser", "--session", session, *words]
+    begun = time.monotonic()
     result = subprocess.run(command, cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=40)
-    log.write(json.dumps({"command": list(words), "exit": result.returncode, "output": result.stdout}) + "\n"); log.flush()
+    log.write(json.dumps({"command": list(words), "exit": result.returncode, "ms": round((time.monotonic() - begun) * 1000), "output": result.stdout}) + "\n"); log.flush()
     assert result.returncode == 0, result.stdout
     return result.stdout.strip()
 def state(expression):
@@ -88,19 +104,19 @@ def remember():
     # Retain exact PID/start identities owned by this session/profile, never a broad reap.
     owned.update(processes())
 
-def capture(name, image_optional=False):
-    run("wait", "--fn", "document.fonts.status === 'loaded' && Array.from(document.images).every(i => i.complete)")
-    run("wait", "--fn", "Array.from(document.querySelectorAll('[data-cal]')).filter(e => {const r=e.getBoundingClientRect();return r.top<innerHeight&&r.bottom>0}).every(e=>getComputedStyle(e).opacity==='1')")
-    require("document.documentElement.scrollWidth <= innerWidth + 1")
-    try:
-        run("screenshot", str(args.out / (name + ".png")))
-    except AssertionError as error:
-        # Chrome's Page.captureScreenshot hangs once author scripts are disabled
-        # (--blink-settings=scriptEnabled=false), on every page. The DOM checks
-        # above and the click that follows still prove the no-JS journey.
-        # On macOS the same hang surfaces as the daemon never answering.
-        if not image_optional or not any(m in str(error) for m in ("Page.captureScreenshot", "no response came back")): raise
-        receipts.append(name + ": screenshot unavailable (Chrome cannot capture with scripts disabled); DOM checks passed")
+# Fonts and images loaded, every entry-motion block on screen fully shown, and no
+# finite animation or transition still running (a tab's 160 ms colour change, say),
+# so a screenshot shows the settled page rather than whichever frame it caught.
+SETTLED = ("document.fonts.status === 'loaded' && Array.from(document.images).every(i => i.complete) && "
+           "Array.from(document.querySelectorAll('[data-cal]')).filter(e => {const r=e.getBoundingClientRect();return r.top<innerHeight&&r.bottom>0}).every(e=>getComputedStyle(e).opacity==='1') && "
+           "document.getAnimations().every(a => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity)")
+def capture(name, checks=None, before=()):
+    """Run `before`, wait for the page to settle, check it and take a screenshot, in one process.
+    `checks` names further expressions that must be true; no horizontal overflow is always one."""
+    checks = {"no horizontal overflow": "document.documentElement.scrollWidth <= innerWidth + 1", **(checks or {})}
+    failed = "JSON.stringify([" + ", ".join("(" + expression + ") === true ? null : " + json.dumps(label) for label, expression in checks.items()) + "].filter(Boolean))"
+    results = batch(*before, ("wait", "--fn", SETTLED), ("eval", failed), ("screenshot", str(args.out / (name + ".png"))))
+    assert json.loads(results[-2]) == [], name + " failed: " + results[-2]
 
 def abort(_sig, _frame): raise TimeoutError("browser path exceeded 300 seconds")
 signal.signal(signal.SIGALRM, abort); signal.alarm(300)
@@ -185,23 +201,27 @@ try:
             run("back")
         receipts.append(listing + ": clicked every listed entry and returned; each opened without replaying the entry motion")
     # Every generated HTML page is visited at desktop and phone dimensions, including 404.
+    # The sweep checks layout, not motion: reduced motion shows each page's settled
+    # state at once instead of waiting about 0.6 s per page for the entry rise to end.
+    # Motion is walked above and below with the visitor's default settings.
     pages = sorted((root / "_site").rglob("*.html"))
+    run("set", "media", "light", "reduced-motion")
     for width, height, label in [(1440, 900, "desktop"), (390, 844, "phone")]:
         run("set", "viewport", str(width), str(height))
         for i, page in enumerate(pages):
             route = "/" + str(page.relative_to(root / "_site"))
             if route.endswith("index.html"): route = route[:-10]
-            run("open", base + route)
-            require("document.querySelectorAll('h1').length === 1 && document.querySelector('h1').textContent.trim().length > 0")
-            require("document.querySelector('meta[name=waseemilyas-revision]').content === " + json.dumps(revision))
+            checks = {"one titled h1": "document.querySelectorAll('h1').length === 1 && document.querySelector('h1').textContent.trim().length > 0",
+                      "revision": "document.querySelector('meta[name=waseemilyas-revision]').content === " + json.dumps(revision)}
             if route.startswith("/work/cs-"):
-                require("""(() => {
+                checks["datasheet placement"] = """(() => {
                     const sheet = document.querySelector('.casegrid .datasheet').getBoundingClientRect();
                     const prose = document.querySelector('.casegrid .prose').getBoundingClientRect();
                     return innerWidth < 861 ? sheet.bottom <= prose.top : prose.right <= sheet.left;
-                })()""")
-            capture(label + "-page-" + str(i))
+                })()"""
+            capture(label + "-page-" + str(i), checks, before=[("open", base + route)])
         receipts.append(label + ": all " + str(len(pages)) + " generated pages loaded without horizontal overflow")
+    run("set", "media", "light")
     run("open", base + "/")
     run("set", "viewport", "320", "568")
     require("""(() => {
@@ -339,16 +359,21 @@ try:
     run("click", '.capread a')
     require("location.pathname === " + json.dumps(nodes[0]["reading"]))
     run("back")
-    run("scrollintoview", '.foot .fnav a[href="/about/"]')
+    # Smooth scrolling runs at that one frame a second too, and a click mid-scroll
+    # lands on whatever is passing under the pointer: jump straight to the target.
+    run("eval", "document.querySelector('.foot .fnav a[href=\"/about/\"]').scrollIntoView({block: 'center', behavior: 'instant'})")
     run("wait", "--fn", "(()=>{const r=document.querySelector('.foot .fnav a[href=\"/about/\"]').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight})()")
-    capture("phone-nojs-footer", image_optional=True)
+    # Chrome renders about one frame a second with author scripts disabled, and
+    # Page.captureScreenshot never returns, so this step checks the DOM only.
+    require("document.documentElement.scrollWidth <= innerWidth + 1")
+    receipts.append("phone-nojs-footer: no screenshot (Chrome cannot capture with scripts disabled); footer in view without overflow")
     run("click", '.foot .fnav a[href="/about/"]')
     require("location.pathname === '/about/'")
     receipts.append("JavaScript-disabled phone page: all capability text and links visible, a note and footer navigation open")
     run("open", base + "/notes/unglamorus-half-of-automation/?nojs=" + session)
     require("document.querySelector('[data-not-found-match]').hidden && document.querySelectorAll('[data-page-index] a').length === " + json.dumps(len([p for p in (root / "_site").rglob("index.html")])))
     listed = '[data-page-index] a[href="/notes/unglamorous-half-of-automation/"]'
-    run("scrollintoview", listed)
+    run("eval", "document.querySelector(" + json.dumps(listed) + ").scrollIntoView({block: 'center', behavior: 'instant'})")
     run("wait", "--fn", "(()=>{const r=document.querySelector(" + json.dumps(listed) + ").getBoundingClientRect();return r.top>=document.querySelector('.topbar').getBoundingClientRect().bottom&&r.bottom<=innerHeight})()")
     run("click", listed)
     run("wait", "--fn", "location.pathname === '/notes/unglamorous-half-of-automation/'")
