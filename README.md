@@ -31,6 +31,11 @@ JSON-LD, draft exclusion, sitemap/feed parity, revision bytes and OG image heade
 Image pixels are not decoded. The privacy scanner complements the judgement rules
 in [AGENTS.md](AGENTS.md); it cannot decide whether anonymised copy identifies a client.
 
+Tests that read the built site call `builtSite()` from `scripts/built-site.mjs` rather
+than building their own copy. Under `pnpm test` and `pnpm check <tests>` the first such
+test builds once (with a test error-reporting DSN, as production has one) and the rest
+reuse it; `scripts/test-setup.mjs` names and removes the shared directory.
+
 Strict `checkJs` uses tsrs, the Rust port of the TypeScript compiler, over production browser,
 build and CLI JavaScript. After the frozen install, `tsconfig.json` resolves imports
 without a build or generated types. Exact tool versions live in `package.json`.
@@ -70,8 +75,9 @@ apps. `pnpm build` generates the cards and their metadata directly from the rend
 pages; `pnpm serve` refreshes changed cards as you edit. Drafts produce no cards. There
 are no generated images or text manifests to commit.
 
-Builds need a local Chromium (`google-chrome` on the GitHub-hosted runner). Set
-`CHROME=/path/to/chrome` if it is not on PATH. Python 3 with Pillow compresses the
+Builds need a local Chromium (`google-chrome` on the GitHub-hosted runner). On a Mac
+the build also finds Google Chrome, Chromium or Playwright's Chromium in their usual
+places. Elsewhere set `CHROME=/path/to/chrome` if it is not on PATH. Python 3 with Pillow compresses the
 cards; the release workflows install it. Without Pillow a local build leaves larger,
 full-colour PNGs. All images stay in `_site/`, alongside the HTML they describe.
 

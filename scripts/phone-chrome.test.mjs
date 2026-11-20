@@ -15,26 +15,11 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { builtSite, skipReason } from "./built-site.mjs";
 
-const skipReason = existsSync("node_modules/@11ty/eleventy/cmd.cjs")
-  ? false
-  : "eleventy not installed — run pnpm install";
-
-async function builtCss() {
-  const { execFile } = await import("node:child_process");
-  const { promisify } = await import("node:util");
-  const { mkdtempSync, rmSync, readFileSync } = await import("node:fs");
-  const { tmpdir } = await import("node:os");
-  const { join } = await import("node:path");
-  const outDir = mkdtempSync(join(tmpdir(), "portfolio-phone-chrome-"));
-  try {
-    await promisify(execFile)(process.execPath, ["node_modules/@11ty/eleventy/cmd.cjs", "--output", outDir], { timeout: 180_000 });
-    return readFileSync(join(outDir, "assets/css/styles.css"), "utf8");
-  } finally {
-    rmSync(outDir, { recursive: true, force: true });
-  }
-}
+const builtCss = async () => readFileSync(join(await builtSite(), "assets/css/styles.css"), "utf8");
 
 /** Rule bodies whose selector list contains `selector`, ignoring `exclude`. */
 function ruleBodies(css, selector, exclude = []) {
