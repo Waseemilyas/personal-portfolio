@@ -1,12 +1,13 @@
 // Social preview cards are built from the rendered pages in Eleventy's normal
 // build/watch loop. No generated source images or duplicate text manifest.
-// Rendering needs Chromium: found on PATH, in its usual macOS places or Playwright's cache, or set CHROME=/path/to/chrome.
+// GitHub Actions uses Chrome for Testing. Local builds find Chromium or use CHROME.
 
-import { spawn, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parse } from "parse5";
 
 const FONT_DIR = "src/assets/fonts";
@@ -161,8 +162,19 @@ const FIT_TITLE = `(async () => {
   return 44;
 })()`;
 
+const HOSTED_CHROME = process.env.GITHUB_ACTIONS === "true" && !process.env.CHROME
+  ? fileURLToPath(new URL("./chrome-for-testing.sh", import.meta.url))
+  : null;
+
 function findChrome() {
   if (process.env.CHROME) return process.env.CHROME;
+  if (HOSTED_CHROME) {
+    return execFileSync("bash", [HOSTED_CHROME], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "inherit"],
+      timeout: 120_000,
+    }).trim();
+  }
   for (const name of ["chromium", "chromium-browser", "google-chrome", "google-chrome-stable"]) {
     const found = spawnSync("sh", ["-c", `command -v ${name}`], { encoding: "utf8" }).stdout.trim();
     if (found) return found;
@@ -186,6 +198,12 @@ function findChrome() {
   throw new Error("No Chromium found: set CHROME=/path/to/chrome");
 }
 
+/** @param {string} profile */
+function removeProfile(profile) {
+  // Chromium's children can still finish writing when the browser process exits.
+  rmSync(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
+}
+
 /**
  * Launch headless Chromium and return its DevTools ws:// address.
  * @param {string} executable @param {number} timeoutMs
@@ -202,7 +220,7 @@ function launchChrome(executable, timeoutMs) {
     const fail = (/** @type {Error} */ error) => {
       clearTimeout(timer);
       chrome.kill();
-      const done = () => { rmSync(profile, { recursive: true, force: true }); reject(error); };
+      const done = () => { removeProfile(profile); reject(error); };
       if (chrome.pid && chrome.exitCode === null && chrome.signalCode === null) chrome.once("exit", done);
       else done();
     };
@@ -287,7 +305,7 @@ async function render(pages, timing = { start: 0, draw: 0, first: 0 }) {
     socket?.close();
     chrome.kill();
     await new Promise((r) => (chrome.pid && chrome.exitCode === null && chrome.signalCode === null ? chrome.once("exit", r) : r(null)));
-    rmSync(profile, { recursive: true, force: true });
+    removeProfile(profile);
   }
 }
 
@@ -307,12 +325,15 @@ function squeeze(files) {
 
 // Finished cards are kept by a hash of everything that decides their pixels: the card
 // page (its text, styles and inlined fonts), the title-fitting script, the screenshot
-// size and the compression. A build copies a known card instead of starting Chromium,
-// which costs about 20 s on a fresh CI runner; CI and the Pages build restore this
-// folder between runs. Only compressed cards are kept, so a machine without Pillow
+// size, the compression and the pinned browser on GitHub Actions. CI and the Pages
+// build restore this folder so they only fetch and start Chromium to draw new cards.
+// Only compressed cards are kept, so a machine without Pillow
 // never hands a full-colour card to one with it. Cards unused for 30 days are removed.
 export const CARD_CACHE = "node_modules/.cache/share-cards";
-const RENDERER = createHash("sha256").update(`1200x630 srgb\n${FIT_TITLE}\n${QUANTIZE}`).digest("hex");
+const RENDERER = createHash("sha256")
+  .update(`1200x630 srgb\n${FIT_TITLE}\n${QUANTIZE}`)
+  .update(HOSTED_CHROME ? readFileSync(HOSTED_CHROME) : "")
+  .digest("hex");
 const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** The cache file for a card page. @param {string} html */
