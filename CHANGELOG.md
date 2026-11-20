@@ -1,5 +1,22 @@
 # Release notes
 
+## v2026.11.20.4 — 20 November 2026
+
+The portfolio brings selected work within one action from the homepage and makes browsing smoother while fonts load.
+
+### Browsing and navigation
+
+- Selected work is now within one action from the homepage.
+- Keyboard focus stays visible as you move around the portfolio.
+
+### Reading and loading
+
+- Text stays steadier while the site’s fonts load, with fewer line changes.
+- Pages preload fewer font files, so they download less font data on a first visit.
+
+- Browser error reports no longer include visitors’ browsing data.
+
+
 ## v2026.11.20.3 — 20 November 2026
 
 Page changes feel immediate: the opening animation no longer delays your view, and transitions link each page to the card or link that opened it. Reduced motion turns these transitions off.
