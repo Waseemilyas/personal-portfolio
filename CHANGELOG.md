@@ -1,5 +1,24 @@
 # Release notes
 
+## v2026.11.20.5 — 20 November 2026
+
+The site now makes it easier to reach the page you want, read featured content, and use the portfolio on a phone.
+
+### Improvements
+
+- Homepage actions are easier to see on small screens.
+- Case study datasheets are easier to view on phones.
+- Recommended articles load before you open them.
+- If a link is misspelt, shortened, or changed by a phone or chat app, the 404 page can take you to the matching page or suggest the closest one.
+
+### Fixes
+
+- Keyboard focus stays clear of the sticky header when you move through the page.
+- Page scripts are blocked from inserting untrusted markup or code.
+- Portfolio links are easier to follow because the page waits for the destination to open after moving it clear of the header.
+- Local site builds can find an available browser automatically, without requiring a separate browser setting.
+
+
 ## v2026.11.20.4 — 20 November 2026
 
 The portfolio brings selected work within one action from the homepage and makes browsing smoother while fonts load.
