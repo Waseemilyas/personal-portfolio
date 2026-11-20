@@ -6,13 +6,12 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
+import { JSDOM, VirtualConsole, requestInterceptor } from "jsdom";
+import { builtSite, skipReason } from "./built-site.mjs";
 
-const skipReason = existsSync("node_modules/@11ty/eleventy/cmd.cjs")
-  ? false
-  : "eleventy not installed — run pnpm install";
-
-const DSN = "https://0123456789abcdef0123456789abcdef@o1.ingest.de.sentry.io/1";
 const site = "https://waseemilyas.uk";
 const probeScript = "/assets/js/probe.js";
 const sample = {
@@ -28,21 +27,10 @@ const sample = {
 };
 
 test("error reporting sends errors and source lines without visitor browsing data", { skip: skipReason }, async () => {
-  const { execFile } = await import("node:child_process");
-  const { promisify } = await import("node:util");
-  const { mkdtempSync, rmSync, readFileSync } = await import("node:fs");
-  const { tmpdir } = await import("node:os");
-  const { join } = await import("node:path");
-  const { setTimeout: delay } = await import("node:timers/promises");
-  const { JSDOM, VirtualConsole, requestInterceptor } = await import("jsdom");
-
-  const outDir = mkdtempSync(join(tmpdir(), "portfolio-error-reporting-"));
+  // The shared build carries the test DSN (scripts/built-site.mjs), as production carries its own.
+  const outDir = await builtSite();
   let dom;
   try {
-    await promisify(execFile)(process.execPath, ["node_modules/@11ty/eleventy/cmd.cjs", "--output", outDir], {
-      timeout: 180_000,
-      env: { ...process.env, SENTRY_DSN: DSN },
-    });
     // Pages serves this document at the requested path, even if that path is private.
     const html = readFileSync(join(outDir, "404.html"), "utf8");
 
@@ -135,6 +123,5 @@ test("error reporting sends errors and source lines without visitor browsing dat
     assert.equal(policy.level, "warning");
   } finally {
     dom?.window.close();
-    rmSync(outDir, { recursive: true, force: true });
   }
 });

@@ -1,10 +1,10 @@
 // Social preview cards are built from the rendered pages in Eleventy's normal
 // build/watch loop. No generated source images or duplicate text manifest.
-// Rendering needs Chromium (CHROME=/path/to/chrome to choose one).
+// Rendering needs Chromium: found on PATH or in its usual macOS places, or set CHROME=/path/to/chrome.
 
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { JSDOM } from "jsdom";
 
@@ -118,6 +118,18 @@ function findChrome() {
     const found = spawnSync("sh", ["-c", `command -v ${name}`], { encoding: "utf8" }).stdout.trim();
     if (found) return found;
   }
+  // macOS keeps browsers in app bundles, off PATH; Playwright's own Chromium counts too.
+  const apps = ["Google Chrome.app/Contents/MacOS/Google Chrome", "Chromium.app/Contents/MacOS/Chromium"]
+    .flatMap((app) => [join("/Applications", app), join(homedir(), "Applications", app)]);
+  const playwright = join(homedir(), "Library/Caches/ms-playwright");
+  const bundled = existsSync(playwright)
+    ? readdirSync(playwright).filter((dir) => /^chromium-\d+$/.test(dir))
+      .sort((a, b) => Number(b.slice(9)) - Number(a.slice(9)))
+      .flatMap((dir) => ["arm64", "x64"].map((arch) =>
+        join(playwright, dir, `chrome-mac-${arch}/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`)))
+    : [];
+  const mac = [...apps, ...bundled].find((path) => existsSync(path));
+  if (mac) return mac;
   throw new Error("No Chromium found: set CHROME=/path/to/chrome");
 }
 

@@ -15,93 +15,74 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-
-const skipReason = existsSync("node_modules/@11ty/eleventy/cmd.cjs")
-  ? false
-  : "eleventy not installed — run pnpm install";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { JSDOM } from "jsdom";
+import { builtSite, skipReason } from "./built-site.mjs";
 
 test("mobile nav drawer: click opens, Escape or leaving the drawer closes it", { skip: skipReason }, async () => {
-  const { execFile } = await import("node:child_process");
-  const { promisify } = await import("node:util");
-  const { mkdtempSync, rmSync, readFileSync } = await import("node:fs");
-  const { tmpdir } = await import("node:os");
-  const { join } = await import("node:path");
-  const execFileP = promisify(execFile);
+  const outDir = await builtSite();
 
-  // Build the real site (same pattern as revision.test.mjs's build control).
-  const outDir = mkdtempSync(join(tmpdir(), "portfolio-nav-drawer-"));
-  try {
-    await execFileP(
-      process.execPath,
-      ["node_modules/@11ty/eleventy/cmd.cjs", "--output", outDir],
-      { timeout: 180_000 }
-    );
+  // jsdom does not implement matchMedia; the stub reports a mobile-width
+  // viewport so the drawer is active (and rm, so no IntersectionObserver
+  // is needed). The external /assets/js/site.js is root-relative, so
+  // jsdom cannot fetch it — we eval the built file into the page instead.
+  // jsdom applies the inlined stylesheet but evaluates no media query, so the
+  // desktop rule would hide the toggle and block its focus. Real browsers are
+  // covered by the verify-portfolio walk; here the page is driven unstyled.
+  const html = readFileSync(join(outDir, "index.html"), "utf8").replace(/<style>[\s\S]*?<\/style>/g, "");
+  const served = new JSDOM(html).window.document;
+  assert.equal(served.querySelector(".nav-toggle")?.getAttribute("popovertarget"), "primary-nav");
+  assert.ok(served.getElementById("primary-nav")?.hasAttribute("popover"), "the primary nav is a popover");
+  assert.equal(served.querySelector(".nav-toggle")?.hasAttribute("aria-expanded"), false,
+    "no static aria-expanded: browsers derive it from the popover until the script mirrors it");
+  const dom = new JSDOM(html, {
+    runScripts: "dangerously",
+    url: "https://waseemilyas.uk/",
+    beforeParse(window) {
+      window.matchMedia = (media) => ({
+        matches: true,
+        media,
+        addEventListener() {},
+        removeEventListener() {},
+        addListener() {},
+        removeListener() {},
+      });
+    },
+  });
+  dom.window.eval(readFileSync(join(outDir, "assets/js/site.js"), "utf8"));
 
-    // jsdom does not implement matchMedia; the stub reports a mobile-width
-    // viewport so the drawer is active (and rm, so no IntersectionObserver
-    // is needed). The external /assets/js/site.js is root-relative, so
-    // jsdom cannot fetch it — we eval the built file into the page instead.
-    // jsdom applies the inlined stylesheet but evaluates no media query, so the
-    // desktop rule would hide the toggle and block its focus. Real browsers are
-    // covered by the verify-portfolio walk; here the page is driven unstyled.
-    const { JSDOM } = await import("jsdom");
-    const html = readFileSync(join(outDir, "index.html"), "utf8").replace(/<style>[\s\S]*?<\/style>/g, "");
-    const served = new JSDOM(html).window.document;
-    assert.equal(served.querySelector(".nav-toggle")?.getAttribute("popovertarget"), "primary-nav");
-    assert.ok(served.getElementById("primary-nav")?.hasAttribute("popover"), "the primary nav is a popover");
-    assert.equal(served.querySelector(".nav-toggle")?.hasAttribute("aria-expanded"), false,
-      "no static aria-expanded: browsers derive it from the popover until the script mirrors it");
-    const dom = new JSDOM(html, {
-      runScripts: "dangerously",
-      url: "https://waseemilyas.uk/",
-      beforeParse(window) {
-        window.matchMedia = (media) => ({
-          matches: true,
-          media,
-          addEventListener() {},
-          removeEventListener() {},
-          addListener() {},
-          removeListener() {},
-        });
-      },
-    });
-    dom.window.eval(readFileSync(join(outDir, "assets/js/site.js"), "utf8"));
+  const { document } = dom.window;
+  const toggle = document.querySelector(".nav-toggle");
+  const nav = document.getElementById("primary-nav");
+  assert.ok(toggle && nav, "the built page carries the nav toggle and primary nav");
 
-    const { document } = dom.window;
-    const toggle = document.querySelector(".nav-toggle");
-    const nav = document.getElementById("primary-nav");
-    assert.ok(toggle && nav, "the built page carries the nav toggle and primary nav");
+  // Without popover support the script takes the drawer over.
+  assert.equal(nav.hasAttribute("popover"), false);
+  // Initial state: drawer closed, out of the a11y tree on mobile widths.
+  assert.equal(nav.getAttribute("data-open"), "false");
+  assert.equal(toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(nav.getAttribute("aria-hidden"), "true");
 
-    // Without popover support the script takes the drawer over.
-    assert.equal(nav.hasAttribute("popover"), false);
-    // Initial state: drawer closed, out of the a11y tree on mobile widths.
-    assert.equal(nav.getAttribute("data-open"), "false");
-    assert.equal(toggle.getAttribute("aria-expanded"), "false");
-    assert.equal(nav.getAttribute("aria-hidden"), "true");
+  // Clicking the toggle opens the drawer and flips aria-expanded.
+  toggle.click();
+  assert.equal(nav.getAttribute("data-open"), "true");
+  assert.equal(toggle.getAttribute("aria-expanded"), "true");
+  assert.equal(nav.getAttribute("aria-hidden"), null);
 
-    // Clicking the toggle opens the drawer and flips aria-expanded.
-    toggle.click();
-    assert.equal(nav.getAttribute("data-open"), "true");
-    assert.equal(toggle.getAttribute("aria-expanded"), "true");
-    assert.equal(nav.getAttribute("aria-hidden"), null);
+  // Escape closes it again and returns focus to the toggle.
+  document.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape" }));
+  assert.equal(nav.getAttribute("data-open"), "false");
+  assert.equal(toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(nav.getAttribute("aria-hidden"), "true");
+  assert.equal(document.activeElement, toggle, "Escape returns focus to the toggle");
 
-    // Escape closes it again and returns focus to the toggle.
-    document.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape" }));
-    assert.equal(nav.getAttribute("data-open"), "false");
-    assert.equal(toggle.getAttribute("aria-expanded"), "false");
-    assert.equal(nav.getAttribute("aria-hidden"), "true");
-    assert.equal(document.activeElement, toggle, "Escape returns focus to the toggle");
-
-    // With the menu open, moving focus into the page closes it and keeps that focus.
-    toggle.click();
-    nav.querySelector(".cta").focus();
-    const firstLink = document.querySelector("main a");
-    firstLink.focus();
-    assert.equal(toggle.getAttribute("aria-expanded"), "false");
-    assert.equal(nav.getAttribute("aria-hidden"), "true");
-    assert.equal(document.activeElement, firstLink);
-  } finally {
-    rmSync(outDir, { recursive: true, force: true });
-  }
+  // With the menu open, moving focus into the page closes it and keeps that focus.
+  toggle.click();
+  nav.querySelector(".cta").focus();
+  const firstLink = document.querySelector("main a");
+  firstLink.focus();
+  assert.equal(toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(nav.getAttribute("aria-hidden"), "true");
+  assert.equal(document.activeElement, firstLink);
 });

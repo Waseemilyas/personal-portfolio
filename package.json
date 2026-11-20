@@ -10,7 +10,7 @@
     "serve": "eleventy --serve",
     "clean": "rm -rf _site",
     "prepare": "git config core.hooksPath .githooks || true",
-    "test": "node --test --test-concurrency=1 \"scripts/**/*.test.mjs\"",
+    "test": "node --test --test-concurrency=1 --test-global-setup=scripts/test-setup.mjs \"scripts/**/*.test.mjs\"",
     "check": "node scripts/check.mjs",
     "lint": "oxlint src scripts eleventy.config.js",
     "typecheck": "tsrs --noEmit"
