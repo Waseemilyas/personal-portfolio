@@ -86,8 +86,8 @@ everything that decides its pixels: the card's text, styles and fonts, the layou
 the compression. A build copies a kept card instead of starting Chromium; if every card is
 kept, Chromium never starts, and the build takes about 1 s instead of 3 s. The Pages build
 restores this folder from earlier main builds and saves it again, because Chrome's first start
-on a fresh runner costs about 16 s. CI restores it too. The share-card test keeps its own
-folder, so it always renders. Delete the folder to force fresh cards.
+on a fresh runner costs about 16 s. CI restores it too, so its shared test build copies the
+cards; the share-card test keeps its own folder, so it always renders and pays that start. Delete the folder to force fresh cards.
 
 ## Deployment
 

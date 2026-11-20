@@ -18,10 +18,6 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      # Chrome's first start on a fresh runner takes about 16 s, and the share-card test
-      # must really render. Start it once in the background while the toolchain installs.
-      - name: Warm up Chrome in the background
-        run: (google-chrome --headless=new --no-sandbox --screenshot=/tmp/chrome-warmup.png --window-size=320,200 "data:text/html,<p>warm</p>" > /dev/null 2>&1 &)
       - name: Secret scan
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
