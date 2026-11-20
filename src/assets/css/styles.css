@@ -94,6 +94,120 @@
   unicode-range: U+0-7F, U+A0, U+A3, U+A9, U+B7, U+D7, U+2013-2014, U+2018-2019, U+201C-201D, U+2022, U+2026, U+20AC, U+2190-2193, U+2197, U+2212;
 }
 
+/* ---------- metric-matched fallbacks ----------
+   Until Geist arrives (font-display: swap) text shows in a font already on the
+   device. Unadjusted, that font is wider or narrower than Geist, so lines rewrap and
+   the page jumps when Geist swaps in. These faces resize the device's Arial (Windows,
+   macOS, iOS; Arimo and Liberation Sans are metric copies) or Roboto (Android) to
+   Geist's width and line metrics, so the swap changes letter shapes, not layout.
+   Devices with neither keep the system stack. One face per weight the site sets:
+   size-adjust makes the site's own text, set at that weight with its letter-spacing,
+   as wide in the fallback as in Geist (measured in Chromium across every page,
+   at eight times the size so hinting cannot round the advances);
+   ascent/descent are Geist's 1.005/0.295 em divided by size-adjust, with no line gap.
+   Re-measure if the type scale or weights change. Geist Mono and every common
+   monospace fallback are 0.6 em wide, so they need no adjusting. */
+@font-face {
+  font-family: "Geist Fallback Arial";
+  src: local("Arial"), local("ArialMT"), local("Arimo"), local("Liberation Sans");
+  font-weight: 100 549;
+  font-style: normal;
+  size-adjust: 102.76%;
+  ascent-override: 97.80%;
+  descent-override: 28.71%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Geist Fallback Arial";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Arimo Bold"), local("Liberation Sans Bold");
+  font-weight: 550 649;
+  font-style: normal;
+  size-adjust: 99.91%;
+  ascent-override: 100.59%;
+  descent-override: 29.53%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Geist Fallback Arial";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Arimo Bold"), local("Liberation Sans Bold");
+  font-weight: 650 749;
+  font-style: normal;
+  size-adjust: 102.44%;
+  ascent-override: 98.11%;
+  descent-override: 28.80%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Geist Fallback Arial";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Arimo Bold"), local("Liberation Sans Bold");
+  font-weight: 750 900;
+  font-style: normal;
+  size-adjust: 104.11%;
+  ascent-override: 96.53%;
+  descent-override: 28.34%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Geist Fallback Arial";
+  src: local("Arial Italic"), local("Arial-ItalicMT"), local("Arimo Italic"), local("Liberation Sans Italic");
+  font-weight: 100 900;
+  font-style: italic;
+  size-adjust: 102.11%;
+  ascent-override: 98.42%;
+  descent-override: 28.89%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Geist Fallback Roboto";
+  src: local("Roboto"), local("Roboto-Regular"), local("Roboto Regular");
+  font-weight: 100 549;
+  font-style: normal;
+  size-adjust: 102.66%;
+  ascent-override: 97.90%;
+  descent-override: 28.74%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Geist Fallback Roboto";
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 550 649;
+  font-style: normal;
+  size-adjust: 106.04%;
+  ascent-override: 94.78%;
+  descent-override: 27.82%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Geist Fallback Roboto";
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 650 749;
+  font-style: normal;
+  size-adjust: 108.65%;
+  ascent-override: 92.50%;
+  descent-override: 27.15%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Geist Fallback Roboto";
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 750 900;
+  font-style: normal;
+  size-adjust: 110.81%;
+  ascent-override: 90.70%;
+  descent-override: 26.62%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Geist Fallback Roboto";
+  src: local("Roboto Italic"), local("Roboto-Italic");
+  font-weight: 100 900;
+  font-style: italic;
+  size-adjust: 103.85%;
+  ascent-override: 96.77%;
+  descent-override: 28.41%;
+  line-gap-override: 0%;
+}
+
 :root {
   /* Console (warm graphite — not black, not beige) */
   --graphite-900: oklch(0.17 0.008 65);
@@ -114,7 +228,7 @@
   --trace: oklch(0.80 0.130 78);
   --on-signal: oklch(0.16 0.02 40);
 
-  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --sans: "Geist", "Geist Fallback Arial", "Geist Fallback Roboto", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   --step--1: clamp(0.78rem, 0.75rem + 0.15vw, 0.86rem);
@@ -148,7 +262,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 * { margin: 0; }
 html {
-  -webkit-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 103.85%;
   scroll-behavior: smooth;
   /* Leave room for the sticky bar, its border and the focus outline. */
   scroll-padding-block-start: calc(var(--topbar-height) + 0.5rem);

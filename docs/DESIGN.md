@@ -27,7 +27,7 @@ colors:
   on-signal: "oklch(0.16 0.02 40)"
 typography:
   display:
-    fontFamily: "Geist, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+    fontFamily: "Geist, Geist Fallback Arial, Geist Fallback Roboto, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
     fontSize: "clamp(2.7rem, 1.9rem + 4vw, 5.4rem)"
     fontWeight: 800
     lineHeight: 1.04
@@ -161,7 +161,10 @@ The stack is Eleventy + hand-written CSS — **no framework, no utility classes,
 stylesheet** (`src/assets/css/styles.css`, inlined into each page at build time). Typefaces are self-hosted
 variable Geist (upright and its designed italic, which loads only where prose sets
 italic text) and Geist Mono; there is no CDN dependency and no runtime style
-system.
+system. Until Geist arrives, text shows in the device's Arial or Roboto resized to
+Geist's width and line metrics (`Geist Fallback Arial` / `Geist Fallback Roboto`, one
+face per weight), so the swap to Geist changes letter shapes but moves nothing.
+Re-measure their `size-adjust` if the type scale or weights change.
 
 ### What is actually tokenised
 
