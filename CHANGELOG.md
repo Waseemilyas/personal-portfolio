@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.11.20.6 — 20 November 2026
+
+Website contact buttons now appear at the end of notes and case studies, where readers can reach them after reading.
+
+
 ## v2026.11.20.5 — 20 November 2026
 
 The site now makes it easier to reach the page you want, read featured content, and use the portfolio on a phone.
