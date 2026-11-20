@@ -113,6 +113,16 @@ try:
     else:
         class Quiet(http.server.SimpleHTTPRequestHandler):
             def log_message(self, *_): pass
+            # Like GitHub Pages, answer a missing address with the site's 404 page.
+            def send_error(self, code, message=None, explain=None):
+                page = root / "_site" / "404.html"
+                if code != 404 or not page.is_file(): return super().send_error(code, message, explain)
+                body = page.read_bytes()
+                self.send_response(404)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                if self.command != "HEAD": self.wfile.write(body)
         server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Quiet, directory=str(root / "_site")))
         port = server.server_address[1]
         threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -247,6 +257,15 @@ try:
     run("wait", "--fn", "document.querySelector('.email-row [role=status]').textContent !== ''")
     require("['Email address copied.','Could not copy. Select the address to copy it.'].includes(document.querySelector('.email-row [role=status]').textContent)")
     receipts.append("contact email links carry a subject; copy button shown, clicked and announced: " + run("eval", "document.querySelector('.email-row [role=status]').textContent"))
+    # A link mangled by a chat app opens its page; a misspelt one is offered the closest page.
+    run("open", base + "/Work/CS-Care)")
+    run("wait", "--fn", "location.pathname === '/work/cs-care/'")
+    run("open", base + "/notes/unglamorus-half-of-automation/")
+    require("document.querySelector('h1').textContent.includes('slipped') && !document.querySelector('[data-not-found-match]').hidden && document.querySelector('[data-not-found-match] a').getAttribute('href') === '/notes/unglamorous-half-of-automation/'")
+    capture("desktop-not-found-closest")
+    run("click", "[data-not-found-match] a")
+    require("location.pathname === '/notes/unglamorous-half-of-automation/'")
+    receipts.append("not-found page opened /Work/CS-Care) as /work/cs-care/ and offered and followed the closest note for a misspelt address")
     # At short viewport height, reverse Tab must scroll the address clear of the sticky bar.
     run("set", "viewport", "390", "320")
     run("open", base + "/contact/?verify-keyboard=" + session)
@@ -310,6 +329,14 @@ try:
     run("click", '.foot .fnav a[href="/about/"]')
     require("location.pathname === '/about/'")
     receipts.append("JavaScript-disabled phone page: all capability text and links visible, a note and footer navigation open")
+    run("open", base + "/notes/unglamorus-half-of-automation/?nojs=" + session)
+    require("document.querySelector('[data-not-found-match]').hidden && document.querySelectorAll('[data-page-index] a').length === " + json.dumps(len([p for p in (root / "_site").rglob("index.html")])))
+    listed = '[data-page-index] a[href="/notes/unglamorous-half-of-automation/"]'
+    run("scrollintoview", listed)
+    run("wait", "--fn", "(()=>{const r=document.querySelector(" + json.dumps(listed) + ").getBoundingClientRect();return r.top>=document.querySelector('.topbar').getBoundingClientRect().bottom&&r.bottom<=innerHeight})()")
+    run("click", listed)
+    run("wait", "--fn", "location.pathname === '/notes/unglamorous-half-of-automation/'")
+    receipts.append("JavaScript-disabled not-found page lists every page and follows one")
     errors = run("errors")
     assert errors in ("", "No errors", "No page errors", "[]"), errors
     receipts.append("feed/sitemap/audio HTTP bodies present; contact links inspected without sending")

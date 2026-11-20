@@ -703,6 +703,22 @@ p, li { text-wrap: pretty; }
 .notes-empty a { color: var(--signal-deep); text-underline-offset: 3px; transition: text-decoration-thickness .2s var(--ease); }
 .notes-empty a:hover { text-decoration-thickness: 2px; }
 
+/* ---------- not found: closest page and the index of every page ---------- */
+.nf-match { margin-top: 1.8rem; max-width: calc(52 * var(--ch)); }
+.nf-match[hidden] { display: none; }
+.nf-match .workcard { border: 1px solid var(--signal); border-radius: var(--rounded-lg); }
+.nf-match .workcard .ref { min-width: 0; }
+.nf-match .nf-title { display: block; font-size: var(--step-1); font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; text-wrap: pretty; }
+.nf-match .nf-path { font-size: var(--step--1); overflow-wrap: anywhere; }
+.nf-match .go { color: var(--signal); }
+.nf-index { border-top: 1px solid var(--line-dark); }
+.pageindex { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); gap: var(--space-grid-gap); }
+.pageindex h3 { padding-bottom: .6rem; border-bottom: 1px solid var(--line-dark); }
+.pageindex ul { list-style: none; margin: 0; padding: 0; }
+.pageindex a { display: grid; gap: .2rem; min-height: 2.75rem; padding-block: .7rem; border-bottom: 1px solid var(--line-dark); color: var(--bone); font-weight: 500; line-height: 1.3; text-decoration: none; text-wrap: pretty; transition: color .2s var(--ease); }
+.pageindex a:hover { color: var(--signal); }
+.pageindex a span { color: var(--bone-mute); font-size: var(--step--1); font-weight: 400; overflow-wrap: anywhere; }
+
 /* ---------- footer ---------- */
 .foot { border-top: 1px solid var(--line-dark); padding-block: 2.6rem; color: var(--bone-mute); font-size: var(--step--1); }
 .foot .shell { display: grid; grid-template-columns: 1fr auto; gap: 1.4rem; align-items: start; }
