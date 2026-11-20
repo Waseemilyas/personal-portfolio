@@ -20,7 +20,9 @@
 //               no 'unsafe-*', listing the hash of every inline script and inline style and no
 //               outside script or style origin (outside code is pinned and served from this site);
 //               no inline handlers or style attributes (the policy would block them); a
-//               Referrer-Policy meta; the stylesheet inlined, never a render-blocking link
+//               Referrer-Policy meta; the stylesheet inlined, never a render-blocking link;
+//               Trusted Types required for scripts, allowing exactly the policies the page's
+//               inline scripts create ('none' when there are none), never 'default' or duplicates
 //
 // Usage: node scripts/site-check.mjs [--site-dir _site] [--posts-dir src/notes/posts]
 //        [--site-url https://waseemilyas.uk] [--revision <sha>]
@@ -30,7 +32,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { JSDOM } from "jsdom";
 
-import { inlineScripts, inlineStyles, scriptHash } from "./csp.mjs";
+import { inlineScripts, inlineStyles, scriptHash, trustedTypePolicies } from "./csp.mjs";
 import { cardAlt, cardImage, cardText } from "./og-cards.mjs";
 import { revision as buildRevision } from "./revision.mjs";
 
@@ -168,6 +170,18 @@ export function runSiteChecks({
     // An unlisted inline style is dropped by the browser: the page would ship unstyled.
     for (const source of inlineStyles(html)) {
       if (!styleSrc.split(" ").includes(scriptHash(source))) bad("csp", `inline style "${source.trim().slice(0, 40)}" is not in style-src`);
+    }
+    // Without Trusted Types any script on the page could turn a string into markup or code.
+    if (directive("require-trusted-types-for") !== "require-trusted-types-for 'script'") {
+      bad("csp", "policy must enforce require-trusted-types-for 'script'");
+    }
+    const created = trustedTypePolicies(html);
+    const allowed = directive("trusted-types").split(" ").slice(1);
+    const expected = created.length ? created : ["'none'"];
+    if (created.some((name) => name === "default") || allowed.some((name) => /^('allow-duplicates'|default)$/.test(name))) {
+      bad("csp", "trusted-types must not allow a default policy or duplicates");
+    } else if (allowed.join(" ") !== expected.join(" ")) {
+      bad("csp", `trusted-types must allow exactly the page's own policies (${expected.join(" ")}), not "${allowed.join(" ")}"`);
     }
     if (doc.querySelector('link[rel~="stylesheet"]')) bad("csp", "the stylesheet must be inlined (scripts/inline-css.mjs), not linked");
     for (const el of doc.querySelectorAll("*")) {

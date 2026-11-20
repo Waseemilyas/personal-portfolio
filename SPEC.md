@@ -136,7 +136,11 @@ send headers). It allows only this site's own files and each inline script and i
 style by the SHA-256 of its exact text; no outside origin may run script. The only outside
 origin is Sentry's ingest, in `connect-src`, when the production build has a DSN.
 It has no `'unsafe-inline'`, `'unsafe-eval'` or wildcard, and blocks forms, `<base>`
-and plugins. Pages also send `strict-origin-when-cross-origin` as their referrer
+and plugins. It enforces Trusted Types: no script may pass a plain string to an HTML
+or script sink (`innerHTML`, `insertAdjacentHTML`, `document.write`, a script's `src`
+or text, `srcdoc`), and only the policies the page's own inline scripts create are
+allowed (`trusted-types 'none'` when there are none). The production error loader
+creates the one policy, `sdk-loader`, which accepts only the pinned SDK URL. Pages also send `strict-origin-when-cross-origin` as their referrer
 policy. The meta form cannot set `frame-ancestors`, HSTS or `X-Content-Type-Options`;
 those need response headers.
 

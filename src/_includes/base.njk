@@ -70,6 +70,15 @@
     var onError = function (e) { report(e.error || e.message); };
     var onRejection = function (e) { report(e.reason); };
     var canonicalPage = document.querySelector('link[rel="canonical"]').href;
+    var sdkUrl = "{{ monitoring.sentrySdkUrl }}";
+    // Trusted Types: the page policy refuses plain strings as script URLs, so the loader
+    // has one named policy that vouches for the pinned SDK and nothing else.
+    var sdkPolicy = window.trustedTypes && trustedTypes.createPolicy("sdk-loader", {
+      createScriptURL: function (url) {
+        if (url !== sdkUrl) throw new TypeError("sdk-loader allows only the pinned SDK");
+        return url;
+      }
+    });
 
     function sourceFile(filename) {
       try {
@@ -101,7 +110,7 @@
       if (loading) return;
       loading = true;
       var s = document.createElement("script");
-      s.src = "{{ monitoring.sentrySdkUrl }}";
+      s.src = sdkPolicy ? sdkPolicy.createScriptURL(sdkUrl) : sdkUrl;
       s.integrity = "{{ monitoring.sentrySdkIntegrity }}";
       s.onload = function () {
         Sentry.init({
@@ -140,8 +149,9 @@
     var seen = new Set();
     addEventListener("securitypolicyviolation", function (e) {
       var blocked = e.blockedURI || "inline";
-      if (/^(chrome|moz|safari(-web)?)-extension:|sentry/.test(blocked)) return;
-      var description = /^(inline|eval|wasm-eval)$/.test(blocked) ? blocked : sourceFile(blocked) || "resource";
+      var extension = /^(chrome|moz|safari(-web)?)-extension:/;
+      if (extension.test(blocked) || extension.test(e.sourceFile || "") || /sentry/.test(blocked)) return;
+      var description = /^(inline|eval|wasm-eval|trusted-types-(sink|policy))$/.test(blocked) ? blocked : sourceFile(blocked) || "resource";
       var line = "CSP blocked " + e.effectiveDirective + " " + description;
       if (seen.has(line)) return;
       seen.add(line);
