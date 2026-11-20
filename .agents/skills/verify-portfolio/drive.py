@@ -203,8 +203,17 @@ try:
             capture(label + "-page-" + str(i))
         receipts.append(label + ": all " + str(len(pages)) + " generated pages loaded without horizontal overflow")
     run("open", base + "/")
+    run("set", "viewport", "320", "568")
+    require("""(() => {
+        const links = [...document.querySelectorAll('.hero .actions a')];
+        return links.length === 2 && links.every(link => {
+            const rect = link.getBoundingClientRect();
+            return rect.height >= 44 && rect.top >= 0 && rect.bottom <= innerHeight;
+        });
+    })()""")
     check_home_to_work()
-    receipts.append("phone Read the work focuses the visible heading; Tab and Enter open the first case study")
+    receipts.append("at 320 × 568 both homepage actions fit without scrolling; Read the work focuses the heading and Tab and Enter open the first case study")
+    run("set", "viewport", "390", "844")
     run("open", base + "/")
     for node in nodes:
         selector = '.cap-phone .node[data-key="' + node["key"] + '"]'
