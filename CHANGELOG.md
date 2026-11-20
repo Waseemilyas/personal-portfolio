@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.11.20.3 — 20 November 2026
+
+Page changes feel immediate: the opening animation no longer delays your view, and transitions link each page to the card or link that opened it. Reduced motion turns these transitions off.
+
+
 ## v2026.11.20.2 — 20 November 2026
 
 Phone visitors can open the site menu straight away, even with scripts turned off, and scroll it on a short landscape screen.
