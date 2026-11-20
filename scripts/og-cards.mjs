@@ -1,6 +1,6 @@
 // Social preview cards are built from the rendered pages in Eleventy's normal
 // build/watch loop. No generated source images or duplicate text manifest.
-// Rendering needs Chromium: found on PATH or in its usual macOS places, or set CHROME=/path/to/chrome.
+// Rendering needs Chromium: found on PATH, in its usual macOS places or Playwright's cache, or set CHROME=/path/to/chrome.
 
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
@@ -118,18 +118,22 @@ function findChrome() {
     const found = spawnSync("sh", ["-c", `command -v ${name}`], { encoding: "utf8" }).stdout.trim();
     if (found) return found;
   }
-  // macOS keeps browsers in app bundles, off PATH; Playwright's own Chromium counts too.
+  // macOS keeps browsers in app bundles, off PATH; Playwright's own Chromium counts too,
+  // on a Mac and on Linux, where lanes have it installed but no browser on PATH.
   const apps = ["Google Chrome.app/Contents/MacOS/Google Chrome", "Chromium.app/Contents/MacOS/Chromium"]
     .flatMap((app) => [join("/Applications", app), join(homedir(), "Applications", app)]);
-  const playwright = join(homedir(), "Library/Caches/ms-playwright");
-  const bundled = existsSync(playwright)
-    ? readdirSync(playwright).filter((dir) => /^chromium-\d+$/.test(dir))
+  const bundled = [join(homedir(), "Library/Caches/ms-playwright"), join(homedir(), ".cache/ms-playwright")]
+    .filter((cache) => existsSync(cache))
+    .flatMap((cache) => readdirSync(cache).filter((dir) => /^chromium-\d+$/.test(dir))
       .sort((a, b) => Number(b.slice(9)) - Number(a.slice(9)))
-      .flatMap((dir) => ["arm64", "x64"].map((arch) =>
-        join(playwright, dir, `chrome-mac-${arch}/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`)))
-    : [];
-  const mac = [...apps, ...bundled].find((path) => existsSync(path));
-  if (mac) return mac;
+      .flatMap((dir) => [
+        ...["arm64", "x64"].map((arch) =>
+          join(cache, dir, `chrome-mac-${arch}/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`)),
+        join(cache, dir, "chrome-linux64/chrome"),
+        join(cache, dir, "chrome-linux/chrome"),
+      ]));
+  const found = [...apps, ...bundled].find((path) => existsSync(path));
+  if (found) return found;
   throw new Error("No Chromium found: set CHROME=/path/to/chrome");
 }
 
