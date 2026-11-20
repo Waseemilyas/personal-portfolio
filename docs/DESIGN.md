@@ -27,7 +27,7 @@ colors:
   on-signal: "oklch(0.16 0.02 40)"
 typography:
   display:
-    fontFamily: "Geist, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+    fontFamily: "Geist, Geist Fallback Arial, Geist Fallback Roboto, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
     fontSize: "clamp(2.7rem, 1.9rem + 4vw, 5.4rem)"
     fontWeight: 800
     lineHeight: 1.04
@@ -161,17 +161,23 @@ The stack is Eleventy + hand-written CSS — **no framework, no utility classes,
 stylesheet** (`src/assets/css/styles.css`, inlined into each page at build time). Typefaces are self-hosted
 variable Geist (upright and its designed italic, which loads only where prose sets
 italic text) and Geist Mono; there is no CDN dependency and no runtime style
-system.
+system. Until Geist arrives, text shows in the device's Arial or Roboto resized to
+Geist's width and line metrics (`Geist Fallback Arial` / `Geist Fallback Roboto`, one
+face per weight), so the swap to Geist changes letter shapes but moves nothing.
+Re-measure their `size-adjust` if the type scale or weights change.
 
 ### What is actually tokenised
 
-`:root` (`styles.css`) declares **38** custom properties and no others:
+`:root` (`styles.css`) declares **42** custom properties and no others:
 
 - 15 colours — the console, essay and signal tables below, plus `--on-signal`.
 - 2 families — `--sans`, `--mono`.
 - 6 type steps — `--step--1` … `--step-4`.
 - 6 radius rungs — `--rounded-xs` … `--rounded-pill`.
 - 6 spacing measures — `--space-section-block` … `--space-head-below`.
+- 4 text-measure units — `--ch`, `--ch-600`, `--ch-700`, `--ch-800`: one Geist `ch` at
+  that weight, in em. Write a sans text measure as `calc(60 * var(--ch))`, not `60ch`,
+  so it keeps its width while a fallback font is showing.
 - `--ease`, `--maxw` and `--topbar-height`. The header and drawer share that height
   with the document's scroll padding, which keeps focused links clear of the header.
 
@@ -358,7 +364,8 @@ rather than a new one.
   `16ch`, hero lede `46ch`, section-head copy `42ch`, case title `20ch`, prose
   `68ch` (container `70ch`), about lede `24ch`, timeline proof list `60ch` (the
   milestone paragraph's cap). Other blocks carry their own caps —
-  check the rule before adding a new one.
+  check the rule before adding a new one. These are Geist `ch`, written through the
+  `--ch` units so a fallback font cannot narrow them.
 - Body line-height is `1.55`; long-form prose relaxes to `1.62`.
 
 ### Print reading edition
