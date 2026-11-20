@@ -8,6 +8,7 @@ import { withPolicy } from "./scripts/csp.mjs";
 import { STYLESHEET, inlineStylesheet, readStylesheet } from "./scripts/inline-css.mjs";
 import monitoring from "./src/_data/monitoring.js";
 
+const INPUT = "src";
 const OUTPUT = "_site";
 
 /**
@@ -82,10 +83,14 @@ export default function (eleventyConfig) {
   });
 
   // In a full build Eleventy reports every rendered page, but leaves obsolete HTML on disk.
-  // Reconcile the generated pages only after all templates and share cards have built.
+  // Reconcile the generated pages after Eleventy finishes writing its templates.
   eleventyConfig.on("eleventy.after", ({ directories, incremental, outputMode, results }) => {
+    if (incremental || outputMode !== "fs" || results.length === 0) return;
+    if (directories.inputFile || directories.inputGlob || resolve(directories.input) !== resolve(INPUT)) return;
+    // Eleventy 3.1 omits CLI template format overrides from the event.
+    if (process.argv.some((arg) => /^--formats(?:=|$)/.test(arg))) return;
     const output = resolve(directories.output);
-    if (incremental || outputMode !== "fs" || output !== resolve(OUTPUT)) return;
+    if (output !== resolve(OUTPUT)) return;
     if (!lstatSync(output, { throwIfNoEntry: false })?.isDirectory()) return;
 
     const pages = new Set(results.map(({ outputPath }) => outputPath && resolve(outputPath)));
@@ -103,7 +108,7 @@ export default function (eleventyConfig) {
 
   return {
     dir: {
-      input: "src",
+      input: INPUT,
       includes: "_includes",
       data: "_data",
       output: OUTPUT,

@@ -15,8 +15,8 @@ test("a normal build creates and refreshes share cards without publishing drafts
   const command = resolve("node_modules/@11ty/eleventy/cmd.cjs");
   const config = resolve("eleventy.config.js");
   let buildLog = "";
-  const build = () => {
-    const run = spawnSync(process.execPath, [command, `--config=${config}`], { cwd: root, env: { ...process.env, SITE_REVISION: "a".repeat(40) }, encoding: "utf8", timeout: 120_000 });
+  const build = (...args) => {
+    const run = spawnSync(process.execPath, [command, `--config=${config}`, ...args], { cwd: root, env: { ...process.env, SITE_REVISION: "a".repeat(40) }, encoding: "utf8", timeout: 120_000 });
     buildLog = run.stdout + run.stderr;
     assert.equal(run.status, 0, buildLog);
   };
@@ -49,6 +49,10 @@ test("a normal build creates and refreshes share cards without publishing drafts
 
     const withdrawnPage = join(output, "notes/withdrawn-probe/index.html");
     assert.ok(existsSync(withdrawnPage), "the second note was published before removal");
+    for (const flag of ["--dryrun", "--input=src/contact.njk", "--formats=njk"]) {
+      build(flag);
+      assert.ok(existsSync(withdrawnPage), `${flag} must leave previously built pages in place`);
+    }
     writeFileSync(note, text("A note returned to draft", true));
     unlinkSync(withdrawn);
     build();
