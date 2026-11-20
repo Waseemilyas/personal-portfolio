@@ -240,6 +240,10 @@ try:
     run("click", '#primary-nav a[href="/notes/"]')
     require("location.pathname === '/notes/'")
     run("back")
+    # With no script to close it on the link, Back restores the page as it was left:
+    # menu open. Escape (or a tap elsewhere) closes it.
+    run("press", "Escape")
+    run("wait", "--fn", NAV_CLOSED)
     receipts.append("JavaScript-disabled phone header menu opens, closes on Escape and follows a link")
     require("document.querySelector('.capfig').hidden")
     require("Array.from(document.querySelectorAll('.capread')).every(panel => panel.getClientRects().length > 0)")
