@@ -331,9 +331,11 @@ try:
     receipts.append("JavaScript-disabled phone page: all capability text and links visible, a note and footer navigation open")
     run("open", base + "/notes/unglamorus-half-of-automation/?nojs=" + session)
     require("document.querySelector('[data-not-found-match]').hidden && document.querySelectorAll('[data-page-index] a').length === " + json.dumps(len([p for p in (root / "_site").rglob("index.html")])))
-    run("scrollintoview", '[data-page-index] a[href="/notes/unglamorous-half-of-automation/"]')
-    run("click", '[data-page-index] a[href="/notes/unglamorous-half-of-automation/"]')
-    require("location.pathname === '/notes/unglamorous-half-of-automation/'")
+    listed = '[data-page-index] a[href="/notes/unglamorous-half-of-automation/"]'
+    run("scrollintoview", listed)
+    run("wait", "--fn", "(()=>{const r=document.querySelector(" + json.dumps(listed) + ").getBoundingClientRect();return r.top>=document.querySelector('.topbar').getBoundingClientRect().bottom&&r.bottom<=innerHeight})()")
+    run("click", listed)
+    run("wait", "--fn", "location.pathname === '/notes/unglamorous-half-of-automation/'")
     receipts.append("JavaScript-disabled not-found page lists every page and follows one")
     errors = run("errors")
     assert errors in ("", "No errors", "No page errors", "[]"), errors
