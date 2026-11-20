@@ -61,6 +61,10 @@ Atom feed (`/notes/feed.xml`) already exist, **Notes** is in the primary nav, an
 explicitly. A post with `draft: true` is never written to disk, so an unfinished note can
 sit in `posts/` safely.
 
+Each full build removes leftover HTML when an article is drafted, deleted or moved.
+The local preview does this on rebuild too. After a deletion on its own, save a
+remaining source file or restart `pnpm serve` to trigger Eleventy to rebuild.
+
 Each published note and case study shares its own preview card on social sites and chat
 apps. `pnpm build` generates the cards and their metadata directly from the rendered
 pages; `pnpm serve` refreshes changed cards as you edit. Drafts produce no cards. There

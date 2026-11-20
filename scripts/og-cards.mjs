@@ -239,7 +239,7 @@ function squeeze(files) {
  * Wire card metadata and PNGs into the same build that writes their pages.
  * @param {{
  * on(event: "eleventy.before", callback: () => void): void,
- * on(event: "eleventy.after", callback: (event: {directories: {output: string}, incremental: boolean}) => Promise<void>): void,
+ * on(event: "eleventy.after", callback: (event: {directories: {output: string}, incremental: boolean, outputMode: string, results: {outputPath: string | false}[]}) => void | Promise<void>): void,
  * addTransform(name: string, transform: (this: {page: {outputPath: string | false, url: string}}, content: string) => string): void
  * }} config
  */

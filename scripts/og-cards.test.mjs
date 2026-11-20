@@ -2,7 +2,7 @@
 // and must never turn a draft into a public image. Exercise the real build path.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -38,12 +38,25 @@ test("a normal build creates and refreshes share cards without publishing drafts
     assert.equal(metadata().querySelector('meta[property="og:image:alt"]').content, "Note · 8 AUG 2026. A new note.");
     assert.ok(!existsSync(join(output, "assets/img/og/notes-draft-probe.png")), "draft text must not become a public card");
     writeFileSync(note, text('A renamed note & "quoted" title'));
+    const withdrawn = join(input, "notes/posts/withdrawn-probe.md");
+    writeFileSync(withdrawn, text("A note to remove"));
     build();
     const doc = metadata();
     assert.equal(doc.querySelector('meta[property="og:image:alt"]').content, 'Note · 8 AUG 2026. A renamed note & "quoted" title.');
     assert.equal(doc.querySelector('meta[name="twitter:image:alt"]').content, doc.querySelector('meta[property="og:image:alt"]').content);
     assert.ok(doc.querySelector('meta[property="og:image"]').content.endsWith("/assets/img/og/notes-build-probe.png"));
     assert.notDeepEqual(readFileSync(image), before, "retitling must refresh image pixels as well as metadata");
+
+    const withdrawnPage = join(output, "notes/withdrawn-probe/index.html");
+    assert.ok(existsSync(withdrawnPage), "the second note was published before removal");
+    writeFileSync(note, text("A note returned to draft", true));
+    unlinkSync(withdrawn);
+    build();
+    const obsoleteRoutes = ["build-probe", "withdrawn-probe"].filter((slug) => existsSync(join(output, "notes", slug)));
+    assert.deepEqual(obsoleteRoutes, [], "a rebuild must remove previously published routes for drafted and deleted notes");
+    assert.ok(!existsSync(image), "a note returned to draft must also lose its share card");
+    assert.ok(!existsSync(join(output, "assets/img/og/notes-withdrawn-probe.png")), "a deleted note must also lose its share card");
+    assert.ok(existsSync(join(output, "notes/index.html")), "the Notes index must remain available");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
