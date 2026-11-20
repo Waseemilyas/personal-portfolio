@@ -207,7 +207,7 @@ Two deliberate limits on that claim:
 `--ease` (`cubic-bezier(0.16, 1, 0.3, 1)`) is the single easing curve: it drives
 every transition and all three keyframe animations. New motion uses it.
 
-### Progressive enhancement, and its one exception
+### Progressive enhancement
 
 Motion is an enhancement, never a gate: `[data-cal]` elements are visible by
 default and nothing animates when the user has asked for reduced motion.
@@ -219,13 +219,17 @@ so content never depends on the script. All capability descriptions and related
 links are server-rendered. The script adds the map controls and displays the
 selected description.
 
-**The mobile nav drawer is the exception.** Below 720px `.nav` is fixed and
-translated off-screen (the `.nav` rule in the 720px media query, `styles.css`);
-only `data-open="true"` reveals it, and
-that attribute is set exclusively by `src/assets/js/site.js`. With JS disabled the
-drawer cannot be opened and the toggle is inert — the footer nav (`.foot .fnav`,
-on every page) is the fallback. Do not describe the mobile nav as working without
-JS, and do not add anything else that depends on a script to reach content.
+**The mobile nav drawer needs no script.** `#primary-nav` is a native popover
+(`popover`) and `.nav-toggle` its invoker (`popovertarget`), so the browser opens it,
+closes it on Escape or a tap outside and returns focus to the toggle, from first
+paint and with JavaScript disabled. Below 720px the closed `.nav` stays rendered,
+translated off-screen and `visibility: hidden`; `.nav:popover-open` slides it in. The
+base `.nav` rule undoes the browser's popover box at every width. `site.js` only
+mirrors `aria-expanded`, closes the menu on a link or a widening past 720px, and, in
+a browser without popovers, removes the attribute and drives the same drawer through
+`data-open`. Keep `:popover-open` selectors in rules of their own: an unknown
+pseudo-class drops every selector in its rule. Do not add anything that depends on a
+script to reach content.
 
 ## Colors
 
@@ -438,8 +442,8 @@ extend rather than fork.
 | --- | --- | --- | --- |
 | `.shell` | both | every route | The only container. `max-width: 78rem`, fluid inline padding. |
 | `.section` | both | every route | The vertical rhythm unit: `padding-block: clamp(3.5rem, 8vh, 6rem)`. Pairs with `.console` / `.essay`. |
-| `.topbar` / `.nav` | console | every route | Sticky blurred bar. Collapses to a full-width drawer below 720px via `.nav-toggle` + `data-open` (**requires JS**). `aria-current="page"` paints the active link `--signal`. |
-| `.foot` | console | every route | Global footer, inside `base.njk`. Two-column grid collapsing at 620px, where `.fnav` becomes two columns of full-width 44px rows separated by the `--line-dark` hairline (seven links read 2+2+2+1); `.fnav` is the no-JS nav fallback. |
+| `.topbar` / `.nav` | console | every route | Sticky blurred bar. Collapses to a full-width drawer below 720px: a native popover opened by `.nav-toggle`, so it works without JS (`data-open` only in browsers without popovers). `aria-current="page"` paints the active link `--signal`. |
+| `.foot` | console | every route | Global footer, inside `base.njk`. Two-column grid collapsing at 620px, where `.fnav` becomes two columns of full-width 44px rows separated by the `--line-dark` hairline (seven links read 2+2+2+1). |
 | `.hero` | console | `/`, `/404` | Full-bleed intro band. `.hero h1` is the only `--step-4` consumer; carries `.reg` marks. Two-column on `/`, collapsing at 860px. |
 | `.section-head` | console | home sections, `/work/`, `/lab/`, `/automancer/`, `/contact/`, `/about/` | Baseline-aligned row: mono `.ref` + title + optional right-aligned `p`. Heading is `h1` or `h2` per the contract above. Essay-surface styling exists (the `.essay .section-head` rules, `styles.css`) but no template currently uses it there. |
 | `.casehead` | essay | case studies, notes (index and detail), `/about/` | Detail-page counterpart: `.ref`, title, optional `.kick` lede, hairline rule below. `/about/` carries `.ref` + title only — its lede is a separate `.lede-essay` paragraph that follows the closing `</div>` of the casehead (`src/about.njk`). |
@@ -481,7 +485,8 @@ homepage status panel), `.casegrid` (case detail), `.about-grid` (`/about/`),
 
 Accessibility baked into the components: a `.skip` link precedes the header,
 `:focus-visible` is a `2px --signal` outline at `3px` offset on every focusable
-element, and the nav toggle maintains `aria-expanded`. Each **detail-page**
+element, and the nav toggle's expanded state comes from its popover (the script also
+writes `aria-expanded`; the markup carries none, so it is never stale without JS). Each **detail-page**
 `<article>` is labelled by its own title id (`case.njk` → `aria-labelledby="case-title"`,
 `note.njk` → `"note-title"`); the `.note-item` articles on the notes index are not
 labelled this way.

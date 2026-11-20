@@ -3,46 +3,68 @@
   "use strict";
   var rm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  /* The phone menu is a native popover (`popover` on #primary-nav, `popovertarget` on the
+     toggle), so it opens, light-dismisses and closes on Escape with focus back on the
+     toggle before this script arrives and without it. This only mirrors the state into
+     aria-expanded, closes the menu when a link is chosen or the window widens past the
+     drawer breakpoint, and drives the same drawer for a browser without popovers. */
   function setupNavigation() {
     const toggle = document.querySelector("button.nav-toggle");
     const nav = document.getElementById("primary-nav");
-    if (toggle instanceof HTMLButtonElement && nav) {
-      var drawerQ = window.matchMedia("(max-width: 720px)");
-      /** @param {boolean} open */
-      var setDrawer = function (open) {
-        var hide = drawerQ.matches && !open;
-        nav.setAttribute("data-open", String(open));
-        toggle.setAttribute("aria-expanded", String(open));
-        /* Hide the closed off-screen drawer from tab order and the a11y tree. */
-        if (hide) {
-          nav.setAttribute("aria-hidden", "true");
-          nav.inert = true;
-        } else {
-          nav.removeAttribute("aria-hidden");
-          nav.inert = false;
-        }
-      };
-      setDrawer(false);
-      if (drawerQ.addEventListener) {
-        drawerQ.addEventListener("change", function () {
-          setDrawer(nav.getAttribute("data-open") === "true");
-        });
+    if (!(toggle instanceof HTMLButtonElement) || !nav) return;
+    var drawerQ = window.matchMedia("(max-width: 720px)");
+    var native = typeof nav.showPopover === "function" && nav.hasAttribute("popover");
+    /** @returns {boolean} */
+    var isOpen = function () {
+      return native ? nav.matches(":popover-open") : nav.getAttribute("data-open") === "true";
+    };
+    /** @param {boolean} open */
+    var setDrawer = function (open) {
+      toggle.setAttribute("aria-expanded", String(open));
+      if (native) {
+        if (!open && isOpen()) nav.hidePopover();
+        return;
       }
-      toggle.addEventListener("click", function () {
-        setDrawer(nav.getAttribute("data-open") !== "true");
+      var hide = drawerQ.matches && !open;
+      nav.setAttribute("data-open", String(open));
+      /* Hide the closed off-screen drawer from tab order and the a11y tree. */
+      if (hide) {
+        nav.setAttribute("aria-hidden", "true");
+        nav.inert = true;
+      } else {
+        nav.removeAttribute("aria-hidden");
+        nav.inert = false;
+      }
+    };
+    if (native) {
+      nav.addEventListener("toggle", function (e) {
+        toggle.setAttribute("aria-expanded", String(/** @type {ToggleEvent} */ (e).newState === "open"));
       });
-      nav.addEventListener("click", function (e) {
-        if (e.target instanceof Element && e.target.tagName === "A") {
-          setDrawer(false);
-        }
+    } else {
+      /* Without popover support the attribute does nothing; the script owns the drawer. */
+      toggle.removeAttribute("popovertarget");
+      nav.removeAttribute("popover");
+      toggle.addEventListener("click", function () {
+        setDrawer(!isOpen());
       });
       document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape" && nav.getAttribute("data-open") === "true") {
+        if (e.key === "Escape" && isOpen()) {
           toggle.focus();
           setDrawer(false);
         }
       });
     }
+    setDrawer(isOpen());
+    if (drawerQ.addEventListener) {
+      drawerQ.addEventListener("change", function () {
+        setDrawer(drawerQ.matches && isOpen());
+      });
+    }
+    nav.addEventListener("click", function (e) {
+      if (e.target instanceof Element && e.target.tagName === "A") {
+        setDrawer(false);
+      }
+    });
   }
 
   /* First-screen blocks (data-cal="0".."4") and corner marks animate in CSS alone.

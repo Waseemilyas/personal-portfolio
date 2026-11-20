@@ -150,7 +150,11 @@ p, li { text-wrap: pretty; }
 .wordmark { font-weight: 700; letter-spacing: -0.02em; font-size: var(--step-0); text-decoration: none; transition: color .2s var(--ease); }
 .wordmark b { color: var(--signal); transition: color .2s var(--ease); }
 .wordmark:hover { color: var(--bone-mute); }
-.nav { display: flex; gap: clamp(0rem, 0.8vw, 0.5rem); align-items: center; }
+/* #primary-nav is a native popover, so the phone menu opens from first paint, before
+   site.js and without it. Undo the browser's popover box (centred, bordered, canvas
+   colours); `display` here also keeps the closed popover rendered: a row at desktop
+   width, an off-screen drawer that can slide in below 720px. */
+.nav { display: flex; gap: clamp(0rem, 0.8vw, 0.5rem); align-items: center; position: static; inset: auto; width: auto; height: auto; margin: 0; padding: 0; border: 0; overflow: visible; color: inherit; background: none; }
 .nav a { display: inline-flex; align-items: center; min-height: 24px; min-width: 24px; padding-block: .25rem; padding-inline: .45rem; font-size: var(--step--1); color: var(--bone-mute); text-decoration: none; transition: color .2s var(--ease); }
 .nav a:hover, .nav a[aria-current="page"] { color: var(--bone); }
 .nav a[aria-current="page"] { color: var(--signal); }
@@ -164,12 +168,24 @@ p, li { text-wrap: pretty; }
 .nav-toggle[aria-expanded="true"] svg path:nth-child(1) { transform: translateY(6px) rotate(45deg); }
 .nav-toggle[aria-expanded="true"] svg path:nth-child(2) { opacity: 0; }
 .nav-toggle[aria-expanded="true"] svg path:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+/* The same cross when the popover is open without the script. Kept as separate rules:
+   a browser without :popover-open drops the whole rule it appears in. */
+.topbar:has(.nav:popover-open) .nav-toggle svg path:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.topbar:has(.nav:popover-open) .nav-toggle svg path:nth-child(2) { opacity: 0; }
+.topbar:has(.nav:popover-open) .nav-toggle svg path:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 @media (max-width: 720px) {
   .nav-toggle { display: inline-flex; }
-  .nav { position: fixed; inset: 3.5rem 0 auto 0; flex-direction: column; align-items: stretch; gap: 0; background: var(--graphite-800); border-bottom: 1px solid var(--line-dark); padding: .5rem var(--space-shell-inline) 1rem; transform: translateY(-120%); visibility: hidden; transition: transform .3s var(--ease), visibility 0s linear .3s; }
+  .nav { position: fixed; inset: 3.5rem 0 auto 0; max-height: calc(100dvh - 3.5rem); overflow-y: auto; overscroll-behavior: contain; flex-direction: column; align-items: stretch; gap: 0; background: var(--graphite-800); border-bottom: 1px solid var(--line-dark); padding: .5rem var(--space-shell-inline) 1rem; transform: translateY(-120%); visibility: hidden; transition: transform .3s var(--ease), visibility 0s linear .3s; }
   .nav[data-open="true"] { transform: translateY(0); visibility: visible; transition: transform .3s var(--ease), visibility 0s; }
+  .nav:popover-open { transform: translateY(0); visibility: visible; transition: transform .3s var(--ease), visibility 0s; }
   .nav a { padding: .7rem 0; border-bottom: 1px solid var(--line-dark); font-size: var(--step-0); }
   .nav .cta { border-radius: var(--rounded-sm); margin-top: .7rem; text-align: center; }
+}
+/* Opened at phone width, then widened with no script to close it (a phone turned
+   sideways): the browser keeps the popover in the top layer, so pin the row exactly
+   where it sits in the bar until a tap elsewhere closes it. */
+@media (min-width: 721px) {
+  .nav:popover-open { position: fixed; inset: 0 calc(max(0px, (100% - var(--maxw)) / 2) + var(--space-shell-inline)) auto auto; height: 3.5rem; }
 }
 
 /* ---------- console surface ---------- */

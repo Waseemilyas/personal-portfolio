@@ -140,10 +140,10 @@
 <header class="topbar">
   <div class="shell">
     <a class="wordmark" href="/">Waseem Ilyas<b>.</b></a>
-    <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-controls="primary-nav" aria-expanded="false">
+    <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-controls="primary-nav" popovertarget="primary-nav">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>
     </button>
-    <nav class="nav" id="primary-nav" aria-label="Primary">
+    <nav class="nav" id="primary-nav" aria-label="Primary" popover>
       {%- for item in site.nav %}
       <a href="{{ item.url }}"{% if page.url == item.url %} aria-current="page"{% endif %}>{{ item.label }}</a>
       {%- endfor %}
