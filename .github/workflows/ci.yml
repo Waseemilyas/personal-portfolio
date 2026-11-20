@@ -54,6 +54,11 @@ jobs:
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: pnpm-${{ runner.os }}-node26-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: TEMP diagnostic cold build
+        run: |
+          date +%T.%N; pnpm build 2>&1 | grep -E "share|Wrote"; date +%T.%N
+          CHROME_LOG_FILE=/tmp/c.log pnpm build 2>&1 | grep -E "share|Wrote"
+          rm -rf _site
       - name: Quick lint, typecheck and privacy scan
         run: pnpm check
       - run: pnpm test
