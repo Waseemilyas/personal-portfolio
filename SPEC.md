@@ -61,7 +61,10 @@ still published, so a page cached from before inlining keeps its styles.
 
 The skip link gives focus to the main landmark, including with scripts disabled.
 The document leaves scroll space above focused controls and anchor targets for
-the sticky header. A section's reveal yields while it contains focus.
+the sticky header. After native keyboard focus scrolling, the script checks
+whether a control in the main content or footer still sits under the header and
+scrolls it to the padded top edge so its outline is visible. A section's reveal
+yields while it contains focus.
 
 The mobile drawer is a native popover: `#primary-nav` carries `popover` and the
 header toggle `popovertarget`, so a phone visitor can open the menu from first paint,

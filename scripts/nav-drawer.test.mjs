@@ -38,6 +38,7 @@ test("mobile nav drawer: click opens, Escape or leaving the drawer closes it", {
     "no static aria-expanded: browsers derive it from the popover until the script mirrors it");
   const dom = new JSDOM(html, {
     runScripts: "dangerously",
+    pretendToBeVisual: true,
     url: "https://waseemilyas.uk/",
     beforeParse(window) {
       window.matchMedia = (media) => ({

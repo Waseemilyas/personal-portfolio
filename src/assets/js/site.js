@@ -73,6 +73,27 @@
     });
   }
 
+  function setupFocusVisibility() {
+    const topbar = document.querySelector(".topbar");
+    if (!topbar) return;
+
+    document.addEventListener("focusin", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element) || !target.matches("main :focus-visible, footer :focus-visible")) return;
+
+      // Native focus scrolling can leave a partly visible link under the sticky bar.
+      // Check after the browser has placed focus and scrolled.
+      requestAnimationFrame(() => {
+        if (document.activeElement !== target) return;
+        const bounds = target.getBoundingClientRect();
+        const outlineClearance = 5;
+        if (bounds.bottom > 0 && bounds.top < topbar.getBoundingClientRect().bottom + outlineClearance) {
+          target.scrollIntoView({ block: "start", inline: "nearest", behavior: "instant" });
+        }
+      });
+    });
+  }
+
   /* First-screen blocks (data-cal="0".."4") and corner marks animate in CSS alone.
      This only defers below-the-fold blocks: one already on screen is never hidden,
      and one hidden here rises once its top crosses 88% of the viewport. */
@@ -384,6 +405,7 @@
 
   setupNotFound();
   setupNavigation();
+  setupFocusVisibility();
   setupCapabilityMap();
   setupReveals();
   setupCopyEmail();
