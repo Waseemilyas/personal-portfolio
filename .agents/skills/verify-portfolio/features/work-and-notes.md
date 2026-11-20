@@ -7,6 +7,10 @@ checker validates its internal target like any other link. All generated case st
 the two-width page coverage. Read the Atom feed and sitemap; the rendered checker
 owns XML structure, internal targets and publication parity.
 
+Every note and case study shows the email address before the next article. Check
+its subject on both viewport widths, use the copy button by keyboard, and confirm
+the address is still visible on a case study with JavaScript disabled.
+
 ## Draft publication: fast source trace
 
 **Rule:** `draft: true` must suppress the post page and remove the post from Notes, feed and sitemap. Draft source stays in the repository; public copy and design are unchanged.

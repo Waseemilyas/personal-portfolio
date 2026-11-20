@@ -11,6 +11,8 @@ layout: base.njk
     <div class="prose" data-cal="1">
       {{ content | safe }}
     </div>
+    {% set emailSubject = 'About your note: ' + title %}
+    {% include "partials/reading-contact.njk" %}
     {%- set next = collections.notes | getNextCollectionItem(page) or collections.notes | first %}
     {%- if next and next.url != page.url %}
     <a class="nextread" href="{{ next.url }}" data-cal>
@@ -22,7 +24,6 @@ layout: base.njk
     {%- endif %}
     <nav class="casenav" aria-label="Notes">
       <a href="/notes/">← All notes</a>
-      <a href="{{ site.email | mailto('About your note: ' + title) }}">Email Waseem →</a>
     </nav>
     {% include "partials/print-source.njk" %}
   </div>
