@@ -21,7 +21,7 @@ pnpm run build     # static build → _site/
 ### Check a change
 
 ```bash
-pnpm check                                 # lint, strict JS types, source privacy guard
+pnpm check                                 # type-aware lint, strict JS types, source privacy guard
 pnpm check scripts/nav-drawer.test.mjs      # plus only this named owner test
 ```
 
@@ -39,6 +39,14 @@ reuse it; `scripts/test-setup.mjs` names and removes the shared directory.
 Strict `checkJs` uses tsrs, the Rust port of the TypeScript compiler, over production browser,
 build and CLI JavaScript. After the frozen install, `tsconfig.json` resolves imports
 without a build or generated types. Exact tool versions live in `package.json`.
+
+`pnpm lint` is type-aware: oxlint hands tsrs's linter (`tsrs-lint`, through
+`OXLINT_TSGOLINT_PATH` in the `lint` script) the same programs, so rules can see types.
+They catch promises nobody awaits or handles, async callbacks where a plain one is
+expected, awaiting a non-promise, `[object Object]` in strings, deprecated DOM APIs and
+throwing non-Errors (`.oxlintrc.json`). Test files are outside `tsconfig.json`, so they
+are linted in an inferred program; `test()` from `node:test` is listed as a safe call.
+Type-aware lint does not replace `tsrs --noEmit`, which still runs in `pnpm check`.
 
 Installs point git at `.githooks/` through `prepare`. Keep the gitleaks rules and
 sensitive-path guards enabled.

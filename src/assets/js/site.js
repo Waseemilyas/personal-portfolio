@@ -38,7 +38,7 @@
     };
     if (native) {
       nav.addEventListener("toggle", function (e) {
-        toggle.setAttribute("aria-expanded", String(/** @type {ToggleEvent} */ (e).newState === "open"));
+        toggle.setAttribute("aria-expanded", String(e.newState === "open"));
       });
     } else {
       /* Without popover support the attribute does nothing; the script owns the drawer. */
@@ -204,7 +204,7 @@
     button.hidden = false;
     button.addEventListener("click", function () {
       window.clearTimeout(timer);
-      clipboard.writeText(address).then(function () {
+      void clipboard.writeText(address).then(function () {
         show("Copied ✓", "Email address copied.", true);
       }, function () {
         show(label, "Could not copy. Select the address to copy it.", false);

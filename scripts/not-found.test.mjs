@@ -41,7 +41,7 @@ test("404 page lists every published page, without JavaScript", { skip: skipReas
   const sitemap = readFileSync(join(outDir, "sitemap.xml"), "utf8");
   const published = [...sitemap.matchAll(/<loc>https:\/\/waseemilyas\.uk([^<]*)<\/loc>/g)].map((m) => m[1]).sort();
   const dom = new JSDOM(readFileSync(join(outDir, "404.html"), "utf8"));
-  const listed = [...dom.window.document.querySelectorAll("[data-page-index] a")].map((a) => a.getAttribute("href")).sort();
+  const listed = [...dom.window.document.querySelectorAll("[data-page-index] a")].map((a) => a.getAttribute("href") ?? "").sort();
   assert.deepEqual(listed, published);
   assert.ok(dom.window.document.querySelector("[data-not-found-match]")?.hasAttribute("hidden"), "no suggestion shows without the script");
 });

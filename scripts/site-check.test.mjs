@@ -77,6 +77,7 @@ function check(mutate = () => {}) {
 
 test("a good site passes", () => assert.deepEqual(check(), []));
 
+/** @type {Record<string, [(files: Record<string, string | Buffer>) => unknown, string]>} */
 const bad = {
   "two h1": [(f) => (f["about/index.html"] = page("/about/", "<h1>A</h1><h1>B</h1>")), "headings"],
   "broken link": [(f) => (f["about/index.html"] = page("/about/", '<h1>A</h1><a href="/gone/">x</a>')), "links"],
