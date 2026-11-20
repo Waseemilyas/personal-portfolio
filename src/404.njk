@@ -13,9 +13,53 @@ eleventyExcludeFromCollections: true
       <p class="eyebrow"><span class="mono label">ERR · 404</span></p>
       <h1>This page slipped the net.</h1>
       <p class="lede">The page you were after does not exist, or has moved. Let's get you back on track.</p>
+      {#- site.js fills this in from the address the visitor asked for and the index below. #}
+      <div class="nf-match" data-not-found-match hidden>
+        <a class="workcard" href="/">
+          <span class="ref">CLOSEST</span>
+          <span><span class="nf-title"></span><span class="kick mono nf-path"></span></span>
+          <span class="go">Open →</span>
+        </a>
+      </div>
       <div class="actions">
         <a class="btn btn-primary" href="/">Back home →</a>
         <a class="btn btn-ghost" href="/work/">See the work →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="console section nf-index" aria-labelledby="nf-index-h">
+  <div class="shell">
+    <div class="section-head">
+      <span class="ref">INDEX</span>
+      <h2 id="nf-index-h">Every page on this site</h2>
+      <p>Everything published here, in one list. The page your link meant is probably one of these.</p>
+    </div>
+    <div class="pageindex" data-page-index>
+      <div>
+        <h3 class="label">Pages</h3>
+        <ul>
+          {%- for item in site.nav %}
+          <li><a href="{{ item.url }}">{{ item.label }}<span class="mono" aria-hidden="true">{{ item.url }}</span></a></li>
+          {%- endfor %}
+        </ul>
+      </div>
+      <div>
+        <h3 class="label">Case studies</h3>
+        <ul>
+          {%- for cs in collections.casestudies %}
+          <li><a href="{{ cs.url }}">{{ cs.data.title }}<span class="mono" aria-hidden="true">{{ cs.url }}</span></a></li>
+          {%- endfor %}
+        </ul>
+      </div>
+      <div>
+        <h3 class="label">Notes</h3>
+        <ul>
+          {%- for note in collections.notes %}
+          <li><a href="{{ note.url }}">{{ note.data.title }}<span class="mono" aria-hidden="true">{{ note.url }}</span></a></li>
+          {%- endfor %}
+        </ul>
       </div>
     </div>
   </div>

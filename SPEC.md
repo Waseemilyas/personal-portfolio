@@ -13,6 +13,20 @@ On Home, Selected work follows the introduction. “Read the work” jumps to it
 heading and gives it focus, so the next Tab reaches the first case study even
 with scripts disabled. Case-study cards have an inset focus outline.
 
+GitHub Pages serves `/404.html` at whatever address was asked for. Below its hero,
+the page lists every published page (main pages, case studies, notes) from the same
+collections as the sitemap, so a visitor with no script can still find the page their
+link meant; `scripts/not-found.test.mjs` holds the list equal to the sitemap.
+`setupNotFound` in `site.js` reads the address against that list. An address that
+differs from a page only by letter case, trailing punctuation or quotes, a trailing
+ellipsis, spaces, doubled slashes or an `.html`/`index.html` ending opens that page
+at once (`location.replace`, keeping the fragment), showing "OPENING" meanwhile. Otherwise it offers one
+"CLOSEST" card above the actions: the most similar address (a typo, a link cut short,
+or a page under the wrong section), else the deepest page the address sits under,
+else a section named by its own name or a common other word (blog → Notes, projects →
+Work, cv → About, email → Contact). A guess is only offered, never opened, and an
+address close to nothing offers nothing. Nothing is sent anywhere.
+
 The site remains static HTML/CSS with progressive JavaScript enhancement. It has
 no sign-in, database, submission backend or local persistent user state. Contact
 links hand off to the visitor's mail application; verifying them does not send mail.

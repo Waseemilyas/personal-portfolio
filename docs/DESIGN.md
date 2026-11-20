@@ -392,7 +392,7 @@ document has exactly one `<h1>` and skips no level.
 | **Simple route** (`/automancer/`, `/contact/`) | The `.section-head` title | Subsections, if any | — |
 | **Essay/detail** (case studies, notes, `/about/`) | The `.casehead` title | `.prose h2`, or `.section-head h2` for a following section | `.prose h3`, `.milestone h3` |
 | **Notes index** | `.casehead` title ("Notes") | `.note-item` titles | — |
-| **Error route** (`/404.html`) | The `.hero` title | — | — |
+| **Error route** (`/404.html`) | The `.hero` title | The page index's `.section-head` title | The index's group labels (`.pageindex h3.label`) |
 
 Both notes rows are live output as of the first published note (August 2026): `/notes/`
 renders the `.notes-list` branch with an `<h2>` per `.note-item`, and each post builds a
@@ -467,9 +467,9 @@ extend rather than fork.
 | `.topbar` / `.nav` | console | every route | Sticky blurred bar. Collapses to a full-width drawer below 720px: a native popover opened by `.nav-toggle`, so it works without JS (`data-open` only in browsers without popovers). `aria-current="page"` paints the active link `--signal`. |
 | `.foot` | console | every route | Global footer, inside `base.njk`. Two-column grid collapsing at 620px, where `.fnav` becomes two columns of full-width 44px rows separated by the `--line-dark` hairline (seven links read 2+2+2+1). |
 | `.hero` | console | `/`, `/404` | Full-bleed intro band. `.hero h1` is the only `--step-4` consumer; carries `.reg` marks. Two-column on `/`, collapsing at 860px. |
-| `.section-head` | console | home sections, `/work/`, `/lab/`, `/automancer/`, `/contact/`, `/about/` | Baseline-aligned row: mono `.ref` + title + optional right-aligned `p`. Heading is `h1` or `h2` per the contract above. Essay-surface styling exists (the `.essay .section-head` rules, `styles.css`) but no template currently uses it there. |
+| `.section-head` | console | home sections, `/work/`, `/lab/`, `/automancer/`, `/contact/`, `/about/`, `/404` | Baseline-aligned row: mono `.ref` + title + optional right-aligned `p`. Heading is `h1` or `h2` per the contract above. Essay-surface styling exists (the `.essay .section-head` rules, `styles.css`) but no template currently uses it there. |
 | `.casehead` | essay | case studies, notes (index and detail), `/about/` | Detail-page counterpart: `.ref`, title, optional `.kick` lede, hairline rule below. `/about/` carries `.ref` + title only — its lede is a separate `.lede-essay` paragraph that follows the closing `</div>` of the casehead (`src/about.njk`). |
-| `.workcard` in `.worklist` | console | home, `/work/` | Three-column grid (ref · title+kick · go arrow) inside a 1px-gap list that fakes dividers via `background: var(--line-dark)`. Collapses to one column below 620px with compact 1rem padding; the "Read →" becomes a full-width row already in `--signal`, because a phone has no hover to announce the card as a link (`scripts/phone-chrome.test.mjs` holds this). |
+| `.workcard` in `.worklist` | console | home, `/work/`, `/404` (the closest-page card, `.nf-match`, outside a `.worklist`) | Three-column grid (ref · title+kick · go arrow) inside a 1px-gap list that fakes dividers via `background: var(--line-dark)`. Collapses to one column below 620px with compact 1rem padding; the "Read →" becomes a full-width row already in `--signal`, because a phone has no hover to announce the card as a link (`scripts/phone-chrome.test.mjs` holds this). |
 | `.lab-card` in `.lab-grid` | console | home, `/lab/` | `auto-fit minmax(15rem, 1fr)`. Hover lifts 2px and borders in `--signal`. |
 | `.amancer` + `.diagram-panel` | console | home, `/automancer/` | Two-column copy + diagram block. The diagram is the shared partial `partials/diagram-workflow.njk`. |
 | `.contact-cta` / `.email-big` | console | home, `/contact/` | The primary CTA. `.email-big` is mono and display-scale, underlined in `--signal`; it is one of the sizes outside the type scale. Shares `.email-row` (`partials/email-cta.njk`) with a mono `.copy-email` ghost button, hidden until `site.js` finds a usable clipboard; `[data-copied]` turns it `--signal` while it reads "Copied ✓". |
@@ -485,7 +485,7 @@ extend rather than fork.
 Single-route components are in the stylesheet but deliberately not listed here:
 `.capfig` / `.capread` (the homepage capability map), `.panel` / `.readout` (the
 homepage status panel), `.casegrid` (case detail), `.about-grid` (`/about/`),
-`.notes-list` / `.note-item` (notes index). Two more are worth knowing about:
+`.notes-list` / `.note-item` (notes index), `.nf-match` / `.pageindex` (`/404`). Two more are worth knowing about:
 
 - `.label` / `.mono` — mono metadata primitives, currently used only on `/` and
   `/404`. `.essay .label` (`styles.css`) is styled but unused.

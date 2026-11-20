@@ -245,6 +245,144 @@
     });
   }
 
+  /* GitHub Pages serves the 404 page at whatever address was asked for. Links reach
+     it mangled: a chat app keeps the closing bracket or full stop, a phone capitalises
+     a word, a link is cut short or misspelt, or it names a section by another word.
+     The page lists every published page (that list works without this script); this
+     reads the address against it. One that differs only by case, punctuation, spaces,
+     doubled slashes or an .html ending opens its page at once. Otherwise the closest
+     page, or failing that the page or section the address sits under, is offered. */
+  function setupNotFound() {
+    var match = document.querySelector("[data-not-found-match]");
+    var index = document.querySelector("[data-page-index]");
+    if (!(match instanceof HTMLElement) || !index || location.pathname === "/404.html") return;
+    /** @type {{ path: string, title: string, slug: string }[]} */
+    var pages = [];
+    index.querySelectorAll("a[href]").forEach(function (a) {
+      if (!(a instanceof HTMLAnchorElement) || a.origin !== location.origin) return;
+      pages.push({ path: a.pathname, title: (a.firstChild && a.firstChild.textContent || "").trim(), slug: lastSegment(a.pathname) });
+    });
+    var asked = normalPath(location.pathname);
+    var found = closestPage(asked, pages);
+    if (!found) return;
+    var exact = found.path === asked && asked !== location.pathname;
+    var link = match.querySelector("a");
+    var title = match.querySelector(".nf-title");
+    var path = match.querySelector(".nf-path");
+    var ref = match.querySelector(".ref");
+    if (!link || !title || !path || !ref) return;
+    link.setAttribute("href", found.path + location.hash);
+    title.textContent = found.title;
+    path.textContent = found.path;
+    ref.textContent = exact ? "OPENING" : "CLOSEST";
+    match.hidden = false;
+    if (exact) location.replace(found.path + location.search + location.hash);
+  }
+
+  /** @param {string} raw @returns {string} */
+  function normalPath(raw) {
+    var p = raw;
+    try {
+      p = decodeURIComponent(p);
+    } catch {
+      // A malformed escape stays as it was typed.
+    }
+    var junk = /[\s)\]}>.,;:!?'"`*…‘’“”»]+$/;
+    p = p.toLowerCase().replace(/\s+/g, "").replace(junk, "");
+    p = p.replace(/\/{2,}/g, "/").replace(/\/index\.html?$/, "/").replace(/\.html?$/, "").replace(junk, "");
+    return p.charAt(p.length - 1) === "/" ? p : p + "/";
+  }
+
+  /** @param {string} path @returns {string} */
+  function lastSegment(path) {
+    var parts = path.split("/").filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : "";
+  }
+
+  /** Words a visitor may use for a section the site names differently.
+   * @type {Record<string, string[]>} */
+  var SECTION_WORDS = {
+    "/notes/": ["blog", "posts", "post", "writing", "articles", "article", "journal", "feed", "rss", "atom", "rss.xml", "atom.xml", "feed.xml"],
+    "/work/": ["projects", "project", "portfolio", "case-studies", "casestudies", "case-study", "cases", "case"],
+    "/about/": ["cv", "resume", "bio", "me"],
+    "/contact/": ["email", "mail", "hire"],
+  };
+
+  /**
+   * The page an address most likely meant, or null when nothing is close enough.
+   * @param {string} asked
+   * @param {{ path: string, title: string, slug: string }[]} pages
+   * @returns {{ path: string, title: string } | null}
+   */
+  function closestPage(asked, pages) {
+    var slug = lastSegment(asked);
+    /** @type {{ path: string, title: string, slug: string } | null} */
+    var best = null;
+    var bestScore = 0;
+    for (var i = 0; i < pages.length; i++) {
+      var page = pages[i];
+      if (page.path === asked) return page;
+      var whole = similarity(asked, page.path);
+      var score = whole;
+      if (slug.length >= 4 && page.slug.length >= 4) {
+        // A link cut short, or a page asked for under the wrong section.
+        if (page.slug.indexOf(slug) === 0) score = Math.max(score, 0.9);
+        score = Math.max(score, 0.95 * similarity(slug, page.slug));
+      }
+      // A near tie goes to the closer whole address.
+      score += whole / 1000;
+      if (score > bestScore) {
+        best = page;
+        bestScore = score;
+      }
+    }
+    if (best && bestScore >= 0.75) return best;
+    // Nothing close: offer the deepest page the address sits under, then the section
+    // the address names by its own name or another word.
+    var first = asked.split("/").filter(Boolean)[0] || "";
+    /** @type {{ path: string, title: string, slug: string } | null} */
+    var parent = null;
+    for (var k = 0; k < pages.length; k++) {
+      var p = pages[k];
+      if (p.path !== "/" && asked.indexOf(p.path) === 0 && (!parent || p.path.length > parent.path.length)) parent = p;
+    }
+    if (parent) return parent;
+    for (var w = 0; w < pages.length; w++) {
+      var q = pages[w];
+      var words = SECTION_WORDS[q.path] || [];
+      var top = q.path.split("/").length === 3;
+      if (top && (words.indexOf(first) >= 0 || (first.length >= 3 && similarity(first, q.slug) >= 0.75))) return q;
+    }
+    return null;
+  }
+
+  /** Optimal string alignment similarity: 1 for equal, 0 for nothing shared.
+   * @param {string} a @param {string} b @returns {number} */
+  function similarity(a, b) {
+    if (a === b) return 1;
+    var n = a.length;
+    var m = b.length;
+    if (!n || !m) return 0;
+    /** @type {number[][]} */
+    var d = [];
+    for (var i = 0; i <= n; i++) {
+      d[i] = [i];
+      for (var j = 1; j <= m; j++) {
+        if (!i) {
+          d[i][j] = j;
+          continue;
+        }
+        var cost = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
+        d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+        if (i > 1 && j > 1 && a.charAt(i - 1) === b.charAt(j - 2) && a.charAt(i - 2) === b.charAt(j - 1)) {
+          d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+        }
+      }
+    }
+    return 1 - d[n][m] / Math.max(n, m);
+  }
+
+  setupNotFound();
   setupNavigation();
   setupCapabilityMap();
   setupReveals();
