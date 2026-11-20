@@ -24,7 +24,11 @@ success = False
 owned = {}
 log = (args.out / "commands.log").open("w")
 env = {**os.environ, "AGENT_BROWSER_DEFAULT_TIMEOUT": "15000", "AGENT_BROWSER_ARGS": "--mute-audio"}
+# A page cannot be hit while a view transition between pages runs (about 0.3 s),
+# so wait for any to finish before acting, as a visitor's next click would.
+TRANSITION_DONE = "document.getAnimations().every(a => !String(a.effect && a.effect.pseudoElement || '').startsWith('::view-transition'))"
 def run(*words):
+    if words[0] in ("click", "press", "back", "hover", "focus"): run("wait", "--fn", TRANSITION_DONE)
     command = ["agent-browser", "--session", session, *words]
     result = subprocess.run(command, cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=40)
     log.write(json.dumps({"command": list(words), "exit": result.returncode, "output": result.stdout}) + "\n"); log.flush()
