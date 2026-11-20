@@ -5,7 +5,7 @@ description: Drive the real portfolio pages, capability map and mobile navigatio
 
 # Verify the portfolio
 
-Last verified: 2026-10-21 on Linux with Chromium (35 s, 14 pages, 33 screenshots).
+Last verified: 2026-11-20 on Linux with Chromium (about 57 s at load 10–17, 14 pages, 35 screenshots).
 
 ## Launch
 
@@ -27,6 +27,15 @@ checkout's `_site/` on its own ephemeral loopback port and opens a unique browse
 session. It refuses tracked or untracked source changes and a stale build before
 starting either. Each CLI operation is bounded; the whole browser path has a
 five-minute ceiling.
+
+Speed: every `agent-browser` process costs about 50 ms before it acts, so steps
+that always go together (the view-transition wait before an action; open, settle,
+check and screenshot for a capture) run as one `batch`. The 28-page layout sweep
+runs with reduced motion, so it does not wait for each page's entry rise; motion is
+walked separately with default settings. A capture waits for fonts, images and
+every finite animation or transition to finish, so screenshots show the settled
+page. `commands.log` records each process's `ms`: read it before adding a step that
+waits.
 
 ## Doctor
 
@@ -57,8 +66,11 @@ Never treat an older site's successful journey as proof of the new revision.
 
 Retain `commands.log`, `result.json` and all PNGs in the chosen output directory.
 Chrome cannot take a screenshot once scripts are disabled (`Page.captureScreenshot`
-times out on every page), so the JavaScript-disabled footer step has no PNG: its
-receipt says so, and its DOM checks and footer click still run.
+never returns, and the page renders about one frame a second), so the helper does
+not try: the JavaScript-disabled footer step has no PNG, its receipt says so, and
+its DOM checks and footer click still run. In that session, jump to a click target
+(`scrollIntoView` with `behavior: 'instant'`) rather than smooth-scrolling to it, or
+the click lands mid-scroll on whatever is passing.
 Read the screenshots: a passed DOM assertion cannot establish legibility. If
 your model cannot read images, use the local vision lane — in a factory lane
 the loopback gateway is unreachable, so point the helper at the estate router
