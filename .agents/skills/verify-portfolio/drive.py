@@ -213,6 +213,14 @@ try:
             if route.endswith("index.html"): route = route[:-10]
             checks = {"one titled h1": "document.querySelectorAll('h1').length === 1 && document.querySelector('h1').textContent.trim().length > 0",
                       "revision": "document.querySelector('meta[name=waseemilyas-revision]').content === " + json.dumps(revision)}
+            if route.startswith("/work/cs-") or (route.startswith("/notes/") and route != "/notes/"):
+                subject = "About your case study: " if route.startswith("/work/") else "About your note: "
+                checks["reading contact"] = """(() => {
+                    const link = document.querySelector('.reading-contact .email-big');
+                    const copy = document.querySelector('.reading-contact .copy-email');
+                    return link.getBoundingClientRect().height >= 44 && copy.getBoundingClientRect().height >= 44 &&
+                        new URL(link.href).searchParams.get('subject') === """ + json.dumps(subject) + """ + document.querySelector('h1').textContent;
+                })()"""
             if route.startswith("/work/cs-"):
                 checks["datasheet placement"] = """(() => {
                     const sheet = document.querySelector('.casegrid .datasheet').getBoundingClientRect();
@@ -301,6 +309,13 @@ try:
     run("click", "[data-not-found-match] a")
     require("location.pathname === '/notes/unglamorous-half-of-automation/'")
     receipts.append("not-found page opened /Work/CS-Care) as /work/cs-care/ and offered and followed the closest note for a misspelt address")
+    run("set", "viewport", "390", "844")
+    run("focus", ".reading-contact .email-big")
+    run("press", "Tab")
+    require("document.activeElement.matches('.reading-contact .copy-email')")
+    run("press", "Enter")
+    run("wait", "--fn", "document.querySelector('.reading-contact [role=status]').textContent !== ''")
+    receipts.append("Tab and Enter reached Copy address on a note: " + run("eval", "document.querySelector('.reading-contact [role=status]').textContent"))
     # At short viewport height, reverse Tab must scroll the address clear of the sticky bar.
     run("set", "viewport", "390", "320")
     run("open", base + "/contact/?verify-keyboard=" + session)
@@ -333,7 +348,9 @@ try:
     receipts.append("JavaScript-disabled skip link focuses main")
     check_home_to_work()
     require("document.querySelector('.casegrid .datasheet').getBoundingClientRect().bottom <= document.querySelector('.casegrid .prose').getBoundingClientRect().top")
+    require("document.querySelector('.reading-contact .copy-email').hidden && document.querySelector('.reading-contact .email-big').getBoundingClientRect().height >= 44")
     receipts.append("JavaScript-disabled Read the work focuses the heading and opens the first case study")
+    receipts.append("JavaScript-disabled case study shows the email address as a link and hides Copy address")
     run("open", base + "/?nojs=" + session)
     # The header menu works with no script: open, Escape, open again and follow a link.
     require(NAV_CLOSED)

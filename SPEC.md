@@ -38,12 +38,13 @@ Every email link is built with the `mailto` filter in `eleventy.config.js`, so i
 opens with a subject: "Hello from waseemilyas.uk", or "About your note: <title>" and
 "About your case study: <title>" at the end of a note or case study. That makes mail
 from the site countable in the inbox with no tracking on the site; `site-check`'s
-"contact" rule fails an email link without a subject. Beside the display-scale
-address on Home and Contact, `setupCopyEmail` shows a "Copy address" button where the
+"contact" rule fails an email link without a subject. Home, Contact and every
+note and case study show the email address. Beside it, `setupCopyEmail` shows a
+"Copy address" button where the
 browser can copy (a mail link does nothing for a visitor with no mail app set up). It
 copies the address, reads "Copied ✓" for 2.5 seconds and announces the result in a
 status line; a refused copy is announced too. Without JavaScript the button stays
-hidden and the mail link is unchanged.
+hidden and the address stays visible as a mail link.
 External links are destinations, not services this repository operates.
 
 Supporting browsers prerender internal pages on link intent using native speculation
@@ -105,10 +106,10 @@ keep the text baseline with their extra height offset, so their lines do not
 gap further apart than their neighbours. `scripts/phone-chrome.test.mjs` holds
 that cascade; the browser walk owns the rendered proof.
 
-Each case study and note ends with one "Next case study" or "Next note" link above
-the back-to-index pair: the next case by `order`, or the next older note, wrapping
-to the first. It is plain server-rendered HTML from the same collections, so it
-works without JavaScript and never links a draft.
+Each case study and note ends with the contact controls, a "Next case study" or
+"Next note" link, and a link back to the index. The next link points to the next
+case by `order` or the next older note, wrapping to the first. It works without
+JavaScript and never links a draft.
 
 Browser Print / Save as PDF gives notes and case studies a reading edition on the
 visitor's chosen paper size. Navigation and next-article cards are omitted; the
