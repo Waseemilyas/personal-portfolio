@@ -356,7 +356,9 @@ try:
     run("click", '.capread a')
     require("location.pathname === " + json.dumps(nodes[0]["reading"]))
     run("back")
-    run("scrollintoview", '.foot .fnav a[href="/about/"]')
+    # Smooth scrolling runs at that one frame a second too, and a click mid-scroll
+    # lands on whatever is passing under the pointer: jump straight to the target.
+    run("eval", "document.querySelector('.foot .fnav a[href=\"/about/\"]').scrollIntoView({block: 'center', behavior: 'instant'})")
     run("wait", "--fn", "(()=>{const r=document.querySelector('.foot .fnav a[href=\"/about/\"]').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight})()")
     # Chrome renders about one frame a second with author scripts disabled, and
     # Page.captureScreenshot never returns, so this step checks the DOM only.
@@ -368,7 +370,7 @@ try:
     run("open", base + "/notes/unglamorus-half-of-automation/?nojs=" + session)
     require("document.querySelector('[data-not-found-match]').hidden && document.querySelectorAll('[data-page-index] a').length === " + json.dumps(len([p for p in (root / "_site").rglob("index.html")])))
     listed = '[data-page-index] a[href="/notes/unglamorous-half-of-automation/"]'
-    run("scrollintoview", listed)
+    run("eval", "document.querySelector(" + json.dumps(listed) + ").scrollIntoView({block: 'center', behavior: 'instant'})")
     run("wait", "--fn", "(()=>{const r=document.querySelector(" + json.dumps(listed) + ").getBoundingClientRect();return r.top>=document.querySelector('.topbar').getBoundingClientRect().bottom&&r.bottom<=innerHeight})()")
     run("click", listed)
     run("wait", "--fn", "location.pathname === '/notes/unglamorous-half-of-automation/'")
