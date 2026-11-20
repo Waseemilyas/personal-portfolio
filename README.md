@@ -83,19 +83,22 @@ apps. `pnpm build` generates the cards and their metadata directly from the rend
 pages; `pnpm serve` refreshes changed cards as you edit. Drafts produce no cards. There
 are no generated images or text manifests to commit.
 
-Builds need a local Chromium (`google-chrome` on the GitHub-hosted runner). Off PATH,
-the build also finds Playwright's Chromium (macOS and Linux) and, on a Mac, Google Chrome
-or Chromium in their usual places. Otherwise set `CHROME=/path/to/chrome`. Python 3 with Pillow compresses the
-cards; the release workflows install it. Without Pillow a local build leaves larger,
+Local builds use Chromium. Off PATH, the build also finds Playwright's Chromium
+(macOS and Linux) and, on a Mac, Google Chrome or Chromium in their usual places.
+Otherwise set `CHROME=/path/to/chrome`. CI and GitHub Pages use the same pinned
+Chrome for Testing Headless Shell. On the first render in a job,
+`scripts/chrome-for-testing.sh` downloads the Linux x64 bundle and verifies its
+SHA-256 before extracting it. Python 3 with Pillow compresses the cards. The
+release workflows install Pillow. Without it a local build leaves larger,
 full-colour PNGs. All images stay in `_site/`, alongside the HTML they describe.
 
 Finished cards are also kept in `node_modules/.cache/share-cards/`. Each is named by a hash of
 everything that decides its pixels: the card's text, styles and fonts, the layout script and
-the compression. A build copies a kept card instead of starting Chromium; if every card is
-kept, Chromium never starts, and the build takes about 1 s instead of 3 s. The Pages build
-restores this folder from earlier main builds and saves it again, because Chrome's first start
-on a fresh runner costs about 16 s. CI restores it too, so its shared test build copies the
-cards; the share-card test keeps its own folder, so it always renders and pays that start. Delete the folder to force fresh cards.
+the compression. On GitHub Actions the pin is part of the cache key, so a browser
+upgrade redraws the cards. A build copies a kept card without fetching or starting
+Chromium. The Pages build restores this folder from earlier main builds and saves
+it again. CI restores it too. The share-card test keeps its own folder, so it
+always exercises a fresh render. Delete the folder to force fresh cards.
 
 ## Deployment
 
