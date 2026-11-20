@@ -13,6 +13,10 @@ On Home, Selected work follows the introduction. “Read the work” jumps to it
 heading and gives it focus, so the next Tab reaches the first case study even
 with scripts disabled. Case-study cards have an inset focus outline.
 
+On case studies below 861px, the datasheet sits before the article text and shows
+its labels and values side by side. Wider screens show it in a sticky sidebar.
+The layout works without JavaScript. In print, the datasheet follows the article text.
+
 GitHub Pages serves `/404.html` at whatever address was asked for. Below its hero,
 the page lists every published page (main pages, case studies, notes) from the same
 collections as the sitemap, so a visitor with no script can still find the page their

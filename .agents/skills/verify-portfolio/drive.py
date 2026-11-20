@@ -194,6 +194,12 @@ try:
             run("open", base + route)
             require("document.querySelectorAll('h1').length === 1 && document.querySelector('h1').textContent.trim().length > 0")
             require("document.querySelector('meta[name=waseemilyas-revision]').content === " + json.dumps(revision))
+            if route.startswith("/work/cs-"):
+                require("""(() => {
+                    const sheet = document.querySelector('.casegrid .datasheet').getBoundingClientRect();
+                    const prose = document.querySelector('.casegrid .prose').getBoundingClientRect();
+                    return innerWidth < 861 ? sheet.bottom <= prose.top : prose.right <= sheet.left;
+                })()""")
             capture(label + "-page-" + str(i))
         receipts.append(label + ": all " + str(len(pages)) + " generated pages loaded without horizontal overflow")
     run("open", base + "/")
@@ -297,6 +303,7 @@ try:
     require("location.hash === '#main' && document.activeElement === document.querySelector('main')")
     receipts.append("JavaScript-disabled skip link focuses main")
     check_home_to_work()
+    require("document.querySelector('.casegrid .datasheet').getBoundingClientRect().bottom <= document.querySelector('.casegrid .prose').getBoundingClientRect().top")
     receipts.append("JavaScript-disabled Read the work focuses the heading and opens the first case study")
     run("open", base + "/?nojs=" + session)
     # The header menu works with no script: open, Escape, open again and follow a link.

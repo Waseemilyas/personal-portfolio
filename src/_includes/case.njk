@@ -1,7 +1,7 @@
 ---
 layout: base.njk
 ---
-<article class="essay section" aria-labelledby="case-title">
+<article class="essay section case-study" aria-labelledby="case-title">
   <div class="shell">
     <div class="casehead" data-cal="0">
       <span class="ref">{{ ref }}</span>
@@ -10,10 +10,6 @@ layout: base.njk
     </div>
 
     <div class="casegrid">
-      <div class="prose" data-cal="1">
-        {{ content | safe }}
-      </div>
-
       <aside class="datasheet" data-cal="2" aria-label="Case datasheet">
         <div class="dh">Datasheet</div>
         <dl>
@@ -22,6 +18,10 @@ layout: base.njk
           {%- endfor %}
         </dl>
       </aside>
+
+      <div class="prose" data-cal="1">
+        {{ content | safe }}
+      </div>
     </div>
 
     {%- set next = collections.casestudies | getNextCollectionItem(page) or collections.casestudies | first %}
