@@ -468,7 +468,7 @@ extend rather than fork.
 | `.foot` | console | every route | Global footer, inside `base.njk`. Two-column grid collapsing at 620px, where `.fnav` becomes two columns of full-width 44px rows separated by the `--line-dark` hairline (seven links read 2+2+2+1). |
 | `.hero` | console | `/`, `/404` | Full-bleed intro band with `.reg` marks. On the homepage, the title normally scales between `--step-3` and `--step-4`, and the status panel sits beside the intro from 720px. The homepage uses tighter spacing and body-size lede text at 860px and below. On short landscape screens, the intro spans the available width and the status panel follows it in two columns. |
 | `.section-head` | console | home sections, `/work/`, `/lab/`, `/automancer/`, `/contact/`, `/about/`, `/404` | Baseline-aligned row: mono `.ref` + title + optional right-aligned `p`. Heading is `h1` or `h2` per the contract above. Essay-surface styling exists (the `.essay .section-head` rules, `styles.css`) but no template currently uses it there. |
-| `.casehead` | essay | case studies, notes (index and detail), `/about/` | Detail-page counterpart: `.ref`, title, optional `.kick` lede, hairline rule below. `/about/` carries `.ref` + title only — its lede is a separate `.lede-essay` paragraph that follows the closing `</div>` of the casehead (`src/about.njk`). |
+| `.casehead` | essay | case studies, notes (index and detail), `/about/` | Detail-page counterpart: `.ref`, title, optional `.kick` lede (held to about 52 characters' measure), hairline rule below. Notes add a mono `.note-meta` line (date · reading time) under the lede. `/about/` carries `.ref` + title only — its lede is a separate `.lede-essay` paragraph that follows the closing `</div>` of the casehead (`src/about.njk`). |
 | `.workcard` in `.worklist` | console | home, `/work/`, `/404` (the closest-page card, `.nf-match`, outside a `.worklist`) | Three-column grid (ref · title+kick · go arrow) inside a 1px-gap list that fakes dividers via `background: var(--line-dark)`. Collapses to one column below 620px with compact 1rem padding; the "Read →" becomes a full-width row already in `--signal`, because a phone has no hover to announce the card as a link (`scripts/phone-chrome.test.mjs` holds this). |
 | `.lab-card` in `.lab-grid` | console | home, `/lab/` | `auto-fit minmax(15rem, 1fr)`. Hover lifts 2px and borders in `--signal`. |
 | `.amancer` + `.diagram-panel` | console | home, `/automancer/` | Two-column copy + diagram block. The diagram is the shared partial `partials/diagram-workflow.njk`. |
@@ -485,7 +485,7 @@ extend rather than fork.
 Single-route components are in the stylesheet but deliberately not listed here:
 `.capfig` / `.capread` (the homepage capability map), `.panel` / `.readout` (the
 homepage status panel), `.casegrid` (case detail), `.about-grid` (`/about/`),
-`.notes-list` / `.note-item` (notes index), `.nf-match` / `.pageindex` (`/404`). Two more are worth knowing about:
+`.notes-list` / `.note-item` (notes index; the title link stretches over the row and `.note-go` is its arrow), `.nf-match` / `.pageindex` (`/404`). Two more are worth knowing about:
 
 - `.label` / `.mono` — mono metadata primitives, currently used only on `/` and
   `/404`. `.essay .label` (`styles.css`) is styled but unused.

@@ -6,7 +6,10 @@ layout: base.njk
     <div class="casehead" data-cal="0">
       <span class="ref">NOTES</span>
       <h1 id="note-title">{{ title }}</h1>
-      <p class="kick"><time datetime="{{ page.date | isoDate }}">{{ page.date | readableDate }}</time>{% if summary %} · {{ summary }}{% endif %}</p>
+      {%- if summary %}
+      <p class="kick">{{ summary }}</p>
+      {%- endif %}
+      <p class="note-meta"><time datetime="{{ page.date | isoDate }}">{{ page.date | readableDate }}</time> · {{ readingMinutes }} min read</p>
     </div>
     <div class="prose" data-cal="1">
       {{ content | safe }}
@@ -16,7 +19,7 @@ layout: base.njk
     {%- set next = collections.notes | getNextCollectionItem(page) or collections.notes | first %}
     {%- if next and next.url != page.url %}
     <a class="nextread" href="{{ next.url }}" data-cal>
-      <span class="nextread-k">Next note · <time datetime="{{ next.date | isoDate }}">{{ next.date | readableDate }}</time></span>
+      <span class="nextread-k">Next note · <time datetime="{{ next.date | isoDate }}">{{ next.date | readableDate }}</time> · {{ next.data.readingMinutes }} min read</span>
       <span class="nextread-t">{{ next.data.title }}</span>
       <span class="nextread-d">{{ next.data.summary }}</span>
       <span class="nextread-go" aria-hidden="true">→</span>

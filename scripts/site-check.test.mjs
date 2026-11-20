@@ -38,7 +38,7 @@ const page = (path, body = "<h1>Title</h1><p>Text</p>", head = "") => withPolicy
 { externalScripts: [{ url: `${SITE}/site.js`, integrity: SITE_SCRIPT_INTEGRITY }] });
 
 // A note shares its own card, whose alt text repeats the note's label and title.
-const NOTE_BODY = '<div class="casehead"><h1>A note</h1><p class="kick"><time datetime="2026-08-08T00:00:00.000Z">8 August 2026</time></p></div>';
+const NOTE_BODY = '<div class="casehead"><h1>A note</h1><p class="note-meta"><time datetime="2026-08-08T00:00:00.000Z">8 August 2026</time> · 1 min read</p></div>';
 const notePage = ({ body = NOTE_BODY, type = "article", alt = "Note · 8 AUG 2026. A note.", headline = "A note" } = {}) =>
   page("/notes/n/", body, `<meta property="og:type" content="${type}">
 <meta property="og:image" content="${SITE}/assets/img/og/notes-n.png"><meta property="og:image:alt" content="${alt}">
