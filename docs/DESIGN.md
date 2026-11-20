@@ -218,11 +218,12 @@ every transition and all three keyframe animations. New motion uses it.
 
 Motion is an enhancement, never a gate: `[data-cal]` elements are visible by
 default and nothing animates when the user has asked for reduced motion.
-First-screen blocks carry their stagger slot (`data-cal="0"` to `"4"`, 110 ms
-apart) and rise in CSS alone from the first frame, so a painted block is never
-hidden again. Bare `data-cal` marks a below-the-fold block: `site.js` hides it
-(`.cal-wait`) only while it is off-screen and reveals it (`.in`) when scrolled to,
-so content never depends on the script. The first-screen stagger greets a visitor
+The page heading and its enclosing first-screen block stay visible from the
+first paint. Other first-screen blocks carry their stagger slot
+(`data-cal="0"` to `"4"`, 110 ms apart) and rise in CSS alone from the first
+frame, so a painted block is never hidden again. Bare `data-cal` marks a
+below-the-fold block. `site.js` hides it (`.cal-wait`) only while it is
+off-screen and reveals it (`.in`) when scrolled to. The first-screen stagger greets a visitor
 arriving from outside the site only: a same-origin referrer adds `.onsite` to the
 root in `<head>`, and those pages show their first screen at once.
 

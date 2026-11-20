@@ -57,6 +57,16 @@ def require(expression):
         run("eval", "JSON.stringify({path:location.pathname,width:innerWidth,ready:document.readyState,nav:document.getElementById('primary-nav')?.outerHTML})")
         raise AssertionError(expression)
 
+def check_entry_heading():
+    require("""(() => {
+        if (document.documentElement.classList.contains('onsite')) return false;
+        for (let block = document.querySelector('main h1'); block; block = block.parentElement) {
+            if (block.getAnimations().some(animation =>
+                animation.effect.getKeyframes().some(frame => frame.opacity === '0'))) return false;
+        }
+        return !!document.querySelector('main h1');
+    })()""")
+
 NAV_CLOSED = "(!document.getElementById('primary-nav').matches(':popover-open') && getComputedStyle(document.getElementById('primary-nav')).visibility === 'hidden')"
 NAV_SETTLED = "(document.getElementById('primary-nav').getAnimations().every(a=>a.playState==='finished') && getComputedStyle(document.getElementById('primary-nav')).transform==='matrix(1, 0, 0, 1, 0, 0)')"
 MANUAL_COPY_VISIBLE = """(() => {
@@ -154,6 +164,7 @@ try:
     remember()
     run("set", "viewport", "1440", "900")
     run("set", "media", "light")
+    check_entry_heading()
     run("reload")
     require("document.querySelector('meta[name=waseemilyas-revision]').content === " + json.dumps(revision))
     capture("desktop-home")
@@ -196,6 +207,7 @@ try:
     receipts.append("all authored primary-navigation routes reached by click")
     for listing, prefix in [("/work/", "/work/cs-"), ("/notes/", "/notes/")]:
         run("open", base + listing)
+        check_entry_heading()
         routes = state("Array.from(new Set(Array.from(document.querySelectorAll('main a[href]')).map(a=>a.getAttribute('href')).filter(h=>h.startsWith(" + json.dumps(prefix) + ") && h!==" + json.dumps(listing) + ")))")
         assert routes, "Expected published entries in " + listing
         for route in routes:
@@ -205,6 +217,7 @@ try:
             require("document.documentElement.classList.contains('onsite') && (document.querySelector('main h1').closest('[data-cal]')?.getAnimations() || []).every(a => a.animationName !== 'rise')")
             run("back")
         receipts.append(listing + ": clicked every listed entry and returned; each opened without replaying the entry motion")
+    receipts.append("Home, Work and Notes show their main headings from first paint on direct visits")
     # Every generated HTML page is visited at desktop and phone dimensions, including 404.
     # The sweep checks layout, not motion: reduced motion shows each page's settled
     # state at once instead of waiting about 0.6 s per page for the entry rise to end.

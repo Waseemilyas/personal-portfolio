@@ -825,14 +825,16 @@ p, li { text-wrap: pretty; }
 
 /* ---------- calibration motion ----------
    Content is visible by DEFAULT. The reveal only enhances.
-   First-screen blocks carry their stagger slot (data-cal="0".."4") and rise from
-   the very first frame in CSS alone, so nothing is painted and then hidden.
+   First-screen blocks carry their stagger slot (data-cal="0".."4"). Headings
+   and their enclosing blocks stay visible from the first paint.
    Below-the-fold blocks (bare data-cal) are hidden only by site.js, only while
    off-screen (.cal-wait), and rise when scrolled to (.in). */
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes fadein { from { opacity: 0; } to { opacity: .55; } }
 @media (prefers-reduced-motion: no-preference) {
-  .js:not(.onsite) [data-cal]:not([data-cal=""]), .js [data-cal].in { animation: rise .7s var(--ease) both; }
+  /* The forgiving selector in :where() keeps the rule valid without :has(). */
+  .js:not(.onsite) [data-cal]:not([data-cal=""], h1, :where(:has(h1))),
+  .js [data-cal].in { animation: rise .7s var(--ease) both; }
   .js [data-cal="0"] { animation-delay: 180ms; }
   .js [data-cal="1"] { animation-delay: 290ms; }
   .js [data-cal="2"] { animation-delay: 400ms; }

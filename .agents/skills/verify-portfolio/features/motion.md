@@ -1,5 +1,9 @@
 # Read with reduced motion
 
+On a direct visit with default motion, Home, Work and Notes must show their main
+headings from first paint. The walk checks that no heading or ancestor has an
+entry animation that starts at zero opacity.
+
 Read the normal-motion captures after visible reveals settle. Then enable reduced
 motion and reload Home. No block may be hidden (`.cal-wait`) or animating; every
 `[data-cal]` element must be fully opaque. Content remains available with no JavaScript. Capture the reduced
