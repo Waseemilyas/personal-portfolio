@@ -29,7 +29,7 @@ jobs:
           npm_config_audit: "false"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version: 26
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: "3.12"
@@ -43,8 +43,8 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: pnpm-${{ runner.os }}-node24-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: pnpm-${{ runner.os }}-node24-
+          key: pnpm-${{ runner.os }}-node26-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-node26-
       - run: pnpm install --frozen-lockfile
       # Saved straight after install, so a later failing check never loses the cache.
       - name: Save the pnpm store
@@ -52,7 +52,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: pnpm-${{ runner.os }}-node24-${{ hashFiles('pnpm-lock.yaml') }}
+          key: pnpm-${{ runner.os }}-node26-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Quick lint, typecheck and privacy scan
         run: pnpm check
       - run: pnpm test
