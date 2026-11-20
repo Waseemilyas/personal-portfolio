@@ -77,3 +77,11 @@ jobs:
           done
           echo "production does not serve $GITHUB_SHA" >&2
           exit 1
+
+  # CAA, certificate, DNSSEC and HTTPS redirect on the live domain; also runs daily.
+  domain:
+    name: Check the live domain
+    needs: deploy
+    permissions:
+      contents: read
+    uses: ./.github/workflows/domain.yml

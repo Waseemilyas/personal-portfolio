@@ -147,6 +147,18 @@ creates the one policy, `sdk-loader`, which accepts only the pinned SDK URL. Pag
 policy. The meta form cannot set `frame-ancestors`, HSTS or `X-Content-Type-Options`;
 those need response headers.
 
+The domain allows only Let's Encrypt, the certificate authority GitHub Pages uses, to
+issue certificates for `waseemilyas.uk` and its subdomains, and no authority to issue a
+wildcard: the apex publishes CAA `0 issue "letsencrypt.org"` and `0 issuewild ";"`
+in its Cloudflare zone. Cloudflare's Universal SSL stays off, because while it is on
+Cloudflare adds its own five authorities, wildcards included, to any CAA set; no record
+in the zone is proxied, so nothing used its certificate. `www` is a CNAME to GitHub,
+whose own CAA records govern it. The zone is DNSSEC-signed. `scripts/domain-check.mjs`
+(`.github/workflows/domain.yml`, after every release and daily) fails if the CAA set
+changes, if the served certificate comes from an authority it does not allow or has
+fewer than 21 days left (the sign of a blocked renewal), if DNSSEC stops validating at
+Cloudflare's or Google's resolver, or if `http://` stops redirecting permanently to `https://`.
+
 Browser errors go to Sentry, and a normal visit makes no request for it. The first
 error or blocked resource on a page downloads the pinned Sentry SDK
 (`vendor/sentry-<version>.min.js`, served as `/assets/js/`, checked by SHA-384 at
