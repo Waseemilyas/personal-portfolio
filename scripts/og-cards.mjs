@@ -3,7 +3,8 @@
 // Rendering needs Chromium: found on PATH, in its usual macOS places or Playwright's cache, or set CHROME=/path/to/chrome.
 
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { JSDOM } from "jsdom";
@@ -173,8 +174,9 @@ function launchChrome(executable, timeoutMs) {
  * @param {string[]} pages
  * @returns {Promise<Buffer[]>}
  */
-async function render(pages) {
+async function render(pages, timing = { start: 0, draw: 0, first: 0 }) {
   const executable = findChrome();
+  const began = performance.now();
   // A stalled first launch (seen on hosted CI: only dbus noise on stderr) is
   // retried once with a longer budget before the build is allowed to fail.
   /** @type {Awaited<ReturnType<typeof launchChrome>> | undefined} */
@@ -191,6 +193,7 @@ async function render(pages) {
   try {
     const ws = socket = new WebSocket(wsUrl);
     await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
+    timing.start = performance.now() - began;
     let seq = 0;
     /** @type {Map<number, {resolve: (v: any) => void, reject: (e: Error) => void}>} */
     const waiting = new Map();
@@ -227,8 +230,10 @@ async function render(pages) {
       if (fit.exceptionDetails) throw new Error(`Card layout failed: ${fit.exceptionDetails.text}`);
       const { data } = await send("Page.captureScreenshot", { format: "png", clip: { x: 0, y: 0, width: 1200, height: 630, scale: 1 } }, sessionId);
       shots.push(Buffer.from(data, "base64"));
+      if (shots.length === 1) timing.first = performance.now() - began - timing.start;
     }
     ws.close();
+    timing.draw = performance.now() - began - timing.start;
     return shots;
   } finally {
     socket?.close();
@@ -249,6 +254,49 @@ for path in sys.argv[1:]:
 function squeeze(files) {
   const run = spawnSync("python3", ["-I", "-c", QUANTIZE, ...files], { encoding: "utf8" });
   if (run.status !== 0) console.warn(`Cards left unquantized (python3 with Pillow not available):\n${run.stderr || run.error}`);
+  return run.status === 0;
+}
+
+// Finished cards are kept by a hash of everything that decides their pixels: the card
+// page (its text, styles and inlined fonts), the title-fitting script, the screenshot
+// size and the compression. A build copies a known card instead of starting Chromium,
+// which costs about 20 s on a fresh CI runner; CI and the Pages build restore this
+// folder between runs. Only compressed cards are kept, so a machine without Pillow
+// never hands a full-colour card to one with it. Cards unused for 30 days are removed.
+export const CARD_CACHE = "node_modules/.cache/share-cards";
+const RENDERER = createHash("sha256").update(`1200x630 srgb\n${FIT_TITLE}\n${QUANTIZE}`).digest("hex");
+const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** The cache file for a card page. @param {string} html */
+const cachedCard = (html) => join(CARD_CACHE, `${createHash("sha256").update(RENDERER).update(html).digest("hex").slice(0, 32)}.png`);
+
+/** True when the file is a 1200 × 630 PNG. @param {string} file */
+function isCard(file) {
+  try {
+    const png = readFileSync(file);
+    return png.length > 24 && png.toString("latin1", 1, 4) === "PNG" && png.readUInt32BE(16) === 1200 && png.readUInt32BE(20) === 630;
+  } catch {
+    return false;
+  }
+}
+
+/** Copy the cached card for this page to target; false when none is kept. @param {string} html @param {string} target */
+function reuse(html, target) {
+  const file = cachedCard(html);
+  if (!isCard(file)) return false;
+  copyFileSync(file, target);
+  const now = new Date();
+  utimesSync(file, now, now);
+  return true;
+}
+
+/** Remove kept cards that no build has used for KEEP_MS. */
+function pruneCache() {
+  if (!existsSync(CARD_CACHE)) return;
+  for (const file of readdirSync(CARD_CACHE)) {
+    const path = join(CARD_CACHE, file);
+    if (Date.now() - statSync(path).mtimeMs > KEEP_MS) unlinkSync(path);
+  }
 }
 
 /**
@@ -267,7 +315,7 @@ function squeeze(files) {
 export function addShareCards(config) {
   /** @type {Map<string, string>} */
   const cards = new Map();
-  // Watch builds reuse unchanged images, but a fresh build needs no saved cache.
+  // Watch builds leave unchanged images alone; a fresh build copies them from CARD_CACHE.
   /** @type {Map<string, string>} */
   const rendered = new Map();
   config.on("eleventy.before", () => {
@@ -296,14 +344,23 @@ export function addShareCards(config) {
   });
   config.on("eleventy.after", async ({ directories, incremental }) => {
     const changed = [...cards].filter(([image, html]) => rendered.get(image) !== html || !existsSync(join(directories.output, image)));
-    if (changed.length) {
-      const shots = await render(changed.map(([, html]) => html));
-      const targets = changed.map(([image]) => join(directories.output, image));
-      mkdirSync(join(directories.output, "assets/img/og"), { recursive: true });
+    mkdirSync(join(directories.output, "assets/img/og"), { recursive: true });
+    const missing = changed.filter(([image, html]) => !reuse(html, join(directories.output, image)));
+    const timing = { start: 0, draw: 0, first: 0, squeeze: 0 };
+    if (missing.length) {
+      const shots = await render(missing.map(([, html]) => html), timing);
+      const targets = missing.map(([image]) => join(directories.output, image));
       shots.forEach((png, i) => writeFileSync(targets[i], png));
-      squeeze(targets);
-      for (const [image, html] of changed) rendered.set(image, html);
+      const squeezing = performance.now();
+      const squeezed = squeeze(targets);
+      timing.squeeze = performance.now() - squeezing;
+      if (squeezed) {
+        mkdirSync(CARD_CACHE, { recursive: true });
+        missing.forEach(([, html], i) => copyFileSync(targets[i], cachedCard(html)));
+      }
     }
+    for (const [image, html] of changed) rendered.set(image, html);
+    if (!incremental) pruneCache();
     // A full rebuild also removes cards for articles that were deleted or drafted.
     // Incremental builds only know the pages they rebuilt, so retain other cards.
     const cardDir = join(directories.output, "assets/img/og");
@@ -316,6 +373,8 @@ export function addShareCards(config) {
         }
       }
     }
-    console.log(`[share cards] Rendered ${changed.length} PNGs.`);
+    const s = (/** @type {number} */ ms) => (ms / 1000).toFixed(1);
+    console.log(`[share cards] Rendered ${missing.length} PNGs, reused ${changed.length - missing.length}.` + (missing.length
+      ? ` Chromium start ${s(timing.start)} s, render ${s(timing.draw)} s (first card ${s(timing.first)} s), compress ${s(timing.squeeze)} s.` : ""));
   });
 }

@@ -81,6 +81,14 @@ or Chromium in their usual places. Otherwise set `CHROME=/path/to/chrome`. Pytho
 cards; the release workflows install it. Without Pillow a local build leaves larger,
 full-colour PNGs. All images stay in `_site/`, alongside the HTML they describe.
 
+Finished cards are also kept in `node_modules/.cache/share-cards/`. Each is named by a hash of
+everything that decides its pixels: the card's text, styles and fonts, the layout script and
+the compression. A build copies a kept card instead of starting Chromium; if every card is
+kept, Chromium never starts, and the build takes about 1 s instead of 3 s. The Pages build
+restores this folder from earlier main builds and saves it again, because Chrome's first start
+on a fresh runner costs about 16 s. CI restores it too, so its shared test build copies the
+cards; the share-card test keeps its own folder, so it always renders and pays that start. Delete the folder to force fresh cards.
+
 ## Deployment
 
 `.github/workflows/deploy.yml` builds and publishes `_site/` on a main push or

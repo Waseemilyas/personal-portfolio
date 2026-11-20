@@ -54,6 +54,14 @@ jobs:
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: pnpm-${{ runner.os }}-node26-${{ hashFiles('pnpm-lock.yaml') }}
+      # Kept share cards from main's Pages builds (scripts/og-cards.mjs), so the shared
+      # test build and the final build copy unchanged cards instead of starting Chrome.
+      - name: Restore kept share cards
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: node_modules/.cache/share-cards
+          key: share-cards-${{ github.sha }}
+          restore-keys: share-cards-
       - name: Quick lint, typecheck and privacy scan
         run: pnpm check
       - run: pnpm test
