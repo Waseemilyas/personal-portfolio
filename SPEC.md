@@ -109,6 +109,11 @@ keep the text baseline with their extra height offset, so their lines do not
 gap further apart than their neighbours. `scripts/phone-chrome.test.mjs` holds
 that cascade; the browser walk owns the rendered proof.
 
+A note opens with its summary, then its date and reading time ("2 min read", from the
+Markdown word count at 230 words a minute) on one mono line. The notes index and each
+Next note link show the same date and reading time. On the index the whole row opens
+the note: the title link stretches over it, so its accessible name stays the title.
+
 Each case study and note ends with the contact controls, a "Next case study" or
 "Next note" link, and a link back to the index. The next link points to the next
 case by `order` or the next older note, wrapping to the first. It works without

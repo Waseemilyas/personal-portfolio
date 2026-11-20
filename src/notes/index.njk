@@ -17,9 +17,10 @@ eleventyExcludeFromCollections: true
     <div class="notes-list" data-cal="1">
       {%- for note in collections.notes %}
       <article class="note-item">
-        <span class="date"><time datetime="{{ note.date | isoDate }}">{{ note.date | readableDate }}</time></span>
+        <span class="date"><time datetime="{{ note.date | isoDate }}">{{ note.date | readableDate }}</time> · {{ note.data.readingMinutes }} min read</span>
         <h2><a href="{{ note.url }}">{{ note.data.title }}</a></h2>
         {%- if note.data.summary %}<p>{{ note.data.summary }}</p>{%- endif %}
+        <span class="note-go" aria-hidden="true">→</span>
       </article>
       {%- endfor %}
     </div>

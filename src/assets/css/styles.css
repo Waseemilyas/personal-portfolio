@@ -505,7 +505,9 @@ p, li { text-wrap: pretty; }
 .casehead { border-bottom: 1px solid var(--line-light); padding-bottom: 1.6rem; margin-bottom: var(--space-head-below); }
 .casehead .ref { font-family: var(--mono); color: var(--signal-deep); font-size: var(--step--1); letter-spacing: .06em; }
 .casehead h1, .casehead h2 { font-size: var(--step-3); color: var(--ink); margin: .7rem 0 .5rem; max-width: calc(20 * var(--ch-700)); }
-.casehead .kick { color: var(--ink-mute); font-size: var(--step-1); font-weight: 400; }
+.casehead .kick { color: var(--ink-mute); font-size: var(--step-1); font-weight: 400; max-width: calc(52 * var(--ch)); text-wrap: pretty; }
+/* A note's date and length sit on their own mono line under its summary, as on the index. */
+.casehead .note-meta { margin-top: .9rem; font-family: var(--mono); font-size: var(--step--1); color: var(--ink-mute); }
 .casegrid { display: grid; grid-template-columns: 1.6fr .9fr; gap: clamp(1.6rem, 4vw, 3.4rem); align-items: start; }
 @media screen and (min-width: 861px) {
   .casegrid > .prose { grid-area: 1 / 1; }
@@ -767,13 +769,22 @@ p, li { text-wrap: pretty; }
 .contact-close .contact-alt { white-space: nowrap; }
 
 /* ---------- notes (essay) ---------- */
+/* Each note row is one target: the title link stretches over the row (its name
+   stays the title alone), and the arrow says so, as the Next note card does. */
 .notes-list { display: grid; gap: 1.2rem; }
-.note-item { border-bottom: 1px solid var(--line-light); padding-bottom: 1.2rem; }
+.note-item { position: relative; display: grid; grid-template-columns: 1fr auto; column-gap: 1.4rem; border-bottom: 1px solid var(--line-light); padding-bottom: 1.2rem; }
+.note-item > :not(.note-go) { grid-column: 1; }
 .note-item .date { font-family: var(--mono); font-size: var(--step--1); color: var(--ink-mute); }
-.note-item h2 { font-size: var(--step-2); margin: .3rem 0; }
-.note-item h2 a { color: var(--ink); text-decoration: none; }
-.note-item h2 a:hover { color: var(--signal-deep); }
-.note-item p { color: var(--ink-mute); max-width: calc(66 * var(--ch)); }
+.note-item h2 { font-size: var(--step-2); margin: .3rem 0; text-wrap: balance; }
+.note-item h2 a { color: var(--ink); text-decoration: none; transition: color .2s var(--ease); }
+.note-item h2 a::after { content: ""; position: absolute; inset: 0; }
+.note-item h2 a:focus-visible { outline: none; }
+.note-item h2 a:focus-visible::after { outline: 2px solid var(--signal-deep); outline-offset: 4px; border-radius: var(--rounded-xs); }
+.note-item:hover h2 a { color: var(--signal-deep); }
+.note-item p { color: var(--ink-mute); max-width: calc(66 * var(--ch)); text-wrap: pretty; }
+.note-go { grid-column: 2; grid-row: 1 / span 3; align-self: center; font-size: var(--step-2); line-height: 1; color: var(--signal-deep); transition: transform .2s var(--ease); }
+.note-item:hover .note-go { transform: translateX(4px); }
+@media (max-width: 620px) { .note-item { column-gap: .9rem; } .note-go { font-size: var(--step-1); } }
 .notes-empty { border: 1px dashed var(--line-light); border-radius: var(--rounded-lg); padding: 2rem; color: var(--ink-mute); max-width: calc(56 * var(--ch)); }
 .notes-empty a { color: var(--signal-deep); text-underline-offset: 3px; transition: text-decoration-thickness .2s var(--ease); }
 .notes-empty a:hover { text-decoration-thickness: 2px; }
@@ -857,7 +868,7 @@ p, li { text-wrap: pretty; }
 @media (prefers-reduced-motion: reduce) {
   .panel .phead .live .blip { animation: none; }
   .nav, .nav:is([data-open="true"], :popover-open), .nav-toggle svg path { transition: none; }
-  .nextread-go { transition: none; }
+  .nextread-go, .note-go, .note-item h2 a { transition: none; }
 }
 
 /* ---------- 44px tap targets (t17654) ---------- */
