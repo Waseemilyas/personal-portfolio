@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install preview-card compression
-        run: python3 -m pip install Pillow==12.0.0
+        run: python3 -m pip install Pillow==13.0.0
       - name: Find the pnpm store
         id: pnpm-store
         run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
