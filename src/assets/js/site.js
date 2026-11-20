@@ -178,40 +178,68 @@
     figure.removeAttribute("hidden");
   }
 
-  /* The big address is a mail link, which does nothing for a visitor with no mail
-     app set up. Show its copy button only where the browser can copy. */
+  /* Manual copy is available at first paint. Swap in the one-click control
+     if the browser has a clipboard API and the visitor hasn't started copying. */
   function setupCopyEmail() {
     var clipboard = navigator.clipboard;
-    if (!clipboard || !window.isSecureContext) return;
-    document.querySelectorAll("button.copy-email").forEach(function (button) {
-      var status = button.nextElementSibling;
-      var address = button.getAttribute("data-copy");
-      if (button instanceof HTMLButtonElement && status && address) bindCopy(clipboard, button, status, address);
+    if (!window.isSecureContext || typeof clipboard?.writeText !== "function") return;
+    document.querySelectorAll(".email-row").forEach(function (row) {
+      var button = row.querySelector("button.copy-email");
+      var manual = row.querySelector("details");
+      var field = manual?.querySelector("input");
+      var status = row.querySelector('[role="status"]');
+      if (!(button instanceof HTMLButtonElement) || !manual || !field || !status) return;
+      if (manual.open || manual.contains(document.activeElement)) return;
+      bindCopy(clipboard, button, manual, field, status);
     });
   }
 
-  /** @param {Clipboard} clipboard @param {HTMLButtonElement} button @param {Element} status @param {string} address */
-  function bindCopy(clipboard, button, status, address) {
+  /**
+   * @param {Clipboard} clipboard
+   * @param {HTMLButtonElement} button
+   * @param {HTMLDetailsElement} manual
+   * @param {HTMLInputElement} field
+   * @param {Element} status
+   */
+  function bindCopy(clipboard, button, manual, field, status) {
     var label = button.textContent || "";
     /** @type {number | undefined} */
     var timer;
-    /** @param {string} text @param {string} said @param {boolean} copied */
-    var show = function (text, said, copied) {
-      button.textContent = text;
-      button.toggleAttribute("data-copied", copied);
-      status.textContent = said;
-    };
+    var pending = false;
     button.hidden = false;
+    manual.hidden = true;
     button.addEventListener("click", function () {
-      window.clearTimeout(timer);
-      void clipboard.writeText(address).then(function () {
-        show("Copied ✓", "Email address copied.", true);
-      }, function () {
-        show(label, "Could not copy. Select the address to copy it.", false);
-      }).then(function () {
-        timer = window.setTimeout(function () { show(label, "", false); }, 2500);
-      });
+      void copy();
     });
+
+    async function copy() {
+      if (pending) return;
+      pending = true;
+      try {
+        await clipboard.writeText(field.value);
+      } catch {
+        manual.hidden = false;
+        manual.open = true;
+        if (document.activeElement === button) {
+          field.focus();
+          field.select();
+        }
+        button.hidden = true;
+        status.textContent = "Could not copy automatically. Select and copy the email address.";
+        return;
+      } finally {
+        pending = false;
+        window.clearTimeout(timer);
+      }
+      button.textContent = "Copied ✓";
+      button.setAttribute("data-copied", "");
+      status.textContent = "Email address copied.";
+      timer = window.setTimeout(function () {
+        button.textContent = label;
+        button.removeAttribute("data-copied");
+        status.textContent = "";
+      }, 2500);
+    }
   }
 
   /* Page to page (styles.css): an article's own title is named page-title in CSS.
