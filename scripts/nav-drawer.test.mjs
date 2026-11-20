@@ -46,8 +46,6 @@ test("mobile nav drawer: click opens, Escape or leaving the drawer closes it", {
         media,
         addEventListener() {},
         removeEventListener() {},
-        addListener() {},
-        removeListener() {},
       });
     },
   });

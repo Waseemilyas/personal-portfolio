@@ -60,7 +60,9 @@ test("error reporting sends errors and source lines without visitor browsing dat
         window.matchMedia = (media) => ({ matches: true, media, addEventListener() {}, removeEventListener() {} });
         // @ts-ignore jsdom has no fetch; record what the SDK sends instead of sending it.
         window.fetch = async (url, init) => {
-          sent.push({ url: String(url), body: String(init?.body ?? ""), referrerPolicy: init?.referrerPolicy });
+          // The SDK sends a URL string and a string envelope; anything else records as "".
+          const body = typeof init?.body === "string" ? init.body : "";
+          sent.push({ url: typeof url === "string" ? url : url instanceof URL ? url.href : url.url, body, referrerPolicy: init?.referrerPolicy });
           return { status: 200, headers: { get: () => null } };
         };
       },
