@@ -24,7 +24,11 @@ success = False
 owned = {}
 log = (args.out / "commands.log").open("w")
 env = {**os.environ, "AGENT_BROWSER_DEFAULT_TIMEOUT": "15000", "AGENT_BROWSER_ARGS": "--mute-audio"}
+# A page cannot be hit while a view transition between pages runs (about 0.3 s),
+# so wait for any to finish before acting, as a visitor's next click would.
+TRANSITION_DONE = "document.getAnimations().every(a => !String(a.effect && a.effect.pseudoElement || '').startsWith('::view-transition'))"
 def run(*words):
+    if words[0] in ("click", "press", "back", "hover", "focus"): run("wait", "--fn", TRANSITION_DONE)
     command = ["agent-browser", "--session", session, *words]
     result = subprocess.run(command, cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=40)
     log.write(json.dumps({"command": list(words), "exit": result.returncode, "output": result.stdout}) + "\n"); log.flush()
@@ -154,8 +158,10 @@ try:
         for route in routes:
             run("click", 'main a[href="' + route + '"]')
             require("location.pathname === " + json.dumps(route))
+            # A click within the site shows the article at once: no replayed entry rise.
+            require("document.documentElement.classList.contains('onsite') && (document.querySelector('main h1').closest('[data-cal]')?.getAnimations() || []).every(a => a.animationName !== 'rise')")
             run("back")
-        receipts.append(listing + ": clicked every listed entry and returned")
+        receipts.append(listing + ": clicked every listed entry and returned; each opened without replaying the entry motion")
     # Every generated HTML page is visited at desktop and phone dimensions, including 404.
     pages = sorted((root / "_site").rglob("*.html"))
     for width, height, label in [(1440, 900, "desktop"), (390, 844, "phone")]:

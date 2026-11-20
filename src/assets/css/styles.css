@@ -567,16 +567,36 @@ p, li { text-wrap: pretty; }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes fadein { from { opacity: 0; } to { opacity: .55; } }
 @media (prefers-reduced-motion: no-preference) {
-  .js [data-cal]:not([data-cal=""]), .js [data-cal].in { animation: rise .7s var(--ease) both; }
+  .js:not(.onsite) [data-cal]:not([data-cal=""]), .js [data-cal].in { animation: rise .7s var(--ease) both; }
   .js [data-cal="0"] { animation-delay: 180ms; }
   .js [data-cal="1"] { animation-delay: 290ms; }
   .js [data-cal="2"] { animation-delay: 400ms; }
   .js [data-cal="3"] { animation-delay: 510ms; }
   .js [data-cal="4"] { animation-delay: 620ms; }
   .js [data-cal].cal-wait { opacity: 0; }
-  .js .reg { animation: fadein .9s var(--ease) both; }
+  .js:not(.onsite) .reg { animation: fadein .9s var(--ease) both; }
   .js .reg.tl { animation-delay: 120ms; } .js .reg.tr { animation-delay: 210ms; }
   .js .reg.bl { animation-delay: 300ms; } .js .reg.br { animation-delay: 390ms; }
+}
+
+/* ---------- page to page ----------
+   The entry stagger above greets a visitor arriving from outside. A click
+   within the site (.onsite, set in <head> from a same-origin referrer) shows the
+   next page at once instead of replaying it, and the browser bridges the two
+   pages: the header holds still, the rest cross-fades, and an article's title
+   grows out of the card or link that opened it (site.js names that pair). */
+@view-transition { navigation: auto; }
+.topbar { view-transition-name: topbar; }
+.casehead h1 { view-transition-name: page-title; }
+::view-transition-old(topbar) { display: none; }
+::view-transition-new(topbar) { animation: none; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .2s; }
+::view-transition-group(page-title) { animation-duration: .32s; animation-timing-function: var(--ease); }
+::view-transition-old(page-title), ::view-transition-new(page-title) { block-size: 100%; object-fit: contain; object-position: left top; }
+::view-transition-old(page-title) { animation-duration: .12s; }
+::view-transition-new(page-title) { animation-duration: .24s; }
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .panel .phead .live .blip { animation: none; }

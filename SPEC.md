@@ -59,6 +59,12 @@ and Home/End move between tabs, and Tab moves to the active panel and its link.
 Narrow frames use full titles on buttons, with the same selection as the SVG map.
 First-screen entry motion is CSS alone (`data-cal` slots); `setupReveals` only defers
 below-the-fold blocks while they are off-screen. Reduced motion animates nothing.
+Entry motion plays only on arrival from outside the site: a click between pages
+(same-origin referrer, `.onsite`) shows the first screen at once. In browsers with
+cross-document view transitions, the header holds still between pages, the page
+cross-fades, and an article title grows out of the card or next-article link that
+opened it (`setupPageTransitions`); Back from an article returns it to its card
+when that card is on screen.
 
 On a narrow frame the chrome keeps its signposts: a selected-work card's "Read →"
 is a full-width row in the signal colour (a phone has no hover to announce the

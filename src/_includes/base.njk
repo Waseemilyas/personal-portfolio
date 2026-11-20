@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<script>document.documentElement.className+=' js';</script>
+<script>(function(d,r){d.className+=' js';try{if(r&&new URL(r).origin===location.origin)d.className+=' onsite';}catch(e){}})(document.documentElement,document.referrer);</script>
 
 {% set pageTitle = title if title else site.shortTitle %}
 {% set fullTitle = pageTitle + " — " + site.shortTitle if title and page.url != "/" else site.title %}

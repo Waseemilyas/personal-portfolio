@@ -187,8 +187,61 @@
     });
   }
 
+  /* Page to page (styles.css): an article's own title is named page-title in CSS.
+     Leaving for an article, the title of the card or link that leads there on screen
+     takes the name instead, so the heading grows out of what was clicked. Going Back,
+     the card for the article just left takes it, so the heading settles into it. */
+  function setupPageTransitions() {
+    /** @type {HTMLElement[]} */
+    var named = [];
+    var clear = function () {
+      named.forEach(function (el) { el.style.viewTransitionName = ""; });
+      named = [];
+    };
+    /** @param {HTMLElement} el @param {string} name */
+    var give = function (el, name) {
+      el.style.viewTransitionName = name;
+      named.push(el);
+    };
+    /** @param {string} url @returns {HTMLElement | null} */
+    var cardTitleFor = function (url) {
+      var path = new URL(url, location.href).pathname;
+      var links = document.querySelectorAll("main a[href]");
+      for (var i = 0; i < links.length; i++) {
+        var a = links[i];
+        if (!(a instanceof HTMLAnchorElement) || a.origin !== location.origin || a.pathname !== path) continue;
+        var title = a.querySelector("h2, h3, .nextread-t") || a.closest(".note-item h2");
+        if (!(title instanceof HTMLElement)) continue;
+        var r = title.getBoundingClientRect();
+        if (r.height && r.top < window.innerHeight && r.bottom > 0) return title;
+      }
+      return null;
+    };
+    /** @param {string | undefined} url */
+    var morphFrom = function (url) {
+      var title = url ? cardTitleFor(url) : null;
+      if (!title) return;
+      var own = document.querySelector(".casehead h1");
+      if (own instanceof HTMLElement) give(own, "none");
+      give(title, "page-title");
+    };
+    window.addEventListener("pageswap", function (e) {
+      clear();
+      var ev = /** @type {Event & { viewTransition?: object | null, activation?: { entry?: { url?: string } } | null }} */ (e);
+      if (ev.viewTransition && ev.activation && ev.activation.entry) morphFrom(ev.activation.entry.url);
+    });
+    window.addEventListener("pagereveal", function (e) {
+      clear();
+      var ev = /** @type {Event & { viewTransition?: object | null }} */ (e);
+      var nav = /** @type {{ navigation?: { activation?: { navigationType?: string, from?: { url?: string } | null } | null } }} */ (/** @type {unknown} */ (window)).navigation;
+      var act = nav && nav.activation;
+      if (ev.viewTransition && act && act.navigationType === "traverse" && act.from) morphFrom(act.from.url);
+    });
+  }
+
   setupNavigation();
   setupCapabilityMap();
   setupReveals();
   setupCopyEmail();
+  setupPageTransitions();
 })();
