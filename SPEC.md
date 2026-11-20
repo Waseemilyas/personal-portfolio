@@ -167,7 +167,8 @@ build and by the browser's integrity check). Error reports retain the release,
 canonical page (including `/404.html` for missing pages), exception text, and
 source lines in the site's JavaScript. Reports omit the visitor's raw page URL,
 referrer, browsing breadcrumbs, and SDK-captured callback arguments or rejected
-objects. The SDK sends no session reports. Each distinct policy warning includes
+objects, and the SDK tells Sentry not to infer the visitor's IP address. The SDK sends
+no session reports. Each distinct policy warning includes
 the directive and a public script path or resource category. Extension and Sentry
 URLs are skipped. No Sentry dashboard setting can change the code visitors run.
 

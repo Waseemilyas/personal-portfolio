@@ -13,9 +13,9 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
-const SDK_FILE = "sentry-10.78.0.min.js";
+const SDK_FILE = "sentry-11.15.0.min.js";
 /** SHA-384 of the unmodified Sentry CDN bundle (errors only, no tracing or replay). */
-const SDK_SHA384 = "5/nIGpuat0ibsfxpyjRqSdTH87b7gz39FKNgRmCjSBU1CZ4e0MjlG40zWTQEYtXw";
+const SDK_SHA384 = "SzpENTjXtQl/KFJppXwxLjfM8evCxeloFISBU8TIBU8gxYBPhhfDcXcj9P+wL541";
 
 const sdkBytes = readFileSync(new URL(`../../vendor/${SDK_FILE}`, import.meta.url));
 const actual = createHash("sha384").update(sdkBytes).digest("base64");
