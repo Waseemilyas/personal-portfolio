@@ -84,6 +84,12 @@ need Waseem's approval under the estate decision policy.
   A new outside service the page sends data to means adding its exact origin to
   `connect-src`, never `'unsafe-inline'` or a wildcard. `site-check` fails the build
   otherwise.
+- The policy also enforces Trusted Types, so a string passed to `innerHTML`,
+  `insertAdjacentHTML`, `document.write` or a script's `src` throws in the browser
+  (jsdom tests will not catch it). Build DOM with `createElement` and `textContent`.
+  A script URL the page truly needs gets a named policy in a hashed inline script
+  that accepts only that URL, as `sdk-loader` in `src/_includes/base.njk` does;
+  `scripts/csp.mjs` allows exactly the names the page creates.
 - `src/assets/css/styles.css` is inlined into every page's `<head>` at build time
   (`scripts/inline-css.mjs`), so the first paint waits for no second request. Edit
   the file as usual; keep strings and `url()` free of comment markers and runs of

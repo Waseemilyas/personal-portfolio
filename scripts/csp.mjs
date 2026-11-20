@@ -9,6 +9,12 @@
 // outside library is pinned and served from this site (as the Sentry SDK is). The
 // meta form cannot carry frame-ancestors or report-uri; violations are reported to
 // Sentry from the page instead.
+//
+// Trusted Types are enforced: no page script may hand a plain string to an HTML or
+// script sink (innerHTML, document.write, a script's src or text, eval-like timers).
+// The only policies allowed are the ones the page's own hashed inline scripts create
+// by name, so injected code cannot mint its own; a page that creates none gets
+// trusted-types 'none'.
 import { createHash } from "node:crypto";
 
 /** Script types a browser executes; anything else (JSON-LD) is a data block CSP ignores. */
@@ -41,6 +47,18 @@ export function inlineStyles(html) {
   return [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi)].map(([, body]) => body ?? "");
 }
 
+/**
+ * Names of the Trusted Types policies the page's inline scripts create.
+ * @param {string} html
+ * @returns {string[]}
+ */
+export function trustedTypePolicies(html) {
+  const names = inlineScripts(html).flatMap((body) =>
+    [...body.matchAll(/\btrustedTypes\.createPolicy\(\s*["']([\w-]+)["']/g)].map(([, name]) => name ?? ""),
+  );
+  return [...new Set(names)];
+}
+
 /** @param {string} source */
 export const scriptHash = (source) => `'sha256-${createHash("sha256").update(source, "utf8").digest("base64")}'`;
 
@@ -52,6 +70,7 @@ export const scriptHash = (source) => `'sha256-${createHash("sha256").update(sou
 export function policyFor(html, { connectOrigins = [] } = {}) {
   const hashes = [...new Set(inlineScripts(html).map(scriptHash))];
   const styleHashes = [...new Set(inlineStyles(html).map(scriptHash))];
+  const policies = trustedTypePolicies(html);
   return [
     "default-src 'none'",
     ["script-src 'self'", ...hashes].join(" "),
@@ -64,6 +83,8 @@ export function policyFor(html, { connectOrigins = [] } = {}) {
     "base-uri 'none'",
     "form-action 'none'",
     "upgrade-insecure-requests",
+    "require-trusted-types-for 'script'",
+    `trusted-types ${policies.length ? policies.join(" ") : "'none'"}`,
   ].join("; ");
 }
 
