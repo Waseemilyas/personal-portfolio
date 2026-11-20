@@ -230,17 +230,18 @@ try:
             capture(label + "-page-" + str(i), checks, before=[("open", base + route)])
         receipts.append(label + ": all " + str(len(pages)) + " generated pages loaded without horizontal overflow")
     run("set", "media", "light")
-    run("open", base + "/")
-    run("set", "viewport", "320", "568")
-    require("""(() => {
+    home_actions_fit = """(() => {
         const links = [...document.querySelectorAll('.hero .actions a')];
         return links.length === 2 && links.every(link => {
             const rect = link.getBoundingClientRect();
-            return rect.height >= 44 && rect.top >= 0 && rect.bottom <= innerHeight;
+            return rect.height >= 44 && rect.top >= document.querySelector('.topbar').getBoundingClientRect().bottom && rect.bottom <= innerHeight;
         });
-    })()""")
-    check_home_to_work()
-    receipts.append("at 320 × 568 both homepage actions fit without scrolling; Read the work focuses the heading and Tab and Enter open the first case study")
+    })()"""
+    for width, height in [(320, 568), (667, 375), (844, 390)]:
+        run("set", "viewport", str(width), str(height))
+        capture(f"home-{width}x{height}", {"homepage actions fit": home_actions_fit}, before=[("open", base + "/")])
+        check_home_to_work()
+    receipts.append("at 320 × 568, 667 × 375 and 844 × 390 both homepage actions fit without scrolling; Read the work focuses the heading and Tab and Enter open the first case study")
     run("set", "viewport", "390", "844")
     run("open", base + "/")
     for node in nodes:
