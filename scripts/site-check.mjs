@@ -17,8 +17,8 @@
 //   sitemap     built pages and sitemap URLs match both ways (404.html is not listed)
 //   drafts      a `draft: true` post has no built page and no sitemap/feed reference
 //   csp         one Content Security Policy meta, first after <meta charset>, default-src 'none',
-//               no 'unsafe-*', listing the hash of every inline script and inline style and no
-//               outside script or style origin (outside code is pinned and served from this site);
+//               no 'unsafe-*', allowing only the hashes of the page's scripts, each external
+//               script's integrity matching its built bytes, and the hash of each inline style;
 //               no inline handlers or style attributes (the policy would block them); a
 //               Referrer-Policy meta; the stylesheet inlined, never a render-blocking link;
 //               Trusted Types required for scripts, allowing exactly the policies the page's
@@ -32,9 +32,10 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { JSDOM } from "jsdom";
 
-import { inlineScripts, inlineStyles, scriptHash, trustedTypePolicies } from "./csp.mjs";
+import { inlineScripts, inlineStyles, scriptHash, scriptIntegrity, trustedTypePolicies } from "./csp.mjs";
 import { cardAlt, cardImage, cardText } from "./og-cards.mjs";
 import { revision as buildRevision } from "./revision.mjs";
+import monitoring from "../src/_data/monitoring.js";
 
 const OG_SIZE = { width: 1200, height: 630 };
 const SITEMAP_NS = "http://www.sitemaps.org/schemas/sitemap/0.9";
@@ -146,7 +147,7 @@ export function runSiteChecks({
     const csp = metaContent('meta[http-equiv="Content-Security-Policy"]');
     const policy = csp[0] ?? "";
     /** @param {string} name */
-    const directive = (name) => policy.split(";").map((d) => d.trim()).find((d) => d.startsWith(`${name} `)) ?? "";
+    const directive = (name) => policy.split(";").map((d) => d.trim()).find((d) => d.split(/\s+/, 1)[0]?.toLowerCase() === name) ?? "";
     const scriptSrc = directive("script-src");
     const styleSrc = directive("style-src");
     const headStart = doc.head.firstElementChild;
@@ -156,16 +157,36 @@ export function runSiteChecks({
     }
     if (!policy.startsWith("default-src 'none';")) bad("csp", "policy must start with default-src 'none'");
     if (/'unsafe-|\*/.test(policy)) bad("csp", "policy must not use 'unsafe-*' or wildcards");
-    for (const source of scriptSrc.split(" ").slice(1)) {
-      if (source !== "'self'" && !/^'sha256-[A-Za-z0-9+/]+=*'$/.test(source)) {
-        bad("csp", `script-src allows ${source}; pin outside code and serve it from this site`);
+    const scriptSources = scriptSrc.split(/\s+/).slice(1);
+    const scriptHashes = new Set(inlineScripts(html).map(scriptHash));
+    for (const script of doc.querySelectorAll("script[src]")) {
+      const target = script.getAttribute("src") ?? "";
+      const url = new URL(target, siteUrl + pagePath);
+      const file = decodeURIComponent(url.pathname).slice(1);
+      if (url.origin !== origin || !exists(file)) {
+        bad("csp", "external scripts must be served from this site's build");
+        continue;
       }
+      const integrity = scriptIntegrity(readFileSync(join(siteDir, file)));
+      if (script.getAttribute("integrity") !== integrity) {
+        bad("csp", `integrity for /${file} must match the built script`);
+      }
+      scriptHashes.add(`'${integrity}'`);
+    }
+    const created = trustedTypePolicies(html);
+    if (created.includes("sdk-loader")) {
+      const sdkFile = `assets/js/${monitoring.sdkFile}`;
+      if (!exists(sdkFile)) bad("csp", "error reporting needs its pinned SDK in the build");
+      else scriptHashes.add(`'${scriptIntegrity(readFileSync(join(siteDir, sdkFile)), "sha384")}'`);
+    }
+    if (scriptSources.length !== scriptHashes.size || [...scriptHashes].some((hash) => !scriptSources.includes(hash))) {
+      bad("csp", "script-src must contain exactly the hashes of this page's scripts");
+    }
+    if (["script-src-elem", "script-src-attr", "worker-src"].some(directive)) {
+      bad("csp", "script and worker loads must use the script-src policy");
     }
     for (const source of styleSrc.split(" ").slice(1)) {
       if (source !== "'self'" && !/^'sha256-[A-Za-z0-9+/]+=*'$/.test(source)) bad("csp", `style-src allows ${source}`);
-    }
-    for (const source of inlineScripts(html)) {
-      if (!scriptSrc.split(" ").includes(scriptHash(source))) bad("csp", `inline script "${source.trim().slice(0, 40)}" is not in script-src`);
     }
     // An unlisted inline style is dropped by the browser: the page would ship unstyled.
     for (const source of inlineStyles(html)) {
@@ -175,7 +196,6 @@ export function runSiteChecks({
     if (directive("require-trusted-types-for") !== "require-trusted-types-for 'script'") {
       bad("csp", "policy must enforce require-trusted-types-for 'script'");
     }
-    const created = trustedTypePolicies(html);
     const allowed = directive("trusted-types").split(" ").slice(1);
     const expected = created.length ? created : ["'none'"];
     if (created.some((name) => name === "default") || allowed.some((name) => /^('allow-duplicates'|default)$/.test(name))) {

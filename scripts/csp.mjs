@@ -2,11 +2,9 @@
 //
 // GitHub Pages cannot send response headers, so the policy is a <meta http-equiv>
 // placed straight after <meta charset>, before any script, style or font loads.
-// Inline scripts and the inlined stylesheet (scripts/inline-css.mjs) are allowed only
-// by the SHA-256 of their exact text, computed from the rendered page, so editing one
-// can never silently break it. 'unsafe-inline'
-// and 'unsafe-eval' are never used, and no third-party origin may run script: an
-// outside library is pinned and served from this site (as the Sentry SDK is). The
+// Scripts are allowed only by hash. Inline hashes come from the rendered page,
+// and external scripts carry matching subresource integrity metadata. The
+// inlined stylesheet (scripts/inline-css.mjs) is hashed as well. The
 // meta form cannot carry frame-ancestors or report-uri; violations are reported to
 // Sentry from the page instead.
 //
@@ -59,21 +57,27 @@ export function trustedTypePolicies(html) {
   return [...new Set(names)];
 }
 
+/** @param {string | Uint8Array} source @param {"sha256" | "sha384"} algorithm */
+export const scriptIntegrity = (source, algorithm = "sha256") =>
+  `${algorithm}-${createHash(algorithm).update(source).digest("base64")}`;
+
 /** @param {string} source */
-export const scriptHash = (source) => `'sha256-${createHash("sha256").update(source, "utf8").digest("base64")}'`;
+export const scriptHash = (source) => `'${scriptIntegrity(source)}'`;
+
+/** @typedef {{ connectOrigins?: string[], scriptIntegrities?: string[] }} PolicyOptions */
 
 /**
  * @param {string} html a rendered page
- * @param {{ connectOrigins?: string[] }} [allow] third-party origins the page may send data to
+ * @param {PolicyOptions} [allow]
  * @returns {string} the policy for this page
  */
-export function policyFor(html, { connectOrigins = [] } = {}) {
-  const hashes = [...new Set(inlineScripts(html).map(scriptHash))];
+export function policyFor(html, { connectOrigins = [], scriptIntegrities = [] } = {}) {
+  const hashes = [...new Set([...inlineScripts(html).map(scriptHash), ...scriptIntegrities.map((integrity) => `'${integrity}'`)])];
   const styleHashes = [...new Set(inlineStyles(html).map(scriptHash))];
   const policies = trustedTypePolicies(html);
   return [
     "default-src 'none'",
-    ["script-src 'self'", ...hashes].join(" "),
+    ["script-src", ...hashes].join(" "),
     ["style-src 'self'", ...styleHashes].join(" "),
     "img-src 'self'",
     "font-src 'self'",
@@ -91,7 +95,7 @@ export function policyFor(html, { connectOrigins = [] } = {}) {
 /**
  * Insert the page's policy as the first element after <meta charset>.
  * @param {string} html
- * @param {{ connectOrigins?: string[] }} [allow]
+ * @param {PolicyOptions} [allow]
  */
 export function withPolicy(html, allow) {
   const charset = /<meta charset="utf-8">/i;

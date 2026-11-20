@@ -77,9 +77,9 @@ need Waseem's approval under the estate decision policy.
 - Keep the site static and GitHub Pages-compatible unless Waseem approves
   otherwise.
 - Every page has a Content Security Policy (`scripts/csp.mjs`). Inline scripts and the
-  inlined stylesheet are hashed automatically at build time; inline `style=`/`on*=` attributes, `data:`
-  images and any third-party origin are blocked. No outside origin may run script:
-  pin an outside library and serve it from this site, as `vendor/` does for the
+  inlined stylesheet are hashed automatically at build time. External scripts need
+  a matching CSP hash and subresource integrity. Inline `style=`/`on*=` attributes
+  and `data:` images are blocked. Serve pinned libraries from this site, as `vendor/` does for the
   Sentry SDK (`src/_data/monitoring.js` says how to update it and checks its hash).
   A new outside service the page sends data to means adding its exact origin to
   `connect-src`, never `'unsafe-inline'` or a wildcard. `site-check` fails the build
