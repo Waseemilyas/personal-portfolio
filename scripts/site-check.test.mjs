@@ -35,7 +35,7 @@ const page = (path, body = "<h1>Title</h1><p>Text</p>", head = "") => withPolicy
 <script type="application/ld+json">{"@context":"https://schema.org"}</script>${head || `<meta property="og:type" content="website">
 <meta property="og:image" content="${SITE}/og.png"><meta property="og:image:alt" content="Default card.">`}</head>
 <body>${body}<script src="/site.js" integrity="${SITE_SCRIPT_INTEGRITY}" defer></script></body></html>`,
-{ scriptIntegrities: [SITE_SCRIPT_INTEGRITY] });
+{ externalScripts: [{ url: `${SITE}/site.js`, integrity: SITE_SCRIPT_INTEGRITY }] });
 
 // A note shares its own card, whose alt text repeats the note's label and title.
 const NOTE_BODY = '<div class="casehead"><h1>A note</h1><p class="kick"><time datetime="2026-08-08T00:00:00.000Z">8 August 2026</time></p></div>';
@@ -96,6 +96,7 @@ const bad = {
   "inline event handler": [(f) => (f["about/index.html"] = page("/about/", '<h1 onclick="x()">A</h1>')), "csp"],
   "outside script origin allowed": [(f) => (f["about/index.html"] = page("/about/").replace("script-src ", "script-src https://cdn.example ")), "csp"],
   "all same-origin scripts allowed": [(f) => (f["about/index.html"] = page("/about/").replace("script-src ", "script-src 'self' ")), "csp"],
+  "a directory of same-origin scripts allowed": [(f) => (f["about/index.html"] = page("/about/").replace(`${SITE}/site.js`, `${SITE}/`)), "csp"],
   "script element policy overrides the hashes": [(f) => (f["about/index.html"] = page("/about/").replace("script-src ", "script-src-elem 'self'; script-src ")), "csp"],
   "external script missing integrity": [(f) => (f["about/index.html"] = page("/about/").replace(` integrity="${SITE_SCRIPT_INTEGRITY}"`, "")), "csp"],
   "external script bytes changed after the policy": [(f) => (f["site.js"] = "void 1;"), "csp"],

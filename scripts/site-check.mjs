@@ -17,8 +17,8 @@
 //   sitemap     built pages and sitemap URLs match both ways (404.html is not listed)
 //   drafts      a `draft: true` post has no built page and no sitemap/feed reference
 //   csp         one Content Security Policy meta, first after <meta charset>, default-src 'none',
-//               no 'unsafe-*', allowing only the hashes of the page's scripts, each external
-//               script's integrity matching its built bytes, and the hash of each inline style;
+//               no 'unsafe-*', allowing the page's script hashes and exact external script URLs,
+//               each external script's integrity matching its bytes, and each inline style hash;
 //               no inline handlers or style attributes (the policy would block them); a
 //               Referrer-Policy meta; the stylesheet inlined, never a render-blocking link;
 //               Trusted Types required for scripts, allowing exactly the policies the page's
@@ -158,7 +158,7 @@ export function runSiteChecks({
     if (!policy.startsWith("default-src 'none';")) bad("csp", "policy must start with default-src 'none'");
     if (/'unsafe-|\*/.test(policy)) bad("csp", "policy must not use 'unsafe-*' or wildcards");
     const scriptSources = scriptSrc.split(/\s+/).slice(1);
-    const scriptHashes = new Set(inlineScripts(html).map(scriptHash));
+    const expectedScriptSources = new Set(inlineScripts(html).map(scriptHash));
     for (const script of doc.querySelectorAll("script[src]")) {
       const target = script.getAttribute("src") ?? "";
       const url = new URL(target, siteUrl + pagePath);
@@ -171,16 +171,20 @@ export function runSiteChecks({
       if (script.getAttribute("integrity") !== integrity) {
         bad("csp", `integrity for /${file} must match the built script`);
       }
-      scriptHashes.add(`'${integrity}'`);
+      expectedScriptSources.add(`'${integrity}'`);
+      expectedScriptSources.add(origin + url.pathname);
     }
     const created = trustedTypePolicies(html);
     if (created.includes("sdk-loader")) {
       const sdkFile = `assets/js/${monitoring.sdkFile}`;
       if (!exists(sdkFile)) bad("csp", "error reporting needs its pinned SDK in the build");
-      else scriptHashes.add(`'${scriptIntegrity(readFileSync(join(siteDir, sdkFile)), "sha384")}'`);
+      else {
+        expectedScriptSources.add(`'${scriptIntegrity(readFileSync(join(siteDir, sdkFile)), "sha384")}'`);
+        expectedScriptSources.add(`${origin}/${sdkFile}`);
+      }
     }
-    if (scriptSources.length !== scriptHashes.size || [...scriptHashes].some((hash) => !scriptSources.includes(hash))) {
-      bad("csp", "script-src must contain exactly the hashes of this page's scripts");
+    if (scriptSources.length !== expectedScriptSources.size || [...expectedScriptSources].some((source) => !scriptSources.includes(source))) {
+      bad("csp", "script-src must contain exactly this page's script hashes and external script URLs");
     }
     if (["script-src-elem", "script-src-attr", "worker-src"].some(directive)) {
       bad("csp", "script and worker loads must use the script-src policy");

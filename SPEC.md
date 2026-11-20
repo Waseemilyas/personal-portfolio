@@ -136,9 +136,10 @@ its post-deploy verifier compares the live revision body exactly.
 
 Every page carries a Content Security Policy as the first element after
 `<meta charset>`, written at build time by `scripts/csp.mjs` (GitHub Pages cannot
-send headers). Scripts are allowed only by hash. Inline scripts are hashed from the
-rendered HTML, and the site's JavaScript and optional Sentry SDK carry subresource
-integrity values matching both the policy and the served bytes. The site's script URL
+send headers). Inline scripts are allowed by hash, and external scripts are limited
+to the site's JavaScript and optional Sentry SDK. Their subresource integrity values
+match both the policy and the served bytes. The policy also lists their exact URLs
+on the public site for older browsers with subresource integrity support. The site's script URL
 includes its digest so a new page fetches the right version. The inlined stylesheet is
 also hashed. The only outside origin is Sentry's ingest, in `connect-src`, when the
 production build has a DSN.
