@@ -1,8 +1,12 @@
-{#- The primary call to action. The address is a mail link; the copy button is for
-    visitors with no mail app set up, where a mail link does nothing. site.js shows
-    the button only where the browser can copy, so without JavaScript it stays hidden. -#}
 <div class="email-row">
   <a class="email-big" href="{{ site.email | mailto(emailSubject) }}">{{ site.email }}</a>
-  <button class="btn btn-ghost copy-email" type="button" data-copy="{{ site.email }}" hidden>Copy address</button>
+  <button class="btn btn-ghost copy-email" type="button" hidden>Copy address</button>
+  <details class="copy-email-manual">
+    <summary class="btn btn-ghost copy-email">Copy address manually</summary>
+    <div class="copy-email-help">
+      <p id="email-copy-instructions">Select and copy this address, then paste it into your email.</p>
+      <input type="text" value="{{ site.email }}" aria-label="Email address" aria-describedby="email-copy-instructions" readonly>
+    </div>
+  </details>
   <span class="visually-hidden" role="status"></span>
 </div>

@@ -734,10 +734,28 @@ p, li { text-wrap: pretty; }
 .copy-email { min-height: 44px; font-family: var(--mono); font-size: var(--step--1); letter-spacing: .02em; }
 .copy-email[hidden] { display: none; }
 .copy-email[data-copied] { border-color: var(--signal); color: var(--signal); }
+.copy-email-manual summary { list-style: none; }
+.copy-email-manual summary::-webkit-details-marker { display: none; }
+.copy-email-manual summary:active { border-color: currentColor; }
+.copy-email-manual[open] { flex-basis: 100%; }
+.copy-email-help { margin-block-start: .65rem; }
+.copy-email-help p { color: var(--bone-mute); max-inline-size: 40ch; margin-block-end: .45rem; }
+.copy-email-help input {
+  inline-size: min(100%, 24ch);
+  min-block-size: 44px;
+  padding-inline: .7rem;
+  background: var(--graphite-800);
+  color: var(--bone);
+  border: 1px solid var(--line-dark);
+  border-radius: var(--rounded-sm);
+  font: 400 max(1rem, var(--step-0)) var(--mono);
+}
 .reading-contact { margin-block-start: 3rem; padding-block-start: 1.4rem; border-block-start: 1px solid var(--line-light); }
 .reading-contact h2 { font-size: var(--step-1); margin-block-end: .55rem; }
 .reading-contact .email-big { font-size: var(--step-0); color: var(--ink); border-color: var(--signal-deep); }
 .reading-contact .copy-email[data-copied] { color: var(--signal-deep); border-color: var(--signal-deep); }
+.reading-contact .copy-email-help p { color: var(--ink-mute); }
+.reading-contact .copy-email-help input { background: var(--paper-sink); color: var(--ink); border-color: var(--line-light); }
 @media (hover: hover) and (pointer: fine) {
   .reading-contact .email-big:hover { color: var(--signal-deep); }
   .reading-contact .copy-email:hover { border-color: var(--ink-mute); }

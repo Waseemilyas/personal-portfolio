@@ -43,8 +43,11 @@ note and case study show the email address. Beside it, `setupCopyEmail` shows a
 "Copy address" button where the
 browser can copy (a mail link does nothing for a visitor with no mail app set up). It
 copies the address, reads "Copied ✓" for 2.5 seconds and announces the result in a
-status line; a refused copy is announced too. Without JavaScript the button stays
-hidden and the address stays visible as a mail link.
+status line. If the write is refused, the button gives way to an open manual
+copy control with visible instructions and a read-only address field. When the
+button had focus, the field gets focus and selects the address. Without
+JavaScript or clipboard access, the visitor can open the manual copy control
+directly.
 External links are destinations, not services this repository operates.
 
 Supporting browsers prerender internal pages on link intent using native speculation

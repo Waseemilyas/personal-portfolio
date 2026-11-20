@@ -59,6 +59,11 @@ def require(expression):
 
 NAV_CLOSED = "(!document.getElementById('primary-nav').matches(':popover-open') && getComputedStyle(document.getElementById('primary-nav')).visibility === 'hidden')"
 NAV_SETTLED = "(document.getElementById('primary-nav').getAnimations().every(a=>a.playState==='finished') && getComputedStyle(document.getElementById('primary-nav')).transform==='matrix(1, 0, 0, 1, 0, 0)')"
+MANUAL_COPY_VISIBLE = """(() => {
+    const field = document.querySelector('.copy-email-manual[open] input');
+    return !!field && field.getBoundingClientRect().height >= 44 && field.readOnly &&
+        field.value === document.querySelector('.email-big').textContent.trim();
+})()"""
 
 def check_home_to_work():
     run("focus", ".hero .btn-ghost")
@@ -299,8 +304,19 @@ try:
     require("!document.querySelector('button.copy-email').hidden")
     run("click", "button.copy-email")
     run("wait", "--fn", "document.querySelector('.email-row [role=status]').textContent !== ''")
-    require("['Email address copied.','Could not copy. Select the address to copy it.'].includes(document.querySelector('.email-row [role=status]').textContent)")
+    require("document.querySelector('.email-row [role=status]').textContent === 'Email address copied.' || " + MANUAL_COPY_VISIBLE)
     receipts.append("contact email links carry a subject; copy button shown, clicked and announced: " + run("eval", "document.querySelector('.email-row [role=status]').textContent"))
+    run("set", "viewport", "390", "844")
+    run("reload")
+    run("eval", "Object.defineProperty(navigator.clipboard, 'writeText', {value: () => Promise.reject(new DOMException('Test denial', 'NotAllowedError'))})")
+    run("focus", "button.copy-email")
+    run("press", "Enter")
+    run("wait", "--fn", MANUAL_COPY_VISIBLE)
+    capture("phone-contact-manual-copy", {
+        "manual instructions in view": "document.getElementById('email-copy-instructions').checkVisibility() && document.getElementById('email-copy-instructions').getBoundingClientRect().top >= document.querySelector('.topbar').getBoundingClientRect().bottom",
+        "address focused and selected": "document.activeElement.matches('.copy-email-manual input') && document.activeElement.selectionStart === 0 && document.activeElement.selectionEnd === document.activeElement.value.length",
+    })
+    receipts.append("clipboard refusal on Contact reveals manual instructions, focuses the read-only address and selects its full value")
     # A link mangled by a chat app opens its page; a misspelt one is offered the closest page.
     run("open", base + "/Work/CS-Care)")
     run("wait", "--fn", "location.pathname === '/work/cs-care/'")
@@ -349,9 +365,14 @@ try:
     receipts.append("JavaScript-disabled skip link focuses main")
     check_home_to_work()
     require("document.querySelector('.casegrid .datasheet').getBoundingClientRect().bottom <= document.querySelector('.casegrid .prose').getBoundingClientRect().top")
-    require("document.querySelector('.reading-contact .copy-email').hidden && document.querySelector('.reading-contact .email-big').getBoundingClientRect().height >= 44")
+    require("document.querySelector('.reading-contact button.copy-email').hidden && document.querySelector('.reading-contact .email-big').getBoundingClientRect().height >= 44")
     receipts.append("JavaScript-disabled Read the work focuses the heading and opens the first case study")
-    receipts.append("JavaScript-disabled case study shows the email address as a link and hides Copy address")
+    run("focus", ".reading-contact .copy-email-manual summary")
+    run("press", "Enter")
+    run("wait", "--fn", MANUAL_COPY_VISIBLE)
+    run("press", "Tab")
+    require("document.activeElement.matches('.reading-contact .copy-email-manual input')")
+    receipts.append("JavaScript-disabled case study opens the native manual copy control and tabs into the read-only email address")
     run("open", base + "/?nojs=" + session)
     # The header menu works with no script: open, Escape, open again and follow a link.
     require(NAV_CLOSED)

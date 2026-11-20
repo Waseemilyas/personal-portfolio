@@ -9,7 +9,8 @@ owns XML structure, internal targets and publication parity.
 
 Every note and case study shows the email address before the next article. Check
 its subject on both viewport widths, use the copy button by keyboard, and confirm
-the address is still visible on a case study with JavaScript disabled.
+the manual copy control opens and the address is keyboard-accessible on a case
+study with JavaScript disabled.
 
 ## Draft publication: fast source trace
 
