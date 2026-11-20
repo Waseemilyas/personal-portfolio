@@ -30,8 +30,9 @@ TRANSITION_DONE = "document.getAnimations().every(a => !String(a.effect && a.eff
 def run(*words):
     if words[0] in ("click", "press", "back", "hover", "focus"): run("wait", "--fn", TRANSITION_DONE)
     command = ["agent-browser", "--session", session, *words]
+    begun = time.monotonic()
     result = subprocess.run(command, cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=40)
-    log.write(json.dumps({"command": list(words), "exit": result.returncode, "output": result.stdout}) + "\n"); log.flush()
+    log.write(json.dumps({"command": list(words), "exit": result.returncode, "ms": round((time.monotonic() - begun) * 1000), "output": result.stdout}) + "\n"); log.flush()
     assert result.returncode == 0, result.stdout
     return result.stdout.strip()
 def state(expression):
