@@ -44,6 +44,16 @@ def require(expression):
 NAV_CLOSED = "(!document.getElementById('primary-nav').matches(':popover-open') && getComputedStyle(document.getElementById('primary-nav')).visibility === 'hidden')"
 NAV_SETTLED = "(document.getElementById('primary-nav').getAnimations().every(a=>a.playState==='finished') && getComputedStyle(document.getElementById('primary-nav')).transform==='matrix(1, 0, 0, 1, 0, 0)')"
 
+def check_home_to_work():
+    run("focus", ".hero .btn-ghost")
+    run("press", "Enter")
+    run("wait", "--fn", "location.hash === '#work' && document.activeElement === document.getElementById('work') && document.activeElement.getBoundingClientRect().top >= document.querySelector('.topbar').getBoundingClientRect().bottom && document.activeElement.getBoundingClientRect().bottom <= innerHeight")
+    run("press", "Tab")
+    require("document.activeElement === document.querySelector('.worklist .workcard')")
+    destination = state("document.activeElement.pathname")
+    run("press", "Enter")
+    run("wait", "--fn", "location.pathname === " + json.dumps(destination))
+
 def check_capability(node):
     panel = '.capread[id="cap-' + node["key"] + '"]'
     require("document.querySelectorAll('.capread:not([hidden])').length === 1")
@@ -177,6 +187,9 @@ try:
             capture(label + "-page-" + str(i))
         receipts.append(label + ": all " + str(len(pages)) + " generated pages loaded without horizontal overflow")
     run("open", base + "/")
+    check_home_to_work()
+    receipts.append("phone Read the work focuses the visible heading; Tab and Enter open the first case study")
+    run("open", base + "/")
     for node in nodes:
         selector = '.cap-phone .node[data-key="' + node["key"] + '"]'
         run("click", selector)
@@ -262,6 +275,9 @@ try:
     run("press", "Enter")
     require("location.hash === '#main' && document.activeElement === document.querySelector('main')")
     receipts.append("JavaScript-disabled skip link focuses main")
+    check_home_to_work()
+    receipts.append("JavaScript-disabled Read the work focuses the heading and opens the first case study")
+    run("open", base + "/?nojs=" + session)
     # The header menu works with no script: open, Escape, open again and follow a link.
     require(NAV_CLOSED)
     run("click", ".nav-toggle")

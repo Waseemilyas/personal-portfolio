@@ -15,7 +15,7 @@ description: "Waseem Ilyas runs Automancer, a UK automation consultancy helping 
       <p class="lede" data-cal="2">I run Automancer, a UK automation consultancy helping small businesses get real value from AI and practical digital systems. Before that: front-end web, instructional design, and fifteen-plus years of making digital things.</p>
       <div class="actions" data-cal="3">
         <a class="btn btn-primary" href="{{ site.email | mailto }}">Email Waseem →</a>
-        <a class="btn btn-ghost" href="#capability">Read the work ↓</a>
+        <a class="btn btn-ghost" href="#work">Read the work ↓</a>
       </div>
     </div>
 
@@ -34,11 +34,31 @@ description: "Waseem Ilyas runs Automancer, a UK automation consultancy helping 
   </div>
 </section>
 
+<!-- ========== SELECTED WORK (console) ========== -->
+<section class="console section" aria-labelledby="work">
+  <div class="shell">
+    <div class="section-head" data-cal>
+      <span class="ref">WORK·01</span>
+      <h2 id="work" tabindex="-1">Selected work</h2>
+      <p>A few projects where the mix mattered more than any single skill. Some are public. Some are anonymised to protect client privacy.</p>
+    </div>
+    <div class="worklist" data-cal>
+      {%- for cs in collections.casestudies %}
+      <a class="workcard" href="{{ cs.url }}">
+        <span class="ref">{{ cs.data.ref }}</span>
+        <div><h3>{{ cs.data.title }}</h3><span class="kick">{{ cs.data.kicker }}</span></div>
+        <span class="go">Read →</span>
+      </a>
+      {%- endfor %}
+    </div>
+  </div>
+</section>
+
 <!-- ========== CAPABILITY MAP (console) ========== -->
 <section class="console section" id="capability" aria-label="Capability map">
   <div class="shell">
     <div class="section-head" data-cal>
-      <span class="ref">MAP·01</span>
+      <span class="ref">MAP·02</span>
       <h2>What I actually do</h2>
       <p>{{ capabilities.intro }}</p>
     </div>
@@ -95,26 +115,6 @@ description: "Waseem Ilyas runs Automancer, a UK automation consultancy helping 
         </div>
         {%- endfor %}
       </div>
-    </div>
-  </div>
-</section>
-
-<!-- ========== SELECTED WORK (console) ========== -->
-<section class="console section" id="work" aria-label="Selected work">
-  <div class="shell">
-    <div class="section-head" data-cal>
-      <span class="ref">WORK·02</span>
-      <h2>Selected work</h2>
-      <p>A few projects where the mix mattered more than any single skill. Some are public. Some are anonymised to protect client privacy.</p>
-    </div>
-    <div class="worklist" data-cal>
-      {%- for cs in collections.casestudies %}
-      <a class="workcard" href="{{ cs.url }}">
-        <span class="ref">{{ cs.data.ref }}</span>
-        <div><h3>{{ cs.data.title }}</h3><span class="kick">{{ cs.data.kicker }}</span></div>
-        <span class="go">Read →</span>
-      </a>
-      {%- endfor %}
     </div>
   </div>
 </section>

@@ -9,6 +9,10 @@ page membership is `src/`, navigation is `src/_data/site.json`, and page renderi
 is owned by the shared layouts in `src/_includes/`. The feature map beside
 [verify-portfolio](.agents/skills/verify-portfolio/SKILL.md) owns the executable journeys.
 
+On Home, Selected work follows the introduction. “Read the work” jumps to its
+heading and gives it focus, so the next Tab reaches the first case study even
+with scripts disabled. Case-study cards have an inset focus outline.
+
 The site remains static HTML/CSS with progressive JavaScript enhancement. It has
 no sign-in, database, submission backend or local persistent user state. Contact
 links hand off to the visitor's mail application; verifying them does not send mail.
