@@ -37,6 +37,9 @@ def require(expression):
         run("eval", "JSON.stringify({path:location.pathname,width:innerWidth,ready:document.readyState,nav:document.getElementById('primary-nav')?.outerHTML})")
         raise AssertionError(expression)
 
+NAV_CLOSED = "(!document.getElementById('primary-nav').matches(':popover-open') && getComputedStyle(document.getElementById('primary-nav')).visibility === 'hidden')"
+NAV_SETTLED = "(document.getElementById('primary-nav').getAnimations().every(a=>a.playState==='finished') && getComputedStyle(document.getElementById('primary-nav')).transform==='matrix(1, 0, 0, 1, 0, 0)')"
+
 def check_capability(node):
     panel = '.capread[id="cap-' + node["key"] + '"]'
     require("document.querySelectorAll('.capread:not([hidden])').length === 1")
@@ -180,20 +183,23 @@ try:
     run("click", '#cap-web a')
     require("location.pathname === " + json.dumps(next(node["reading"] for node in nodes if node["key"] == "web")))
     receipts.append("phone capability tabs select all strands and follow a case study; selection survives the layout change")
+    # The phone menu is a native popover: closed, it is hidden (out of tab order and
+    # the accessibility tree); site.js only mirrors aria-expanded and closes it on a link.
     run("open", base + "/")
-    require("document.getElementById('primary-nav').inert === true")
+    require(NAV_CLOSED + " && document.querySelector('.nav-toggle').getAttribute('aria-expanded') === 'false'")
     run("click", ".nav-toggle")
-    require("document.querySelector('.nav-toggle').getAttribute('aria-expanded') === 'true' && !document.getElementById('primary-nav').inert")
+    require("document.querySelector('.nav-toggle').getAttribute('aria-expanded') === 'true' && document.getElementById('primary-nav').matches(':popover-open')")
+    run("wait", "--fn", NAV_SETTLED)
     capture("phone-nav-open")
     run("press", "Escape")
-    require("document.activeElement.matches('.nav-toggle') && document.getElementById('primary-nav').inert && document.querySelector('.nav-toggle').getAttribute('aria-expanded') === 'false'")
+    run("wait", "--fn", NAV_CLOSED)
+    require("document.activeElement.matches('.nav-toggle') && document.querySelector('.nav-toggle').getAttribute('aria-expanded') === 'false'")
     run("click", ".nav-toggle")
-    run("wait", "--fn", "document.getElementById('primary-nav').getAnimations().every(a=>a.playState==='finished') && getComputedStyle(document.getElementById('primary-nav')).transform==='matrix(1, 0, 0, 1, 0, 0)'")
+    run("wait", "--fn", NAV_SETTLED)
     run("click", '#primary-nav a[href="/about/"]')
-    run("wait", "--fn", "location.pathname === '/about/' && document.getElementById('primary-nav').inert")
-    require("location.pathname === '/about/' && document.getElementById('primary-nav').inert")
+    run("wait", "--fn", "location.pathname === '/about/' && " + NAV_CLOSED)
     run("set", "viewport", "1440", "900")
-    require("!document.getElementById('primary-nav').inert && !document.getElementById('primary-nav').hasAttribute('aria-hidden')")
+    require("getComputedStyle(document.getElementById('primary-nav')).visibility === 'visible' && !document.getElementById('primary-nav').inert && !document.getElementById('primary-nav').hasAttribute('aria-hidden')")
     receipts.append("mobile drawer open/Escape focus/link close/desktop breakpoint state")
     run("set", "media", "light", "reduced-motion"); run("open", base + "/")
     require("!document.querySelector('.cal-wait') && Array.from(document.querySelectorAll('[data-cal]')).every(e=>getComputedStyle(e).opacity==='1') && document.getAnimations().every(a=>a.animationName!=='rise'&&a.animationName!=='fadein')")
@@ -222,7 +228,23 @@ try:
     env["AGENT_BROWSER_ARGS"] += ",--blink-settings=scriptEnabled=false"
     run("set", "viewport", "390", "844")
     run("open", base + "/?nojs=" + session)
-    require("document.getElementById('primary-nav').getAttribute('data-open') === null")
+    require("document.getElementById('primary-nav').getAttribute('data-open') === null && !document.querySelector('.nav-toggle').hasAttribute('aria-expanded')")
+    # The header menu works with no script: open, Escape, open again and follow a link.
+    require(NAV_CLOSED)
+    run("click", ".nav-toggle")
+    run("wait", "--fn", NAV_SETTLED + " && document.getElementById('primary-nav').matches(':popover-open')")
+    run("press", "Escape")
+    run("wait", "--fn", NAV_CLOSED)
+    run("click", ".nav-toggle")
+    run("wait", "--fn", NAV_SETTLED)
+    run("click", '#primary-nav a[href="/notes/"]')
+    require("location.pathname === '/notes/'")
+    run("back")
+    # With no script to close it on the link, Back restores the page as it was left:
+    # menu open. Escape (or a tap elsewhere) closes it.
+    run("press", "Escape")
+    run("wait", "--fn", NAV_CLOSED)
+    receipts.append("JavaScript-disabled phone header menu opens, closes on Escape and follows a link")
     require("document.querySelector('.capfig').hidden")
     require("Array.from(document.querySelectorAll('.capread')).every(panel => panel.getClientRects().length > 0)")
     require("Array.from(document.querySelectorAll('.capread h3')).map(h => h.textContent).join('|') === " + json.dumps("|".join(node["title"] for node in nodes)))

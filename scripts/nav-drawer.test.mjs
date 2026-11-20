@@ -5,9 +5,13 @@
 // built site.js inside jsdom (mobile-width matchMedia stub), and drives the
 // drawer like a user: open by click, close by Escape.
 //
-// Published contract asserted here: aria-expanded tracks the drawer, the
-// closed drawer is aria-hidden (out of the accessibility tree), and Escape
-// closes the drawer and returns focus to the toggle.
+// Published contract asserted here: the served markup makes the menu a native
+// popover (so a browser opens it before or without site.js) and carries no
+// static aria-expanded that would be wrong once it opens. jsdom has no popover
+// support, so the rest drives the script's fallback for such browsers:
+// aria-expanded tracks the drawer, the closed drawer is aria-hidden (out of the
+// accessibility tree), and Escape closes it and returns focus to the toggle.
+// Real browsers' native menu, with and without scripts, is the verify-portfolio walk.
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -43,6 +47,11 @@ test("mobile nav drawer: click opens, Escape closes and refocuses the toggle", {
     // covered by the verify-portfolio walk; here the page is driven unstyled.
     const { JSDOM } = await import("jsdom");
     const html = readFileSync(join(outDir, "index.html"), "utf8").replace(/<style>[\s\S]*?<\/style>/g, "");
+    const served = new JSDOM(html).window.document;
+    assert.equal(served.querySelector(".nav-toggle")?.getAttribute("popovertarget"), "primary-nav");
+    assert.ok(served.getElementById("primary-nav")?.hasAttribute("popover"), "the primary nav is a popover");
+    assert.equal(served.querySelector(".nav-toggle")?.hasAttribute("aria-expanded"), false,
+      "no static aria-expanded: browsers derive it from the popover until the script mirrors it");
     const dom = new JSDOM(html, {
       runScripts: "dangerously",
       url: "https://waseemilyas.uk/",
@@ -64,6 +73,8 @@ test("mobile nav drawer: click opens, Escape closes and refocuses the toggle", {
     const nav = document.getElementById("primary-nav");
     assert.ok(toggle && nav, "the built page carries the nav toggle and primary nav");
 
+    // Without popover support the script takes the drawer over.
+    assert.equal(nav.hasAttribute("popover"), false);
     // Initial state: drawer closed, out of the a11y tree on mobile widths.
     assert.equal(nav.getAttribute("data-open"), "false");
     assert.equal(toggle.getAttribute("aria-expanded"), "false");

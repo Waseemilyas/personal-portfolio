@@ -5,7 +5,7 @@
 | [Read and navigate](reading.md) | Main pages and not-found page | `src/_includes/base.njk`, `src/_data/site.json`, page templates |
 | [Read work and notes](work-and-notes.md) | Work cards, case studies, Notes, articles, Atom feed | `eleventy.config.js`, `src/work/`, `src/notes/` |
 | [Explore capabilities](capabilities.md) | Home capability map | `setupCapabilityMap`, capability data and index template |
-| [Use mobile navigation](navigation.md) | Header toggle, Escape, links, responsive state | `setupNavigation`, `setDrawer`, header CSS |
+| [Use mobile navigation](navigation.md) | Header toggle with and without JS, Escape, links, responsive state | Header popover markup in `base.njk`, `setupNavigation`, header CSS |
 | [Read with reduced motion](motion.md) | Entry reveals and static content | `setupReveals`, reduced-motion CSS |
 | [Contact and linked assets](links-and-assets.md) | Contact links, sitemap, intentional audio URLs | Contact/base templates, passthrough config |
 

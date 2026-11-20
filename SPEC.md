@@ -1,7 +1,7 @@
 # Portfolio behaviour
 
 Observed specification of the current public site; this does not change its copy or design.
-Last verified: 2026-10-16 on Linux; the security policy, share cards and contact links on 2026-11-12.
+Last verified: 2026-10-16 on Linux; the security policy, share cards and contact links on 2026-11-12; the mobile menu on 2026-11-20.
 
 Visitors read the main pages, open anonymised case studies, browse published notes,
 follow the Atom feed, inspect capabilities and find contact links. The source of
@@ -36,12 +36,19 @@ whitespace removed, so the first paint needs no second request and a returning
 visitor never waits on a stylesheet revalidation. `/assets/css/styles.css` is
 still published, so a page cached from before inlining keeps its styles.
 
-`setupNavigation` in `src/assets/js/site.js` owns the mobile drawer. Its
-`setDrawer` function writes open/expanded/hidden/inert state. Escape returns focus
-to the toggle. A link click closes it. Its media query and the stylesheet's mobile
-query must agree. At desktop width the closed drawer's links become available
-again. With JavaScript disabled, the footer navigation is the existing fallback;
-the mobile toggle does not work. The design document already records that exception.
+The mobile drawer is a native popover: `#primary-nav` carries `popover` and the
+header toggle `popovertarget`, so a phone visitor can open the menu from first paint,
+before `site.js` has arrived, and with JavaScript disabled. The browser closes it on
+Escape (focus returns to the toggle) or a tap outside. Closed, the drawer is
+`visibility: hidden`, so its links leave the tab order and accessibility tree. On a
+short landscape phone the open drawer scrolls. `setupNavigation` in
+`src/assets/js/site.js` mirrors `aria-expanded`, closes the drawer when a link is
+chosen or the window widens past the breakpoint, and in a browser without popovers
+removes the attribute and drives the drawer itself (`setDrawer`: open, expanded,
+hidden and inert state). Its media query and the stylesheet's mobile query must
+agree. At desktop width the links are a row in the bar; a menu opened on a phone
+that is then turned wide with no script stays pinned in the row's place until a tap
+elsewhere closes it.
 
 `src/index.njk` renders all capability descriptions from `src/_data/capabilities.json`
 with related links resolved from published notes and case studies. Without
