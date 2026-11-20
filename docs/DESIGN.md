@@ -327,7 +327,7 @@ Two families, one fluid scale, six steps.
 | Token | Range | Used for |
 | --- | --- | --- |
 | `--step--1` | `0.78rem → 0.86rem` | Mono labels, refs, captions, datasheet, footer, nav links |
-| `--step-0` | `0.98rem → 1.08rem` | Body, buttons, wordmark, nav links inside the mobile drawer |
+| `--step-0` | `0.98rem → 1.08rem` | Body, buttons, wordmark, mobile nav links, compact homepage lede |
 | `--step-1` | `1.18rem → 1.45rem` | Hero lede, case kicker, lab-card titles, and `h3` in `.prose` / `.capread` / `.milestone` |
 | `--step-2` | `1.5rem → 2.1rem` | Work card titles (at either heading level), prose `h2`, note titles, the `/about/` lede |
 | `--step-3` | `2.1rem → 3.4rem` | Section titles, case-study titles |
@@ -466,7 +466,7 @@ extend rather than fork.
 | `.section` | both | every route | The vertical rhythm unit: `padding-block: clamp(3.5rem, 8vh, 6rem)`. Pairs with `.console` / `.essay`. |
 | `.topbar` / `.nav` | console | every route | Sticky blurred bar. Collapses to a full-width drawer below 720px: a native popover opened by `.nav-toggle`, so it works without JS (`data-open` only in browsers without popovers). `aria-current="page"` paints the active link `--signal`. |
 | `.foot` | console | every route | Global footer, inside `base.njk`. Two-column grid collapsing at 620px, where `.fnav` becomes two columns of full-width 44px rows separated by the `--line-dark` hairline (seven links read 2+2+2+1). |
-| `.hero` | console | `/`, `/404` | Full-bleed intro band. `.hero h1` is the only `--step-4` consumer; carries `.reg` marks. Two-column on `/`, collapsing at 860px. |
+| `.hero` | console | `/`, `/404` | Full-bleed intro band with `.reg` marks. On the homepage, the title scales between `--step-3` and `--step-4`, and the status panel sits beside the intro from 720px. The homepage uses tighter spacing and body-size lede text at 860px and below. |
 | `.section-head` | console | home sections, `/work/`, `/lab/`, `/automancer/`, `/contact/`, `/about/`, `/404` | Baseline-aligned row: mono `.ref` + title + optional right-aligned `p`. Heading is `h1` or `h2` per the contract above. Essay-surface styling exists (the `.essay .section-head` rules, `styles.css`) but no template currently uses it there. |
 | `.casehead` | essay | case studies, notes (index and detail), `/about/` | Detail-page counterpart: `.ref`, title, optional `.kick` lede, hairline rule below. `/about/` carries `.ref` + title only — its lede is a separate `.lede-essay` paragraph that follows the closing `</div>` of the casehead (`src/about.njk`). |
 | `.workcard` in `.worklist` | console | home, `/work/`, `/404` (the closest-page card, `.nf-match`, outside a `.worklist`) | Three-column grid (ref · title+kick · go arrow) inside a 1px-gap list that fakes dividers via `background: var(--line-dark)`. Collapses to one column below 620px with compact 1rem padding; the "Read →" becomes a full-width row already in `--signal`, because a phone has no hover to announce the card as a link (`scripts/phone-chrome.test.mjs` holds this). |
