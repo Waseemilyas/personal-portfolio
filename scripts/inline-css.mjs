@@ -4,8 +4,9 @@
 // phone on a slow mobile connection that is a whole extra round trip before anything
 // shows. GitHub Pages also caches every file for only ten minutes, so a returning
 // visitor waits for a blocking revalidation of the stylesheet on each page after that.
-// Inlining it removes both waits. The stylesheet is small once its comments and
-// spare whitespace are gone, and the page still fits the connection's first round trip.
+// Inlining it removes both waits. Comments and spare whitespace go here, and each page
+// keeps only the rules it can use (scripts/prune-css.mjs), so the page still fits the
+// connection's first round trip.
 //
 // /assets/css/styles.css is still published, so a page cached from before this
 // change still finds its stylesheet. The CSP lists the block by its SHA-256 hash

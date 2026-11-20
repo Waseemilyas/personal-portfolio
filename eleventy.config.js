@@ -6,6 +6,7 @@ import { revision } from "./scripts/revision.mjs";
 import { addShareCards } from "./scripts/og-cards.mjs";
 import { scriptIntegrity, withPolicy } from "./scripts/csp.mjs";
 import { STYLESHEET, inlineStylesheet, readStylesheet } from "./scripts/inline-css.mjs";
+import { pruneCss } from "./scripts/prune-css.mjs";
 import monitoring from "./src/_data/monitoring.js";
 import site from "./src/_data/site.json" with { type: "json" };
 
@@ -65,18 +66,23 @@ export default function (eleventyConfig) {
   );
 
   // Every page carries the stylesheet inline, so nothing blocks its first paint
-  // (scripts/inline-css.mjs). Read once per build; a stylesheet edit rebuilds pages.
+  // (scripts/inline-css.mjs), less the rules it cannot use (scripts/prune-css.mjs).
+  // Read once per build; a stylesheet or script edit rebuilds pages.
   let css = "";
+  let siteScript = "";
   let siteScriptIntegrity = "";
   eleventyConfig.on("eleventy.before", () => {
     css = readStylesheet();
-    siteScriptIntegrity = scriptIntegrity(readFileSync(SITE_SCRIPT));
+    const bytes = readFileSync(SITE_SCRIPT);
+    siteScript = bytes.toString("utf8");
+    siteScriptIntegrity = scriptIntegrity(bytes);
   });
   eleventyConfig.addWatchTarget(STYLESHEET);
   eleventyConfig.addWatchTarget(SITE_SCRIPT);
   eleventyConfig.addTransform("inline-stylesheet", function (content) {
     const out = this.page.outputPath;
-    return typeof out === "string" && out.endsWith(".html") ? inlineStylesheet(content, css) : content;
+    if (typeof out !== "string" || !out.endsWith(".html")) return content;
+    return inlineStylesheet(content, pruneCss(css, content, siteScript));
   });
 
   // The digest in the URL keeps a new page from reusing a cached copy of an older script.

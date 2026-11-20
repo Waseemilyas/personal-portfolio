@@ -92,8 +92,12 @@ need Waseem's approval under the estate decision policy.
   `scripts/csp.mjs` allows exactly the names the page creates.
 - `src/assets/css/styles.css` is inlined into every page's `<head>` at build time
   (`scripts/inline-css.mjs`), so the first paint waits for no second request. Edit
-  the file as usual; keep strings and `url()` free of comment markers and runs of
-  spaces (`scripts/inline-css.test.mjs`). Do not link it from a page again.
+  the file as usual; keep strings and `url()` free of comment markers, braces and runs
+  of spaces (`scripts/inline-css.test.mjs`). Do not link it from a page again.
+  Each page gets only the rules whose classes and ids it uses (`scripts/prune-css.mjs`).
+  A script may add a class only with a literal name in `classList.add`, `replace` or
+  `toggle`, or `className += "..."`; anything else stops the build, because the pruned
+  page would silently lose that class's rules.
 - **Prayer-time audio files (`audio/`)**: `audio/adhan.mp3`, `audio/iftar.mp3`, and
   `audio/sehri.mp3` are intentional assets fetched over HTTP by an external Home
   Assistant automation. They are deliberately not linked anywhere on the site, but

@@ -13,6 +13,8 @@ test("every string and url() in the stylesheet survives minifying unchanged", ()
   const literals = source.replace(/\/\*[\s\S]*?\*\//g, "").match(/"[^"]*"|'[^']*'|url\([^)]*\)/g) ?? [];
   assert.ok(literals.length > 0);
   for (const literal of literals) assert.ok(min.includes(literal), `${literal} changed`);
+  // scripts/prune-css.mjs finds rules by counting braces.
+  for (const literal of literals) assert.doesNotMatch(literal, /[{}]/, `${literal} has a brace`);
 });
 
 test("a selector's descendant pseudo-class keeps its space", () => {
