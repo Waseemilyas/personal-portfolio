@@ -104,9 +104,12 @@ def remember():
     # Retain exact PID/start identities owned by this session/profile, never a broad reap.
     owned.update(processes())
 
-# Fonts and images loaded, and every entry-motion block on screen fully shown.
+# Fonts and images loaded, every entry-motion block on screen fully shown, and no
+# finite animation or transition still running (a tab's 160 ms colour change, say),
+# so a screenshot shows the settled page rather than whichever frame it caught.
 SETTLED = ("document.fonts.status === 'loaded' && Array.from(document.images).every(i => i.complete) && "
-           "Array.from(document.querySelectorAll('[data-cal]')).filter(e => {const r=e.getBoundingClientRect();return r.top<innerHeight&&r.bottom>0}).every(e=>getComputedStyle(e).opacity==='1')")
+           "Array.from(document.querySelectorAll('[data-cal]')).filter(e => {const r=e.getBoundingClientRect();return r.top<innerHeight&&r.bottom>0}).every(e=>getComputedStyle(e).opacity==='1') && "
+           "document.getAnimations().every(a => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity)")
 def capture(name, checks=None, before=()):
     """Run `before`, wait for the page to settle, check it and take a screenshot, in one process.
     `checks` names further expressions that must be true; no horizontal overflow is always one."""
