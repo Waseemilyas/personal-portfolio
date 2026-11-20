@@ -46,12 +46,13 @@ status line; a refused copy is announced too. Without JavaScript the button stay
 hidden and the mail link is unchanged.
 External links are destinations, not services this repository operates.
 
-Supporting browsers prepare an internal page after link intent (a short hover or
-pointer down), using native speculation rules with `moderate` eagerness. Only
-same-origin links ending in `/` qualify: files, fragments, email and external
-destinations do not. Nothing is speculated on initial load. The rules are hashed
-by the existing Content Security Policy; unsupported or resource-constrained
-browsers keep normal navigation. No client router or navigation interception is used.
+Supporting browsers prerender internal pages on link intent using native speculation
+rules with `moderate` eagerness. The single Next note or Next case study link also
+qualifies for an `eager` HTML prefetch. Current Chromium starts it when the link
+enters the viewport on phones or shortly after hover on desktop. Older Chromium
+can start it on arrival. Both rules are limited to same-origin links ending in
+`/` and hashed by the Content Security Policy. Browsers without speculation
+rules use normal links.
 
 Every page carries the site stylesheet inline in its `<head>`, comments and spare
 whitespace removed, so the first paint needs no second request and a returning
