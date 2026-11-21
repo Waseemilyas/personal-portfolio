@@ -48,10 +48,21 @@ test("a normal build creates and refreshes share cards without publishing drafts
     assert.notDeepEqual(readFileSync(image), before, "retitling must refresh image pixels as well as metadata");
 
     const withdrawnPage = join(output, "notes/withdrawn-probe/index.html");
+    const withdrawnCard = join(output, "assets/img/og/notes-withdrawn-probe.png");
     assert.ok(existsSync(withdrawnPage), "the second note was published before removal");
-    for (const flag of ["--dryrun", "--input=src/contact.njk", "--formats=njk"]) {
+    const published = readFileSync(image);
+    const previousCard = readFileSync(withdrawnCard);
+    writeFileSync(note, text("A title that must stay in the source"));
+    for (const flag of ["--dryrun", "--to=json"]) {
+      build(flag);
+      assert.ok(readFileSync(image).equals(published), `${flag} must leave the published card's pixels alone`);
+      assert.equal(metadata().querySelector('meta[property="og:image:alt"]').content, 'Note · 8 AUG 2026. A renamed note & "quoted" title.');
+    }
+    for (const flag of ["--input=src/contact.njk", "--formats=njk", "--incremental=src/contact.njk"]) {
       build(flag);
       assert.ok(existsSync(withdrawnPage), `${flag} must leave previously built pages in place`);
+      assert.ok(existsSync(withdrawnCard), `${flag} must leave previously built cards in place`);
+      assert.deepEqual(readFileSync(withdrawnCard), previousCard);
     }
     writeFileSync(note, text("A note returned to draft", true));
     unlinkSync(withdrawn);
@@ -59,7 +70,7 @@ test("a normal build creates and refreshes share cards without publishing drafts
     const obsoleteRoutes = ["build-probe", "withdrawn-probe"].filter((slug) => existsSync(join(output, "notes", slug)));
     assert.deepEqual(obsoleteRoutes, [], "a rebuild must remove previously published routes for drafted and deleted notes");
     assert.ok(!existsSync(image), "a note returned to draft must also lose its share card");
-    assert.ok(!existsSync(join(output, "assets/img/og/notes-withdrawn-probe.png")), "a deleted note must also lose its share card");
+    assert.ok(!existsSync(withdrawnCard), "a deleted note must also lose its share card");
     assert.ok(existsSync(join(output, "notes/index.html")), "the Notes index must remain available");
   } finally {
     rmSync(root, { recursive: true, force: true });

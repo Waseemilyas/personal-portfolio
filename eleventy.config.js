@@ -23,7 +23,12 @@ const SITE_SCRIPT_MAP = "site.js.map";
  * Only the Eleventy boundary used here; page data comes from front matter.
  * @typedef {{data: {order?: number, draft?: boolean}, date: Date}} CollectionItem
  * @param {{
- * on: Parameters<typeof addShareCards>[0]["on"],
+ * on(event: "eleventy.before", callback: () => void): void,
+ * on(event: "eleventy.after", callback: (build: {
+ *   directories: {input: string, inputFile?: string, inputGlob?: string, output: string},
+ *   dryRun: boolean, incremental: boolean, outputMode: string,
+ *   results: {outputPath: string | false}[]
+ * }) => Promise<void>): void,
  * addGlobalData(name: string, value: string): void,
  * addPassthroughCopy(paths: Record<string, string>): void,
  * addCollection(name: string, collect: (api: {getFilteredByTag(tag: string): CollectionItem[]}) => CollectionItem[]): void,
@@ -34,7 +39,7 @@ const SITE_SCRIPT_MAP = "site.js.map";
  * }} eleventyConfig
  */
 export default function (eleventyConfig) {
-  addShareCards(eleventyConfig);
+  const writeShareCards = addShareCards(eleventyConfig);
   eleventyConfig.addGlobalData("siteRevision", revision());
 
   eleventyConfig.addPassthroughCopy(publicAssets);
@@ -80,16 +85,6 @@ export default function (eleventyConfig) {
     published = minifySiteScript(siteScript, SITE_SCRIPT_MAP);
     siteScriptIntegrity = scriptIntegrity(published.code);
   });
-  // Visitors get site.js minified (scripts/minify-js.mjs), with its source map beside it;
-  // the class pruner reads the source. Every build that writes output writes both, so a
-  // partial build (--input, --formats) still publishes the script its pages' policy names.
-  eleventyConfig.on("eleventy.after", ({ directories, dryRun, outputMode }) => {
-    if (dryRun || outputMode !== "fs") return;
-    const dir = join(directories.output, dirname(SITE_SCRIPT_URL));
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(directories.output, SITE_SCRIPT_URL), published.code);
-    writeFileSync(join(dir, SITE_SCRIPT_MAP), published.map);
-  });
   eleventyConfig.addWatchTarget(STYLESHEET);
   eleventyConfig.addWatchTarget(SITE_SCRIPT);
   eleventyConfig.addTransform("inline-stylesheet", function (content) {
@@ -127,13 +122,24 @@ export default function (eleventyConfig) {
     });
   });
 
-  // In a full build Eleventy reports every rendered page, but leaves obsolete HTML on disk.
-  // Reconcile the generated pages after Eleventy finishes writing its templates.
-  eleventyConfig.on("eleventy.after", ({ directories, incremental, outputMode, results }) => {
-    if (incremental || outputMode !== "fs" || results.length === 0) return;
-    if (directories.inputFile || directories.inputGlob || resolve(directories.input) !== resolve(INPUT)) return;
-    // Eleventy 3.1 omits CLI template format overrides from the event.
-    if (process.argv.some((arg) => /^--formats(?:=|$)/.test(arg))) return;
+  eleventyConfig.on("eleventy.after", async ({ directories, dryRun, incremental, outputMode, results }) => {
+    if (dryRun || outputMode !== "fs") return;
+
+    // Only a complete build can decide which pages and cards are obsolete.
+    // Eleventy's event omits CLI template format overrides.
+    const complete = !incremental && !directories.inputFile && !directories.inputGlob &&
+      resolve(directories.input) === resolve(INPUT) &&
+      !process.argv.some((arg) => /^--formats(?:=|$)/.test(arg));
+    await writeShareCards(directories.output, complete);
+
+    // Partial builds still need the script and map named by the pages they write.
+    const scriptDir = join(directories.output, dirname(SITE_SCRIPT_URL));
+    mkdirSync(scriptDir, { recursive: true });
+    writeFileSync(join(directories.output, SITE_SCRIPT_URL), published.code);
+    writeFileSync(join(scriptDir, SITE_SCRIPT_MAP), published.map);
+
+    // Eleventy reports every page in a complete build and leaves old HTML on disk.
+    if (!complete || results.length === 0) return;
     const output = resolve(directories.output);
     if (output !== resolve(OUTPUT)) return;
     if (!lstatSync(output, { throwIfNoEntry: false })?.isDirectory()) return;
