@@ -47,7 +47,8 @@ status line. If the write is refused, the button gives way to an open manual
 copy control with visible instructions and a read-only address field. When the
 button had focus, the field gets focus and selects the address. Without
 JavaScript or clipboard access, the visitor can open the manual copy control
-directly.
+directly. Both controls show "Copy address" and have the same width, so the row
+and the content below it stay put when the script swaps them.
 External links are destinations, not services this repository operates.
 
 Supporting browsers prerender internal pages on link intent using native speculation

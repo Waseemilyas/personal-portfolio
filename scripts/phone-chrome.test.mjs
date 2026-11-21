@@ -62,6 +62,9 @@ test("phone: footer navigation groups in two columns with full-width rows", { sk
   assert.doesNotMatch(fnav, /space-between/, "nothing is pushed to opposite edges");
   const link = ruleBodies(phone, ".foot .fnav a").join(" ");
   assert.match(link, /min-block-size:\s*2\.75rem/, "each footer link is a 44px row");
+  // The shared 44px rule centres link text; on a phone the rows sit under
+  // left-aligned meta lines, so their text must start on the same edge.
+  assert.match(link, /justify-content:\s*flex-start/, "footer link text lines up with the meta lines above");
 });
 
 test("44px targets: inline links keep an even baseline", { skip: skipReason }, async () => {
