@@ -1,5 +1,28 @@
 # Release notes
 
+## v2026.11.21.1 — 21 November 2026
+
+The notes now make it easier to explore the site and get in touch.
+
+### Improvements
+
+- Portfolio headings appear as soon as the page opens.
+- Note summaries are easier to scan, with the date and reading time on their own line. The whole note row opens the note when tapped or clicked.
+- Email contact stays usable when your browser blocks automatic copying.
+- Homepage actions fit on short screens held sideways.
+- Pages load with less styling to download on the first connection.
+
+### Fixes
+
+- Error reports from the portfolio no longer include private text.
+- Sharing a page shows its preview card consistently.
+- Older browsers can continue using the site’s navigation.
+- Portfolio scripts load with integrity checks in place.
+- The site builds faster, while its pages and share-card text remain the same.
+- Error reporting avoids inferring visitors’ IP addresses and keeps related warnings grouped together.
+- The email copy button works without leaving a background copy operation unhandled.
+
+
 ## v2026.11.20.6 — 20 November 2026
 
 Website contact buttons now appear at the end of notes and case studies, where readers can reach them after reading.
