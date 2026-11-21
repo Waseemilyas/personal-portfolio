@@ -11,7 +11,9 @@ layout: base.njk
     </div>
 
     <div class="casegrid">
-      {% include "partials/article-contents.njk" %}
+      <div class="case-rail">
+        {% include "partials/article-contents.njk" %}
+      </div>
       <div class="prose" data-cal="1">
         {{ article.html | safe }}
       </div>

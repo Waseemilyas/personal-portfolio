@@ -19,8 +19,11 @@ anywhere on the row opens the case; the link's accessible name is the title. On 
 shorter than the window, the footer sits on the window's bottom edge.
 
 On case studies below 861px, the datasheet follows the article text and shows
-its labels and values side by side. Wider screens show it in a sticky sidebar,
-under the “On this page” list.
+its labels and values side by side. Wider screens show it beside the narrative,
+under the “On this page” list. With JavaScript, the list and datasheet follow
+the article together from 861px wide and 400px high. The datasheet scrolls
+within the sidebar when space is short. A section link near the end lands
+far enough down the screen to leave the sidebar available for another jump.
 The layout works without JavaScript. In print, the datasheet follows the article text.
 
 GitHub Pages serves `/404.html` at whatever address was asked for. Below its hero,
@@ -153,8 +156,10 @@ stays below the site header as the reader scrolls through the article and names
 the current section. Choosing a section closes the list and focuses its heading.
 Escape closes the list and returns keyboard focus to the control. Without
 JavaScript the disclosure and fragment links still work in the flow of the page.
-From 861px the list is a column beside the text. On notes it stays in view while
-the note is read. On case studies it sits above the sticky datasheet. JavaScript
+From 861px the list is a column beside the text. JavaScript opens the native
+disclosure so browsers expose its links to assistive technology. Without scripts
+the reader can open it directly. On notes it stays in view while the note is
+read. On case studies it sits above the datasheet. JavaScript
 marks the current link with `aria-current="location"` as its heading approaches the
 reading position. The fragment URL can be opened directly. Print keeps the
 headings and omits the list.
