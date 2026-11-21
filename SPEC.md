@@ -245,7 +245,8 @@ canonical page (including `/404.html` for missing pages), standard error categor
 and line and column numbers in the page or its versioned site script. Each minified
 script publishes a matching source map that resolves those positions to the source. Exception messages, custom
 error names and stack labels are removed in the browser, including for linked
-causes and promise rejections. Reports also omit the visitor's raw page URL,
+causes and promise rejections. A thrown string has no stack of its own, so its
+report keeps the canonical page it was thrown from and no line number. Reports also omit the visitor's raw page URL,
 referrer, browsing breadcrumbs and SDK-captured callback arguments. The SDK tells
 Sentry not to infer the visitor's IP address. The SDK sends
 no session reports. Each distinct policy warning includes

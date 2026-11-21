@@ -30,6 +30,7 @@ const sample = {
   stackLabel: "samplePrivateStackLabel",
   stackPath: "sample-private-stack-path",
   blocked: "sample-blocked-resource-path",
+  thrownString: "sample-thrown-string",
 };
 
 test("error reporting sends errors and source lines without visitor browsing data", { skip: skipReason }, async () => {
@@ -127,6 +128,15 @@ test("error reporting sends errors and source lines without visitor browsing dat
     block();
     block();
     const policy = await waitFor(5);
+    // A string thrown from the page has no stack of its own. The report keeps the
+    // line the browser gives and none of the text.
+    window.dispatchEvent(Object.assign(new window.Event("error"), {
+      message: sample.thrownString,
+      filename: window.location.href,
+      lineno: 41,
+      colno: 7,
+    }));
+    const stringThrown = await waitFor(6);
 
     assert.deepEqual(reporting(), [`${site}/assets/js/${monitoring.sdkFile}`],
       "the first error loads only the pinned SDK, from this site");
@@ -139,7 +149,7 @@ test("error reporting sends errors and source lines without visitor browsing dat
     for (const marker of Object.values(sample)) {
       assert.ok(sent.every(({ body }) => !body.includes(marker)), `visitor data reached the ingest: ${marker}`);
     }
-    assert.equal(sent.length, 5, "send only the five diagnostic events, with no sessions or duplicate warnings");
+    assert.equal(sent.length, 6, "send only the six diagnostic events, with no sessions or duplicate warnings");
     assert.ok(sent.every((s) => s.url.startsWith("https://o1.ingest.de.sentry.io/api/1/envelope/")), "reports go only to the DSN's ingest");
     assert.ok(sent.every((s) => s.referrerPolicy === "no-referrer"), "omit the transport referrer too");
     assert.deepEqual(first.request, { url: `${site}/404.html` });
@@ -154,6 +164,10 @@ test("error reporting sends errors and source lines without visitor browsing dat
     assert.ok(events().every((event) => event.sdk.settings.infer_ip === "never" && !event.user), "never infer the visitor's IP");
     assert.equal(policy.exception, undefined, "a policy warning carries no synthetic stack");
     assert.equal(policy.level, "warning");
+    const stringError = stringThrown.exception.values[0];
+    assert.equal(stringError.type, "Error");
+    assert.deepEqual(stringError.stacktrace.frames, [{ filename: `${site}/404.html`, in_app: true }],
+      "a thrown string keeps the page it came from and nothing else");
   } finally {
     dom?.window.close();
   }
