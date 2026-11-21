@@ -282,6 +282,29 @@ try:
         capture(f"home-{width}x{height}", {"homepage actions fit": home_actions_fit}, before=[("open", base + "/")])
         check_home_to_work()
     receipts.append("at 320 × 568, 667 × 375 and 844 × 390 both homepage actions fit without scrolling; Read the work focuses the heading and Tab and Enter open the first case study")
+
+    graph_is_readable = """(() => {
+        const svg = document.querySelector('.capfig svg');
+        const frame = svg.getBoundingClientRect();
+        const tabs = [...svg.querySelectorAll('[role=tab]')];
+        return frame.width > 0 && tabs.length === 5 && tabs.every(tab => {
+            const label = tab.querySelector('text');
+            const text = label.getBoundingClientRect();
+            const ring = tab.querySelector('.ring').getBoundingClientRect();
+            return label.textContent === tab.getAttribute('aria-label') &&
+                text.left >= frame.left && text.right <= frame.right &&
+                text.top >= frame.top && text.bottom <= frame.bottom &&
+                ring.width >= 44 && ring.height >= 44;
+        });
+    })()"""
+    for width, height in [(560, 844), (834, 1112), (1024, 768)]:
+        run("set", "viewport", str(width), str(height))
+        capture(f"capability-{width}", {"full labels and 44px map targets": graph_is_readable},
+                before=[("open", base + "/#capability")])
+    run("click", '.capfig svg [data-key="web"] .ring')
+    check_capability(next(node for node in nodes if node["key"] == "web"))
+    receipts.append("capability graph keeps full labels and 44px targets on small and tablet frames; clicking a node at 1024 × 768 opens its readout")
+
     run("set", "viewport", "390", "844")
     run("open", base + "/")
     for node in nodes:

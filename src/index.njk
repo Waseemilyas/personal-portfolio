@@ -65,22 +65,22 @@ description: "Waseem Ilyas runs Automancer, a UK automation consultancy helping 
 
     <div class="cap" data-cal>
       <figure class="capfig" hidden>
-        <svg class="cap-settled" viewBox="0 0 720 440">
+        <svg class="cap-settled" viewBox="0 0 720 454">
           <g id="traces" stroke-linecap="round" aria-hidden="true">
             {%- for n in capabilities.nodes %}
             <path class="trace" data-for="{{ n.key }}" d="{{ n.trace }}"/>
             {%- endfor %}
           </g>
           <g class="hub" aria-hidden="true">
-            <circle cx="360" cy="220" r="30"/>
+            <circle cx="360" cy="220" r="34"/>
             <text x="360" y="224" text-anchor="middle">PRACTICE</text>
           </g>
           <g role="tablist" aria-label="Capabilities">
             {%- for n in capabilities.nodes %}
             <g class="node" role="tab" aria-label="{{ n.title }}" aria-controls="cap-{{ n.key }}"
                data-key="{{ n.key }}" transform="translate({{ n.x }},{{ n.y }})">
-              <circle class="ring" r="26"></circle><circle class="core" r="6"></circle>
-              <text x="0" y="{{ n.textY }}" text-anchor="middle">{{ n.code }}</text>
+              <circle class="ring" r="32"></circle><circle class="core" r="6"></circle>
+              <text x="0" y="{{ n.textY }}" text-anchor="middle">{{ n.title }}</text>
             </g>
             {%- endfor %}
           </g>

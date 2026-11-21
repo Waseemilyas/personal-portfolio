@@ -334,18 +334,18 @@ Two families, one fluid scale, six steps.
 | `--step-3` | `2.1rem → 3.4rem` | Section titles, case-study titles |
 | `--step-4` | `2.7rem → 5.4rem` | Hero titles — `.hero h1`, on `/` and `/404` |
 
-Sizes outside the scale are all **inside SVG**, plus one display element:
-`.email-big` has its own clamp (`styles.css`) because the address is a display
-element; the capability-map labels are fixed at `11px` (`.node text`) and `10px`
-(`.hub text`); and every inline diagram label is `12px`
-(the `font-size="12"` on the node group in `partials/diagram-workflow.njk`, and the
-`figure` SVG in each of the three case studies). The SVG sizes are fixed because
-they scale with the viewBox, not the page. That is the settled wide-canvas
-treatment: do not enlarge those user-unit sizes to chase a phone viewport, or
-the desktop composition changes. When the frame is narrower than the settled
-composition (36rem for the capability map and case-study figures, 28rem for the
-workflow panel), HTML controls or labels take their place at `--step-0`. The
-capability buttons use the full strand titles.
+Sizes outside the scale are all **inside SVG**, plus one display element.
+`.email-big` has its own clamp because the address is a display element.
+The capability map uses Geist at 18 SVG units for each full strand title
+and mono at 10 units for the hub. Its 64-unit circles render at least 44px
+wide when the frame has 31rem of drawing space. With 55rem of room inside
+the section, the map and readout sit side by side. Otherwise, the readout follows the map
+and their shared width is capped at 42rem. When the drawing space drops
+below 31rem, the map uses its HTML buttons at `--step-0`.
+
+The workflow and case-study SVG labels are 12 units. They scale with the
+viewBox. Below 36rem for the case-study figures and 28rem for the workflow
+panel, HTML labels take their place at `--step-0`.
 See `.diagram-phone` and `.cap-phone` in `styles.css`. Outside SVG, use a step —
 if a value is not in the scale, the answer is almost always the nearest step
 rather than a new one.

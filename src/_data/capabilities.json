@@ -9,7 +9,7 @@
       "reading": "/notes/unglamorous-half-of-automation/",
       "x": 140,
       "y": 96,
-      "textY": -36,
+      "textY": -46,
       "trace": "M360,220 C260,150 200,120 140,96"
     },
     {
@@ -20,7 +20,7 @@
       "reading": "/notes/what-an-operations-platform-is-made-of/",
       "x": 600,
       "y": 104,
-      "textY": -36,
+      "textY": -46,
       "trace": "M360,220 C470,150 540,128 600,104"
     },
     {
@@ -30,7 +30,7 @@
       "body": "Instructional design and e-learning production: turning complex topics into things people can learn from.",
       "x": 150,
       "y": 340,
-      "textY": 46,
+      "textY": 54,
       "trace": "M360,220 C250,270 200,300 150,340"
     },
     {
@@ -41,7 +41,7 @@
       "reading": "/work/cs-product/",
       "x": 596,
       "y": 344,
-      "textY": 46,
+      "textY": 54,
       "trace": "M360,220 C470,280 540,310 596,344"
     },
     {
@@ -51,7 +51,7 @@
       "body": "Graphic design and visual communication since age 15. The origin story, still in the toolkit.",
       "x": 360,
       "y": 392,
-      "textY": 46,
+      "textY": 54,
       "trace": "M360,220 C360,300 360,330 360,392"
     }
   ]
