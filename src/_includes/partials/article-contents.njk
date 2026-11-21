@@ -1,13 +1,16 @@
 {%- if article.sections | length > 1 or datasheet %}
-<nav class="article-contents" aria-label="On this page" data-cal="1">
-  <p aria-hidden="true">On this page</p>
-  <ul role="list">
-    {%- for section in article.sections %}
-    <li><a href="{{ section.href | escape }}">{{ section.title | escape }}</a></li>
-    {%- endfor %}
-    {%- if datasheet %}
-    <li><a href="#case-datasheet">Datasheet</a></li>
-    {%- endif %}
-  </ul>
-</nav>
+<details class="article-contents" data-cal="1">
+  <summary>On this page <span aria-hidden="true"></span></summary>
+  <nav aria-label="On this page">
+    <p aria-hidden="true">On this page</p>
+    <ul role="list">
+      {%- for section in article.sections %}
+      <li><a href="{{ section.href | escape }}">{{ section.title | escape }}</a></li>
+      {%- endfor %}
+      {%- if datasheet %}
+      <li><a href="#case-datasheet">Datasheet</a></li>
+      {%- endif %}
+    </ul>
+  </nav>
+</details>
 {%- endif %}

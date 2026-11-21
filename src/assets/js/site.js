@@ -186,19 +186,36 @@
 
   /* Manual copy is available at first paint. Swap in the one-click control
      if the browser has a clipboard API and the visitor hasn't started copying. */
-  /* On this page marks the section being read. A section counts once its heading
-     comes within a tenth of the window below the header: a contents jump lands the
-     heading just under the header and marks that section, not a short one after it.
-     Only headings in the text are tracked: the datasheet sits beside the text on
-     wide screens. */
-  function setupContentsMarker() {
-    const nav = document.querySelector(".article-contents");
-    if (!nav) return;
+  /* The native disclosure works before this script. On narrow screens it follows
+     the text and closes before the browser jumps to the chosen heading. */
+  function setupArticleContents() {
+    const details = document.querySelector(".article-contents");
+    if (!(details instanceof HTMLDetailsElement)) return;
+    const summary = details.querySelector("summary");
+    const title = summary?.querySelector("span");
+    if (!summary || !title) return;
+    details.setAttribute("data-follow", "");
+    details.addEventListener("click", (event) => {
+      if (event.target instanceof Element && event.target.closest("a") && summary.offsetHeight) details.open = false;
+    });
+    details.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && details.open && summary.offsetHeight) {
+        summary.focus();
+        details.open = false;
+      }
+    });
+    details.addEventListener("focusout", (event) => {
+      if (summary.offsetHeight && event.relatedTarget instanceof Node && !details.contains(event.relatedTarget)) details.open = false;
+    });
+    document.addEventListener("click", (event) => {
+      if (details.open && summary.offsetHeight && event.target instanceof Node && !details.contains(event.target)) details.open = false;
+    });
+
     /** @type {{link: Element, heading: HTMLElement}[]} */
     const sections = [];
-    nav.querySelectorAll('a[href^="#"]').forEach(function (link) {
+    details.querySelectorAll('a[href^="#"]').forEach(function (link) {
       const heading = document.getElementById(decodeURIComponent((link.getAttribute("href") || "").slice(1)));
-      if (heading && heading.closest(".prose")) sections.push({ link: link, heading: heading });
+      if (heading) sections.push({ link: link, heading: heading });
     });
     if (sections.length < 2) return;
     const topbar = document.querySelector(".topbar");
@@ -211,16 +228,25 @@
       // At the foot of a short page the last headings cannot reach the line, so
       // any heading on screen counts.
       const atEnd = window.scrollY + window.innerHeight >= root.scrollHeight - 2;
-      const line = atEnd ? window.innerHeight : (topbar ? topbar.getBoundingClientRect().bottom : 0) + window.innerHeight * 0.1;
+      const compact = summary.offsetHeight;
+      const line = atEnd ? window.innerHeight :
+        (topbar?.getBoundingClientRect().bottom ?? 0) + compact + window.innerHeight * 0.1;
       /** @type {Element | null} */
       let reading = null;
-      sections.forEach(function (s) { if (s.heading.getBoundingClientRect().top <= line) reading = s.link; });
-      // There, a contents jump that could not bring its heading up still marks it.
-      const jumped = atEnd && sections.find(function (s) { return "#" + s.heading.id === decodeURIComponent(location.hash); });
-      if (jumped && jumped.heading.getBoundingClientRect().top >= 0) reading = jumped.link;
+      for (const { heading, link } of sections) {
+        // On wide screens the datasheet sits beside the prose.
+        if (!compact && heading.id === "case-datasheet") continue;
+        const top = heading.getBoundingClientRect().top;
+        if (top <= line) reading = link;
+        if (atEnd && top >= 0 && heading.matches(":target")) {
+          reading = link;
+          break;
+        }
+      }
       if (reading === current) return;
       if (current) current.removeAttribute("aria-current");
       if (reading) reading.setAttribute("aria-current", "location");
+      title.textContent = reading?.textContent ?? "";
       current = reading;
     };
     const queue = function () {
@@ -492,7 +518,7 @@
   setupFocusVisibility();
   setupCapabilityMap();
   setupReveals();
-  setupContentsMarker();
+  setupArticleContents();
   setupCopyEmail();
   setupPageTransitions();
 })();

@@ -145,14 +145,16 @@ the note: the title link stretches over it, so its accessible name stays the tit
 
 Case studies and notes with two or more body headings show an “On this page” list
 under the introduction. Case studies also link to their datasheet from that list.
-Below 861px the list sits above the text. From 861px it is a column beside the
-text: on notes it stays in view while the note is read, and on case studies it sits
-above the sticky datasheet. With JavaScript, the link for the section being read
-is marked (`aria-current="location"`) once its heading comes within a tenth of the
-window under the header; a jump marks the section it opened, also at the foot of a
-short page. The links jump to and focus the headings below the sticky header,
-including with JavaScript disabled. The fragment URL can be opened directly. Print
-keeps the headings and omits the list.
+Below 861px the list opens from a native disclosure. With JavaScript, the control
+stays below the site header as the reader scrolls through the article and names
+the current section. Choosing a section closes the list and focuses its heading.
+Escape closes the list and returns keyboard focus to the control. Without
+JavaScript the disclosure and fragment links still work in the flow of the page.
+From 861px the list is a column beside the text. On notes it stays in view while
+the note is read. On case studies it sits above the sticky datasheet. JavaScript
+marks the current link with `aria-current="location"` as its heading approaches the
+reading position. The fragment URL can be opened directly. Print keeps the
+headings and omits the list.
 
 Each case study and note ends with the contact controls, a "Next case study" or
 "Next note" link, and a link back to the index. The next link points to the next
