@@ -14,7 +14,9 @@ datasheet:
   - { k: "OUTCOME", v: "A live, publicly reachable product" }
   - { k: "CONSTRAINTS", v: "Client never named · no product link · abstract diagram only" }
 ---
-**Context.** A digital product built and shipped to a public homepage for a professional-services firm.
+## Context
+
+A digital product built and shipped to a public homepage for a professional-services firm.
 
 <figure class="figure">
   <svg viewBox="0 0 640 210" role="img" aria-label="Abstract product composition: interface, logic, and data layers composing a shipped product. Generated, no private data.">
@@ -40,8 +42,14 @@ datasheet:
   <figcaption>FIG.1 — Abstract product composition. Generated, no private data.</figcaption>
 </figure>
 
-**Role.** Contributed to building and shipping the product.
+## Role
 
-**Craft.** Web and product delivery.
+Contributed to building and shipping the product.
 
-**Outcome.** A live, publicly reachable product.
+## Craft
+
+Web and product delivery.
+
+## Outcome
+
+A live, publicly reachable product.

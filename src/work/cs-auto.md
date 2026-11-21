@@ -14,7 +14,9 @@ datasheet:
   - { k: "OUTCOME", v: "A working consultancy helping small businesses adopt AI &amp; automation" }
   - { k: "LINK", v: "<a href='https://automancer.uk' rel='noopener'>automancer.uk ↗</a>" }
 ---
-**Context.** Small businesses keep hearing that AI will help them, with little practical guidance on where it actually fits.
+## Context
+
+Small businesses keep hearing that AI will help them, with little practical guidance on where it actually fits.
 
 <figure class="figure">
   <svg viewBox="0 0 640 230" role="img" aria-label="Abstract delivery model: a problem and its data flow through scope and design into a running system. Generated, no client data.">
@@ -48,10 +50,16 @@ datasheet:
   <figcaption>FIG.1 — Abstract delivery model. Generated, no client data.</figcaption>
 </figure>
 
-**Role.** Founder and practitioner. I scope, design, and build the systems myself.
+## Role
 
-**Craft.** AI-assisted automation, agentic workflows, web and internal tooling, and the judgement to know which problems are worth automating.
+Founder and practitioner. I scope, design, and build the systems myself.
 
-**Outcome.** A working consultancy that helps small businesses adopt AI and automation without the enterprise overhead.
+## Craft
+
+AI-assisted automation, agentic workflows, web and internal tooling, and the judgement to know which problems are worth automating.
+
+## Outcome
+
+A working consultancy that helps small businesses adopt AI and automation without the enterprise overhead.
 
 [Visit Automancer →](https://automancer.uk)

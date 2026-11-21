@@ -355,8 +355,7 @@ rather than a new one.
   eras, the email link, and `.label` (uppercase, `0.08em` tracking). Note the rule
   is narrower than it sounds: mono also carries a few short UI affordances, among
   them the `.workcard .go` arrow, `.casenav a` links and the `.proof li::before`
-  bullet glyph (all `styles.css`). There are 24 `var(--mono)` consumers in all;
-  the constraint that actually holds is **never body copy**.
+  bullet glyph (all `styles.css`). It stays out of body copy.
 - Headings tighten as they grow: the global rule is `font-weight: 700`,
   `line-height: 1.04`, `letter-spacing: -0.03em`, `text-wrap: balance`; the hero
   goes further to `800` / `-0.038em`. Paragraphs and list items use
@@ -400,8 +399,7 @@ renders the `.notes-list` branch with an `<h2>` per `.note-item`, and each post 
 note-detail page. `.notes-empty` is the fallback branch and only renders if every note
 in `src/notes/posts/` is `draft: true` (drafts get `permalink: false`), so it is styled
 and remains in the template but is not currently rendered. A note-detail page carries
-a single `<h1>` and `.prose h2`/`h3` only if the post's Markdown uses them; the first
-note does not.
+a single `<h1>` and `.prose h2`/`h3` where the post's Markdown uses them.
 
 The rule that makes this work: **a card's heading level depends on its page, not on
 its class.** The same `.workcard` is an `<h3>` on the homepage (nested under a section
@@ -483,6 +481,10 @@ extend rather than fork.
 | `.casenav` | essay | case-study and note detail pages | Footer nav **inside** the `<article>`, not under it. A fixed pair: back-to-index link + `mailto`. Mono in `--signal-deep`. Directly after `.nextread` it drops its hairline and top padding. |
 | `.btn` (`-primary` / `-ghost`) | console | `/`, `/404`, `/automancer/`, `/contact/` | Every button ships on console. `.essay .btn-ghost` (+ hover) (`styles.css`) restates the ghost variant in ink, but no essay template uses a button — reserved, not shipped. |
 | `.ref` | both | every content route | Mono section/page reference. `--signal` on console, `--signal-deep` on essay. |
+
+Case studies and notes add `.article-contents` inside `.casehead` when the body
+has two or more `h2` sections. It uses the paper link colour and wraps the 44px
+link targets to fit the reading width. The contents list is hidden in print.
 
 Single-route components are in the stylesheet but deliberately not listed here:
 `.capfig` / `.capread` (the homepage capability map), `.panel` / `.readout` (the
