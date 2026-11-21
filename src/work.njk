@@ -13,12 +13,23 @@ permalink: "/work/"
       <p>A few projects where the mix mattered more than any single skill. Some are public. Some are anonymised to protect client privacy.</p>
     </div>
     <div class="worklist" data-cal="1">
+      {#- Each row shows the case's role, craft and outcome from its own datasheet,
+          so a reader can compare the work before opening any of it. The title is
+          the link and stretches over the row (as on Notes), so its name stays short. #}
       {%- for cs in collections.casestudies %}
-      <a class="workcard" href="{{ cs.url }}">
+      <article class="workcard workcard-spec">
         <span class="ref">{{ cs.data.ref }}</span>
-        <div><h2>{{ cs.data.title }}</h2><span class="kick">{{ cs.data.kicker }}</span></div>
-        <span class="go">Read →</span>
-      </a>
+        <div>
+          <h2><a href="{{ cs.url }}">{{ cs.data.title }}</a></h2>
+          <span class="kick">{{ cs.data.kicker }}</span>
+          <dl class="workspec">
+            {%- for row in cs.data.datasheet %}{% if row.k in ["ROLE", "CRAFT", "OUTCOME"] %}
+            <div><dt>{{ row.k | lower | capitalize }}</dt><dd>{{ row.v | replace(" · ", "&nbsp;· ") | safe }}</dd></div>
+            {%- endif %}{% endfor %}
+          </dl>
+        </div>
+        <span class="go" aria-hidden="true">Read →</span>
+      </article>
       {%- endfor %}
     </div>
   </div>

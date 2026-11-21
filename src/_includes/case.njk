@@ -14,7 +14,7 @@ layout: base.njk
         <div class="dh">Datasheet</div>
         <dl>
           {%- for row in datasheet %}
-          <dt>{{ row.k }}</dt><dd>{{ row.v | safe }}</dd>
+          <dt>{{ row.k }}</dt><dd>{{ row.v | replace(" · ", "&nbsp;· ") | safe }}</dd>
           {%- endfor %}
         </dl>
       </aside>

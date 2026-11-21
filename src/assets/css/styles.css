@@ -288,7 +288,13 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   min-height: 100vh;
+  /* A short page's last section fills the window, so the footer sits on its
+     bottom edge instead of stopping partway down with bare background below. */
+  display: flex;
+  flex-direction: column;
 }
+main { flex: 1 0 auto; display: flex; flex-direction: column; }
+main > :last-child { flex-grow: 1; }
 img, svg { max-width: 100%; }
 a { color: inherit; }
 ::selection { background: var(--signal); color: var(--on-signal); }
@@ -498,6 +504,24 @@ p, li { text-wrap: pretty; }
    part of the card: a full-width affordance on the next line, already in the
    signal colour. Compact padding keeps three cards inside one screen. */
 @media (max-width: 620px) { .workcard { grid-template-columns: 1fr; gap: .5rem; padding: 1rem var(--space-card-inline); } .workcard .go { grid-column: 1; justify-self: start; color: var(--signal); } }
+/* Work page rows also carry the case's role, craft and outcome (its datasheet's
+   own words), so the work can be compared before any of it is opened. The title
+   link stretches over the row, as on Notes; the Read cue follows the title row. */
+.workcard-spec { position: relative; align-items: start; padding-block: 1.6rem; }
+.workcard-spec .go { padding-top: .3rem; }
+.workcard-spec h2 a { text-decoration: none; }
+.workcard-spec h2 a::after { content: ""; position: absolute; inset: 0; }
+.workcard-spec h2 a:focus-visible { outline: none; }
+.workcard-spec h2 a:focus-visible::after { outline: 2px solid var(--signal); outline-offset: -4px; }
+.workspec { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .9rem var(--space-grid-gap); margin-top: 1.15rem; padding-top: 1rem; border-top: 1px solid var(--line-dark); font-size: var(--step--1); line-height: 1.5; }
+.workspec dt { font-family: var(--mono); letter-spacing: .05em; text-transform: uppercase; color: var(--bone-mute); }
+.workspec dd { margin-top: .25rem; color: var(--bone); text-wrap: pretty; }
+@media (max-width: 880px) {
+  .workspec { grid-template-columns: minmax(0, 1fr); gap: .6rem; }
+  .workspec > div { display: grid; grid-template-columns: 9ch minmax(0, 1fr); column-gap: 1rem; }
+  .workspec dd { margin-top: 0; }
+}
+@media (max-width: 620px) { .workcard-spec { padding-block: 1.2rem; } .workcard-spec .go { padding-top: .2rem; } }
 
 /* ---------- essay / case study (paper) ---------- */
 .essay { background: var(--paper); color: var(--ink); }
