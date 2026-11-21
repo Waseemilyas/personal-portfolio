@@ -548,12 +548,12 @@ p, li { text-wrap: pretty; }
 .casehead .kick { color: var(--ink-mute); font-size: var(--step-1); font-weight: 400; max-width: calc(52 * var(--ch)); text-wrap: pretty; }
 /* A note's date and length sit on their own mono line under its summary, as on the index. */
 .casehead .note-meta { margin-top: .9rem; font-family: var(--mono); font-size: var(--step--1); color: var(--ink-mute); }
-/* On this page opens the body: a row of links above the text, and from 861px a
-   rail beside it (above the datasheet on case studies). A note's rail stays in
-   view while the note is read; site.js marks the section being read with
-   aria-current="location". */
+/* On this page is a disclosure on narrow screens and an open rail on wide screens. */
 .article-contents { margin-block-end: 1.5rem; }
-.article-contents p { font-family: var(--mono); font-size: var(--step--1); color: var(--ink-mute); }
+.article-contents :is(summary, p) { font-family: var(--mono); font-size: var(--step--1); color: var(--ink-mute); }
+.article-contents summary { min-block-size: 44px; align-content: center; cursor: pointer; }
+.article-contents summary span { display: none; }
+.article-contents p { display: none; }
 .article-contents ul { display: flex; flex-wrap: wrap; gap: 0 .75rem; padding-inline-start: 0; list-style: none; }
 .article-contents a { display: inline-flex; align-items: center; min-block-size: 44px; min-inline-size: 44px; color: var(--signal-deep); text-underline-offset: 3px; }
 .article-contents a:active { color: var(--ink); }
@@ -566,7 +566,11 @@ p, li { text-wrap: pretty; }
   .notegrid > .prose { grid-column: 1; grid-row: 1; }
   .notegrid > .article-contents { grid-column: 2; grid-row: 1; position: sticky; top: 4.5rem; margin-block-end: 0; }
   :is(.casegrid, .notegrid) > .prose > :first-child { margin-block-start: 0; }
-  :is(.casegrid, .notegrid) > .article-contents p { margin-block-end: .5rem; }
+  @supports selector(::details-content) {
+    .article-contents::details-content { content-visibility: visible; }
+    .article-contents summary { display: none; }
+    .article-contents p { display: block; margin-block-end: .5rem; }
+  }
   :is(.casegrid, .notegrid) > .article-contents ul { flex-direction: column; flex-wrap: nowrap; border-inline-start: 1px solid var(--line-light); }
   :is(.casegrid, .notegrid) > .article-contents a {
     display: flex; min-inline-size: 0; margin-inline-start: -1px; padding: .45rem 0 .45rem .9rem;
@@ -601,9 +605,30 @@ p, li { text-wrap: pretty; }
 @media screen and (width < 861px) {
   .case-study { padding-block-start: clamp(2rem, 5vw, 3.5rem); }
   .case-study .casehead { padding-block-end: 1.1rem; margin-block-end: 1.2rem; }
-  .casegrid { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; gap: 1.25rem; }
-  .casegrid > :is(.prose, .article-contents, .datasheet) { grid-column: auto; grid-row: auto; }
+  .casegrid { display: flex; flex-direction: column; align-items: stretch; gap: 1.25rem; }
   .casegrid > .article-contents { margin-block-end: .25rem; }
+  :is(.casegrid, .notegrid) { --contents-height: 44px; }
+  .article-contents[data-follow] {
+    position: sticky; inset-block-start: calc(var(--topbar-height) + 1px); z-index: 2;
+    background: var(--paper); border-block-end: 1px solid var(--line-light);
+  }
+  .article-contents[data-follow] summary {
+    display: flex; align-items: center; gap: .75rem;
+    min-block-size: var(--contents-height); color: var(--ink); white-space: nowrap;
+  }
+  .article-contents[data-follow] summary::-webkit-details-marker { display: none; }
+  .article-contents[data-follow] summary::after { content: "+" / ""; margin-inline-start: auto; }
+  .article-contents[data-follow][open] summary::after { content: "−" / ""; }
+  .article-contents[data-follow] summary span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-mute); }
+  .article-contents[data-follow] ul {
+    display: grid; overflow: auto; overscroll-behavior: contain;
+    max-block-size: calc(100dvh - var(--topbar-height) - var(--contents-height) - 1rem);
+  }
+  .article-contents[data-follow] a { display: flex; min-inline-size: 0; }
+  .article-contents[data-follow] a[aria-current] { color: var(--ink); font-weight: 600; }
+  .article-contents[data-follow] ~ :is(.prose, .datasheet) :is([id], a) {
+    scroll-margin-block-start: calc(var(--contents-height) + .25rem);
+  }
   .casegrid > .prose > :first-child { margin-block-start: 0; }
   .casegrid > .datasheet { position: static; max-inline-size: calc(70 * var(--ch)); }
   .casegrid .datasheet dl {

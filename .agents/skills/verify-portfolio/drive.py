@@ -353,6 +353,31 @@ try:
     capture("desktop-note-rail")
     receipts.append("desktop note: On this page sits beside the text, stays in view after a jump, and marks only the section it opened")
     run("set", "viewport", "390", "844")
+    run("open", base + "/work/cs-care/")
+    run("click", ".article-contents summary")
+    run("click", '.article-contents a[href="#section-outcome"]')
+    run("wait", "--fn", """(() => {
+        const contents = document.querySelector('.article-contents');
+        const outcome = document.getElementById('section-outcome');
+        const rail = contents.getBoundingClientRect();
+        return !contents.open && document.activeElement === outcome &&
+            contents.querySelector('[aria-current="location"]')?.hash === '#section-outcome' &&
+            rail.top >= document.querySelector('.topbar').getBoundingClientRect().bottom - 1 &&
+            rail.bottom < outcome.getBoundingClientRect().top;
+    })()""")
+    capture("phone-article-position")
+    run("focus", ".article-contents summary")
+    run("press", "Enter")
+    capture("phone-article-contents")
+    run("press", "Tab")
+    require("document.activeElement.matches('.article-contents a')")
+    run("press", "Escape")
+    require("document.activeElement.matches('.article-contents:not([open]) summary')")
+    run("press", "Enter")
+    run("click", '.article-contents a[href="#section-role"]')
+    run("wait", "--fn", "document.activeElement.id === 'section-role' && !document.querySelector('.article-contents').open")
+    receipts.append("phone case study: On this page stays visible after a jump, indicates the current section and lets readers jump again; Escape returns focus to the control")
+    run("open", base + "/notes/unglamorous-half-of-automation/")
     run("focus", ".reading-contact .email-big")
     run("press", "Tab")
     require("document.activeElement.matches('.reading-contact .copy-email')")
@@ -447,6 +472,8 @@ try:
     require("location.hash === '#main' && document.activeElement === document.querySelector('main')")
     receipts.append("JavaScript-disabled skip link focuses main")
     check_home_to_work()
+    run("focus", ".article-contents summary")
+    run("press", "Enter")
     run("focus", 'a[href="#case-datasheet"]')
     run("press", "Enter")
     run("wait", "--fn", """(() => {

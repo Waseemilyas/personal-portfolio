@@ -485,7 +485,9 @@ extend rather than fork.
 Case studies and notes add `.article-contents` as the first block of the body
 (`.casegrid` or `.notegrid`, after `.casehead`) when the body has two or more `h2`
 sections. On case studies it also links to the datasheet heading. Below 861px it
-uses the paper link colour and wraps the 44px link targets to fit the reading width.
+is a native disclosure with 44px targets. With JavaScript it follows the article
+beneath the header on the paper surface and names the current section beside its
+label. Opening it reveals the section links in a scrollable list.
 From 861px it is a rail in the right column: a `--line-light` hairline with
 `--ink-mute` links in `--step--1`, still 44px tall. The section being read
 (`aria-current`, set by site.js) turns `--ink` with a 2px `--signal-deep` bar on the
