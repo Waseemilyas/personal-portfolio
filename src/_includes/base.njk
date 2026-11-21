@@ -89,6 +89,8 @@
       try {
         var url = new URL(filename);
         if (url.origin !== location.origin) return;
+        // The address can carry a query string the visitor typed. Match the path,
+        // and report the canonical page, which has no query string.
         if (url.pathname === location.pathname) return canonicalPage;
         var siteScript = document.querySelector("script#site-script");
         if (siteScript && url.pathname === new URL(siteScript.src).pathname) return url.origin + url.pathname;
@@ -113,7 +115,10 @@
           if (!exception.stacktrace) continue;
           var frames = (exception.stacktrace.frames || []).flatMap(function (frame) {
             var filename = sourceFile(frame.filename);
-            return filename ? [{ filename: filename, lineno: frame.lineno, colno: frame.colno, in_app: true }] : [];
+            // The SDK's own frame for a thrown string carries the page but no line.
+            // Keep the page, so the report still says where it was thrown.
+            if (filename && !frame.lineno) return [{ filename: filename, in_app: true }];
+            return filename && frame.lineno ? [{ filename: filename, lineno: frame.lineno, colno: frame.colno, in_app: true }] : [];
           });
           if (frames.length) exception.stacktrace = { frames: frames };
           else delete exception.stacktrace;
