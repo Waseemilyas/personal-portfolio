@@ -84,6 +84,10 @@ need Waseem's approval under the estate decision policy.
   A new outside service the page sends data to means adding its exact origin to
   `connect-src`, never `'unsafe-inline'` or a wildcard. `site-check` fails the build
   otherwise.
+- `site.js` and the inline scripts ship minified (`scripts/minify-js.mjs`, esbuild);
+  `site.js.map` is published beside the script. Keep the readable source as it is, and
+  create a Trusted Types policy only with a literal name in
+  `trustedTypes.createPolicy("name", ...)`, which minifying keeps.
 - The policy also enforces Trusted Types, so a string passed to `innerHTML`,
   `insertAdjacentHTML`, `document.write` or a script's `src` throws in the browser
   (jsdom tests will not catch it). Build DOM with `createElement` and `textContent`.

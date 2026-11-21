@@ -1,12 +1,13 @@
 // Eleventy config for WI-PF1 — Waseem Ilyas portfolio.
 // Source in src/, static output in _site/. No client framework; pure HTML/CSS/vanilla JS.
-import { lstatSync, readdirSync, readFileSync, rmdirSync, unlinkSync } from "node:fs";
+import { lstatSync, mkdirSync, readdirSync, readFileSync, rmdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { revision } from "./scripts/revision.mjs";
 import { addShareCards } from "./scripts/og-cards.mjs";
 import { scriptIntegrity, withPolicy } from "./scripts/csp.mjs";
 import { STYLESHEET, inlineStylesheet, readStylesheet } from "./scripts/inline-css.mjs";
 import { pruneCss } from "./scripts/prune-css.mjs";
+import { minifyInlineScripts, minifySiteScript } from "./scripts/minify-js.mjs";
 import monitoring from "./src/_data/monitoring.js";
 import site from "./src/_data/site.json" with { type: "json" };
 
@@ -14,6 +15,7 @@ const INPUT = "src";
 const OUTPUT = "_site";
 const SITE_SCRIPT_URL = "/assets/js/site.js";
 const SITE_SCRIPT = `${INPUT}${SITE_SCRIPT_URL}`;
+const SITE_SCRIPT_MAP = "site.js.map";
 
 /**
  * Only the Eleventy boundary used here; page data comes from front matter.
@@ -21,7 +23,7 @@ const SITE_SCRIPT = `${INPUT}${SITE_SCRIPT_URL}`;
  * @param {{
  * on: Parameters<typeof addShareCards>[0]["on"],
  * addGlobalData(name: string, value: string): void,
- * addPassthroughCopy(paths: Record<string, string>): void,
+ * addPassthroughCopy(paths: Record<string, string>, options?: {filter?: (path: string) => boolean}): void,
  * addCollection(name: string, collect: (api: {getFilteredByTag(tag: string): CollectionItem[]}) => CollectionItem[]): void,
  * addFilter(name: string, filter: (value: string, ...args: string[]) => string): void,
  * addTransform(name: string, transform: (this: {page: {outputPath: string | false, url: string}}, content: string) => string): void,
@@ -33,7 +35,8 @@ export default function (eleventyConfig) {
   eleventyConfig.addGlobalData("siteRevision", revision());
 
   // Static passthrough: assets, plus the root-level files GitHub Pages needs.
-  eleventyConfig.addPassthroughCopy({ "src/assets": "assets" });
+  // site.js is published minified (written after the build, below), not copied.
+  eleventyConfig.addPassthroughCopy({ "src/assets": "assets" }, { filter: (/** @type {string} */ path) => path !== "js/site.js" });
   eleventyConfig.addPassthroughCopy({ "src/static": "/" });
   // The pinned Sentry SDK, fetched by pages only after an error (src/_data/monitoring.js).
   eleventyConfig.addPassthroughCopy({ [`vendor/${monitoring.sdkFile}`]: `assets/js/${monitoring.sdkFile}` });
@@ -71,11 +74,22 @@ export default function (eleventyConfig) {
   let css = "";
   let siteScript = "";
   let siteScriptIntegrity = "";
+  let published = { code: "", map: "" };
   eleventyConfig.on("eleventy.before", () => {
     css = readStylesheet();
-    const bytes = readFileSync(SITE_SCRIPT);
-    siteScript = bytes.toString("utf8");
-    siteScriptIntegrity = scriptIntegrity(bytes);
+    siteScript = readFileSync(SITE_SCRIPT, "utf8");
+    published = minifySiteScript(siteScript, SITE_SCRIPT_MAP);
+    siteScriptIntegrity = scriptIntegrity(published.code);
+  });
+  // Visitors get site.js minified (scripts/minify-js.mjs), with its source map beside it;
+  // the class pruner reads the source. Every build that writes output writes both, so a
+  // partial build (--input, --formats) still publishes the script its pages' policy names.
+  eleventyConfig.on("eleventy.after", ({ directories, dryRun, outputMode }) => {
+    if (dryRun || outputMode !== "fs") return;
+    const dir = join(directories.output, dirname(SITE_SCRIPT_URL));
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(directories.output, SITE_SCRIPT_URL), published.code);
+    writeFileSync(join(dir, SITE_SCRIPT_MAP), published.map);
   });
   eleventyConfig.addWatchTarget(STYLESHEET);
   eleventyConfig.addWatchTarget(SITE_SCRIPT);
@@ -83,6 +97,14 @@ export default function (eleventyConfig) {
     const out = this.page.outputPath;
     if (typeof out !== "string" || !out.endsWith(".html")) return content;
     return inlineStylesheet(content, pruneCss(css, content, siteScript));
+  });
+
+  // After pruning (which reads the scripts' class names from their source text) and
+  // before the policy (which hashes the bytes the page ships).
+  eleventyConfig.addTransform("minify-inline-scripts", function (content) {
+    const out = this.page.outputPath;
+    if (typeof out !== "string" || !out.endsWith(".html")) return content;
+    return minifyInlineScripts(content);
   });
 
   // The digest in the URL keeps a new page from reusing a cached copy of an older script.

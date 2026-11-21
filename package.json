@@ -19,6 +19,7 @@
     "@11ty/eleventy": "4.0.0-alpha.12",
     "@types/jsdom": "^30.0.0",
     "@types/node": "^26.6.6",
+    "esbuild": "0.28.2",
     "jsdom": "^31.0.1",
     "oxlint": "1.94.0",
     "parse5": "8.1.1",
