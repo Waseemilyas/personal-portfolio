@@ -181,10 +181,12 @@ Browser errors go to Sentry, and a normal visit makes no request for it. The fir
 error or blocked resource on a page downloads the pinned Sentry SDK
 (`vendor/sentry-<version>.min.js`, served as `/assets/js/`, checked by SHA-384 at
 build and by the browser's integrity check). Error reports retain the release,
-canonical page (including `/404.html` for missing pages), exception text, and
-source lines in the site's JavaScript. Reports omit the visitor's raw page URL,
-referrer, browsing breadcrumbs, and SDK-captured callback arguments or rejected
-objects, and the SDK tells Sentry not to infer the visitor's IP address. The SDK sends
+canonical page (including `/404.html` for missing pages), standard error category,
+and line and column numbers in the page or `site.js`. Exception messages, custom
+error names and stack labels are removed in the browser, including for linked
+causes and promise rejections. Reports also omit the visitor's raw page URL,
+referrer, browsing breadcrumbs and SDK-captured callback arguments. The SDK tells
+Sentry not to infer the visitor's IP address. The SDK sends
 no session reports. Each distinct policy warning includes
 the directive and a public script path or resource category. Extension and Sentry
 URLs are skipped. No Sentry dashboard setting can change the code visitors run.

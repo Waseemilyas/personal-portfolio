@@ -71,6 +71,11 @@
     var onRejection = function (e) { report(e.reason); };
     var canonicalPage = document.querySelector('link[rel="canonical"]').href;
     var sdkUrl = "{{ monitoring.sentrySdkUrl }}";
+    var errorTypes = new Set([
+      "Error", "AggregateError", "EvalError", "RangeError", "ReferenceError", "SyntaxError",
+      "TypeError", "URIError", "AbortError", "InvalidStateError", "NotAllowedError",
+      "NotSupportedError", "QuotaExceededError", "SecurityError", "UnhandledRejection"
+    ]);
     // Trusted Types: the page policy refuses plain strings as script URLs, so the loader
     // has one named policy that vouches for the pinned SDK and nothing else.
     var sdkPolicy = window.trustedTypes && trustedTypes.createPolicy("sdk-loader", {
@@ -85,7 +90,7 @@
         var url = new URL(filename);
         if (url.origin !== location.origin) return;
         if (url.pathname === location.pathname) return canonicalPage;
-        if (/^\/assets\/js\/[\w.-]+\.js$/.test(url.pathname)) return url.origin + url.pathname;
+        if (url.pathname === "/assets/js/site.js") return url.origin + url.pathname;
       } catch (e) {
         // Native and anonymous frames need no URL.
       }
@@ -96,12 +101,23 @@
       event.request = { url: canonicalPage };
       delete event.breadcrumbs;
       delete event.extra; // The SDK can attach callback arguments or rejected objects.
-      event.exception?.values?.forEach(function (exception) {
-        exception.stacktrace?.frames?.forEach(function (frame) {
-          frame.filename = sourceFile(frame.filename);
-          delete frame.abs_path;
-        });
-      });
+      if (event.exception) {
+        // Exception text, custom names and stack labels can contain visitor data.
+        // The separate CSP warnings are assembled here from browser policy fields.
+        delete event.message;
+        for (var exception of event.exception.values || []) {
+          exception.type = errorTypes.has(exception.type) ? exception.type : "Error";
+          exception.value = "Browser error";
+          if (exception.mechanism) delete exception.mechanism.data;
+          if (!exception.stacktrace) continue;
+          var frames = (exception.stacktrace.frames || []).flatMap(function (frame) {
+            var filename = sourceFile(frame.filename);
+            return filename ? [{ filename: filename, lineno: frame.lineno, colno: frame.colno, in_app: true }] : [];
+          });
+          if (frames.length) exception.stacktrace = { frames: frames };
+          else delete exception.stacktrace;
+        }
+      }
       return event;
     }
 

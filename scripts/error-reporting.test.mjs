@@ -14,7 +14,7 @@ import { builtSite, skipReason } from "./built-site.mjs";
 import monitoring from "../src/_data/monitoring.js";
 
 const site = "https://waseemilyas.uk";
-const probeScript = "/assets/js/probe.js";
+const siteScript = "/assets/js/site.js";
 const sample = {
   missingPath: "sample-missing-path",
   query: "sample-query-value",
@@ -24,6 +24,12 @@ const sample = {
   history: "sample-history-value",
   console: "sample-console-value",
   rejection: "sample-rejection-value",
+  rejectionText: "sample-rejection-text",
+  exceptionText: "sample-exception-value",
+  causeText: "sample-cause-value",
+  exceptionName: "SamplePrivateErrorName",
+  stackLabel: "samplePrivateStackLabel",
+  stackPath: "sample-private-stack-path",
   blocked: "sample-blocked-resource-path",
 };
 
@@ -40,10 +46,17 @@ test("error reporting sends errors and source lines without visitor browsing dat
     // Serve this build's scripts; answer anything else locally, never from the network.
     const siteOnly = requestInterceptor((request) => {
       loaded.push(request.url);
-      const { origin, pathname } = new URL(request.url);
+      const { origin, pathname, searchParams } = new URL(request.url);
       if (origin === site && pathname.startsWith("/assets/js/")) {
-        const script = pathname === probeScript
-          ? "window.fail = function (message) { setTimeout(function () { throw new TypeError(message); }); };"
+        const script = pathname === siteScript && searchParams.has("case")
+          ? `window.fail = function (message, name, cause, extraFrames) {
+              setTimeout(function () {
+                const error = new TypeError(message, cause && { cause: new Error(cause) });
+                if (name) error.name = name;
+                if (extraFrames) error.stack += extraFrames;
+                throw error;
+              });
+            };`
           : readFileSync(join(outDir, pathname));
         return new Response(script, { headers: { "Content-Type": "text/javascript" } });
       }
@@ -75,7 +88,7 @@ test("error reporting sends errors and source lines without visitor browsing dat
     assert.deepEqual(sent, [], "a normal visit sends no monitoring traffic");
 
     const script = window.document.createElement("script");
-    script.src = `${probeScript}?case=${sample.sourceQuery}`;
+    script.src = `${siteScript}?case=${sample.sourceQuery}`;
     await new Promise((resolve, reject) => {
       script.onload = resolve;
       script.onerror = reject;
@@ -85,30 +98,34 @@ test("error reporting sends errors and source lines without visitor browsing dat
       const [, item, payload] = body.split("\n");
       return JSON.parse(item).type === "event" ? [JSON.parse(payload)] : [];
     });
-    const waitFor = async (predicate) => {
+    const waitFor = async (count) => {
       for (let attempt = 0; attempt < 100; attempt++) {
-        const event = events().find(predicate);
+        const event = events()[count - 1];
         if (event) return event;
         await delay(50);
       }
       assert.fail("Expected Sentry event was not sent");
     };
 
-    window.fail("first portfolio test error");
-    const first = await waitFor((event) => event.exception?.values[0]?.value === "first portfolio test error");
+    window.fail(sample.exceptionText, undefined, sample.causeText,
+      `\n    at ${sample.stackLabel} (${site}${siteScript}:91:7)` +
+      `\n    at wrapped (${site}/assets/js/${sample.stackPath}.js:8:2)`);
+    const first = await waitFor(1);
     window.history.pushState({}, "", `?${sample.history}`);
     window.console.warn(sample.console);
-    window.fail("later portfolio test error");
-    await waitFor((event) => event.exception?.values[0]?.value === "later portfolio test error");
+    window.fail("later portfolio test error", sample.exceptionName);
+    const later = await waitFor(2);
     window.dispatchEvent(Object.assign(new window.Event("unhandledrejection"), { reason: { details: sample.rejection } }));
-    await waitFor((event) => event.exception?.values[0]?.type === "UnhandledRejection");
+    await waitFor(3);
+    window.dispatchEvent(Object.assign(new window.Event("unhandledrejection"), { reason: sample.rejectionText }));
+    await waitFor(4);
     const block = () => window.dispatchEvent(Object.assign(new window.Event("securitypolicyviolation"), {
       effectiveDirective: "img-src",
       blockedURI: `https://example.test/${sample.blocked}?size=1`,
     }));
     block();
     block();
-    const policy = await waitFor((event) => event.message?.startsWith("CSP blocked img-src"));
+    const policy = await waitFor(5);
 
     assert.deepEqual(reporting(), [`${site}/assets/js/${monitoring.sdkFile}`],
       "the first error loads only the pinned SDK, from this site");
@@ -121,13 +138,16 @@ test("error reporting sends errors and source lines without visitor browsing dat
     for (const marker of Object.values(sample)) {
       assert.ok(sent.every(({ body }) => !body.includes(marker)), `visitor data reached the ingest: ${marker}`);
     }
-    assert.equal(sent.length, 4, "send only the four diagnostic events, with no sessions or duplicate warnings");
+    assert.equal(sent.length, 5, "send only the five diagnostic events, with no sessions or duplicate warnings");
     assert.ok(sent.every((s) => s.url.startsWith("https://o1.ingest.de.sentry.io/api/1/envelope/")), "reports go only to the DSN's ingest");
     assert.ok(sent.every((s) => s.referrerPolicy === "no-referrer"), "omit the transport referrer too");
     assert.deepEqual(first.request, { url: `${site}/404.html` });
     assert.equal(first.release, window.document.querySelector('meta[name="waseemilyas-revision"]').content);
-    assert.equal(first.exception.values[0].type, "TypeError");
-    assert.ok(first.exception.values[0].stacktrace.frames.some((frame) => frame.filename === site + probeScript && frame.lineno > 0));
+    const error = first.exception.values.find(({ type }) => type === "TypeError");
+    assert.ok(error?.stacktrace?.frames.some((frame) => frame.filename === site + siteScript && frame.lineno > 0));
+    assert.ok(first.exception.values.some(({ type }) => type === "Error"), "keep the category of a linked cause");
+    assert.equal(later.exception.values[0].type, "Error");
+    assert.ok(events().slice(2, 4).every((event) => event.exception.values.some(({ type }) => type === "UnhandledRejection")));
     assert.equal(policy.message, "CSP blocked img-src resource");
     // SDK 11 lets Sentry infer the sender's IP and attaches call-site stacks unless told not to.
     assert.ok(events().every((event) => event.sdk.settings.infer_ip === "never" && !event.user), "never infer the visitor's IP");
