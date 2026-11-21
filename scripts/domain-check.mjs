@@ -30,12 +30,15 @@
 //           browser's user agent. A web crawler's user agent is not a fair probe: Sentry's
 //           web-crawler filter answers 200 to it before the origin rule, on about 1 in 3 requests
 //           from another website (21 Nov 2026), so a run of those 200s looks like the origin rule
-//           is off. An ordinary browser gets 403 every time the origin is not allowed. Its own
-//           copy is stored as one issue named "domain-check origin probe"; that is the probe, not
-//           a visitor's error. An empty client report is not a fair probe either: the same day
-//           Sentry answered 200 to 5 of 154 from another origin while refusing 114 of 114 events
-//           from it. A visit that sends no Origin (a script, not a browser) is still accepted;
-//           Sentry's organisation-wide spike protection is the backstop for that.
+//           is off. Once the relay has loaded the project, an ordinary browser gets 403 every
+//           time the origin is not allowed. A cold relay answers 200 first, with an event id that
+//           is never stored (Sentry counts it as an intentional CORS drop), so the check sends a
+//           fixed set and requires most of them to be refused. The site's own copy is stored as
+//           one issue named "domain-check origin probe"; that is the probe, not a visitor's error.
+//           An empty client report is not a fair probe either: the same day Sentry answered 200
+//           to 5 of 154 from another origin while refusing 114 of 114 events from it. A visit that
+//           sends no Origin (a script, not a browser) is still accepted; Sentry's organisation-wide
+//           spike protection is the backstop for that.
 //   security-txt  /.well-known/security.txt follows RFC 9116 and does not expire within
 //           MIN_DAYS. Each release renews it (scripts/security-txt.mjs).
 //
@@ -70,7 +73,7 @@ const RESOLVERS = {
  * @typedef {{ priority: number, target: string, params: Map<string, string> }} HttpsRecord
  * @typedef {{ host: string, issuer: string, validTo: Date }} CertFacts
  * @typedef {{ url: string, status: number, location: string }} RedirectFacts
- * @typedef {{ page: string, dsn: boolean, own?: number, foreign?: number }} IngestFacts
+ * @typedef {{ page: string, dsn: boolean, own?: number, foreign?: number, refused?: number, sent?: number }} IngestFacts
  * @typedef {{ url: string, status: number, text: string }} SecurityTxtFacts
  * @typedef {{ domain: string, now: Date, dns: DnsFacts[], certs: CertFacts[], redirects: RedirectFacts[], ingest: IngestFacts, securityTxt: SecurityTxtFacts }} Facts
  */
@@ -172,8 +175,14 @@ export function evaluate(/** @type {Facts} */ facts) {
     failures.push(`ingest: ${page} carries no Sentry DSN, so browser errors on the live site are not reported`);
   } else {
     if (own !== 200) failures.push(`ingest: Sentry answered ${own} to a report from https://${facts.domain}, so the site's own error reports are refused`);
-    if (foreign !== 403) {
-      failures.push(`ingest: Sentry answered ${foreign} to a report from another website, not 403; set the project's Allowed Domains to ${facts.domain} only`);
+    // A cold relay answers 200 and an event id before the project's origin rule has loaded, then
+    // drops the event (Sentry counts it as an intentional CORS drop; the id is never stored). A
+    // warm relay answers 403. So the status of one probe says nothing. Most of a fixed set must
+    // be refused: a project that allows every origin answers 200 to all of them.
+    const refused = facts.ingest.refused ?? (foreign === 403 ? 1 : 0);
+    const sent = facts.ingest.sent ?? 1;
+    if (refused * 2 <= sent) {
+      failures.push(`ingest: Sentry refused ${refused} of ${sent} reports from another website; set the project's Allowed Domains to ${facts.domain} only`);
     }
   }
   const { url, status, text } = facts.securityTxt;
@@ -280,16 +289,20 @@ async function ingest(/** @type {string} */ domain) {
   });
   const dsn = findDsn(html);
   if (!dsn) return { page, dsn: false };
-  // The site's own report first, so the relay has loaded the project before the foreign one.
-  // The site's own origin is always accepted. Sentry's ingest answers a foreign origin with 403
-  // most of the time but 200 on roughly 1 in 3 requests even with Allowed Domains set correctly
-  // (21 Nov 2026: the project's allowedDomains was read back as waseemilyas.uk only, and runs
-  // failed on a lone 200). So one 403 in FOREIGN_TRIES proves the rule is on; a project that
-  // allows every origin answers 200 every time and still fails.
+  // The site's own report first, so the relay has loaded the project before the foreign ones.
+  // Sentry's own origin is always accepted. A foreign origin is refused with 403 once the relay
+  // has the project, but a cold relay answers 200 (with an event id that is never stored) for
+  // the first several requests even when Allowed Domains is correct. Measured on 21 Nov 2026
+  // against waseemilyas-portfolio, whose allowedDomains is waseemilyas.uk only: a fresh run got
+  // 200 on 8 of 12, and one CI job (run 44931340434) got 200 on all 8 and failed. Stopping at the
+  // first 403 therefore fails a release. Sending a fixed set and requiring a majority of 403s
+  // still fails a project that allows every origin, which answers 200 every time.
   const own = await report(dsn, domain, `https://${domain}`);
-  let foreign = 0;
-  for (let i = 0; i < FOREIGN_TRIES && foreign !== 403; i++) foreign = await report(dsn, domain, FOREIGN_ORIGIN);
-  return { page, dsn: true, own, foreign };
+  const statuses = await Promise.all(
+    Array.from({ length: FOREIGN_TRIES }, () => report(dsn, domain, FOREIGN_ORIGIN)),
+  );
+  const refused = statuses.filter((status) => status === 403).length;
+  return { page, dsn: true, own, foreign: statuses.at(-1), refused, sent: statuses.length };
 }
 
 /** @returns {Promise<SecurityTxtFacts>} */
@@ -330,7 +343,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   for (const { host, issuer, validTo } of facts.certs) console.log(`[domain] ${host}: ${issuer}, valid to ${validTo.toISOString().slice(0, 10)}`);
   const { own, foreign } = facts.ingest;
-  if (facts.ingest.dsn) console.log(`[domain] Sentry ingest: own origin ${own}, another website ${foreign}`);
+  if (facts.ingest.dsn) {
+    const { refused, sent } = facts.ingest;
+    console.log(`[domain] Sentry ingest: own origin ${own}, another website ${refused ?? (foreign === 403 ? 1 : 0)} of ${sent ?? 1} refused`);
+  }
   if (failures.length) {
     for (const failure of failures) console.error(`✗ ${failure}`);
     process.exit(1);

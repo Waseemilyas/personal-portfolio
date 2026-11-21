@@ -86,11 +86,15 @@ test("DNSSEC, certificate and redirect rules", () => {
 
 test("error-report origin rules", () => {
   const ingest = (/** @type {Partial<import("./domain-check.mjs").IngestFacts>} */ change) =>
-    facts({ ingest: { page: "https://example.test/", dsn: true, own: 200, foreign: 403, ...change } });
-  // Sentry's default Allowed Domains is "*": any website can file reports against the public DSN.
-  fails(ingest({ foreign: 200 }), /200 to a report from another website, not 403/);
+    facts({ ingest: { page: "https://example.test/", dsn: true, own: 200, foreign: 403, refused: 8, sent: 8, ...change } });
+  // Sentry's default Allowed Domains is "*": every report from another website is accepted.
+  fails(ingest({ refused: 0, sent: 8, foreign: 200 }), /refused 0 of 8 reports from another website/);
+  // A cold relay answers 200 before it has loaded the project, then drops the event. A few of
+  // those do not mean the origin rule is off; half or fewer refused does.
+  assert.deepEqual(evaluate(ingest({ refused: 5, sent: 8, foreign: 200 })), []);
+  fails(ingest({ refused: 4, sent: 8, foreign: 200 }), /refused 4 of 8 reports from another website/);
   fails(ingest({ own: 403 }), /site's own error reports are refused/);
-  fails(ingest({ dsn: false, own: undefined, foreign: undefined }), /carries no Sentry DSN/);
+  fails(ingest({ dsn: false, own: undefined, foreign: undefined, refused: undefined, sent: undefined }), /carries no Sentry DSN/);
 });
 
 test("finds the DSN in the minified error loader", () => {
