@@ -314,8 +314,8 @@ p, li { text-wrap: pretty; }
    site.js and without it. Undo the browser's popover box (centred, bordered, canvas
    colours); `display` here also keeps the closed popover rendered: a row at desktop
    width, an off-screen drawer that can slide in below 720px. */
-.nav { display: flex; gap: clamp(0rem, 0.8vw, 0.5rem); align-items: center; position: static; inset: auto; width: auto; height: auto; margin: 0; padding: 0; border: 0; overflow: visible; color: inherit; background: none; }
-.nav a { display: inline-flex; align-items: center; min-height: 24px; min-width: 24px; padding-block: .25rem; padding-inline: .45rem; font-size: var(--step--1); color: var(--bone-mute); text-decoration: none; transition: color .2s var(--ease); }
+.nav { display: flex; gap: 0; align-items: center; position: static; inset: auto; width: auto; height: auto; margin: 0; padding: 0; border: 0; overflow: visible; color: inherit; background: none; }
+.nav a { display: inline-flex; align-items: center; min-height: 24px; min-width: 24px; padding-block: .25rem; padding-inline: clamp(.45rem, 1.6vw, .7rem); font-size: var(--step--1); color: var(--bone-mute); text-decoration: none; transition: color .2s var(--ease); }
 .nav a:hover, .nav a[aria-current="page"] { color: var(--bone); }
 .nav a[aria-current="page"] { color: var(--signal); }
 .nav .cta { color: var(--bone); border: 1px solid var(--line-dark); padding: .35rem .7rem; border-radius: var(--rounded-pill); }
@@ -725,7 +725,7 @@ p, li { text-wrap: pretty; }
 .lab-card h2, .lab-card h3 { font-size: var(--step-1); letter-spacing: -0.02em; }
 .lab-card p { color: var(--bone-mute); font-size: var(--step-0); }
 /* Long URLs are single unbreakable tokens; without this they spill past the card. */
-.lab-card .ext { font-family: var(--mono); font-size: var(--step--1); color: var(--bone-mute); margin-top: auto; overflow-wrap: anywhere; }
+.lab-card .ext { font-family: var(--mono); font-size: var(--step--1); color: var(--bone-mute); margin-top: auto; overflow-wrap: break-word; }
 .lab-card:hover .ext { color: var(--bone); }
 
 /* ---------- contact ---------- */
@@ -808,17 +808,25 @@ p, li { text-wrap: pretty; }
 /* ---------- footer ---------- */
 .foot { border-top: 1px solid var(--line-dark); padding-block: 2.6rem; color: var(--bone-mute); font-size: var(--step--1); }
 .foot .shell { display: grid; grid-template-columns: 1fr auto; gap: 1.4rem; align-items: start; }
-@media (max-width: 620px) { .foot .shell { grid-template-columns: 1fr; } }
+/* Side by side only where both fit whole (about 760px of content); narrower,
+   the nav follows the meta lines instead of squeezing them into a column. */
+@media (max-width: 880px) { .foot .shell { grid-template-columns: 1fr; } }
 .foot a { display: inline-block; min-height: 24px; min-width: 24px; padding-block: .25rem; color: var(--bone); text-decoration: none; }
 .foot a:hover { color: var(--signal); }
-.foot .fnav { display: flex; gap: .3rem; flex-wrap: wrap; }
-.foot .fnav a { padding-inline: .45rem; }
+.foot .fnav { display: flex; flex-wrap: wrap; margin-inline: -.7rem; }
+/* .7rem each side keeps even "Lab" wider than its 44px box, so every gap
+   between link texts is equal. The negative inline margin puts the first and
+   last link texts on the shell edges. Beside the meta, each link's text is
+   centred in a 44px box: lift the row by the box's extra height so the first
+   link shares a top line with the first meta line. */
+.foot .fnav a { padding-inline: .7rem; }
+@media (min-width: 881px) { .foot .fnav { justify-content: flex-end; margin-block-start: calc((1lh - 44px) / 2); } }
 /* Two columns of full-width 44px rows: seven links read 2+2+2+1, each easy
    to spot and tap, instead of a space-between row that pushes Automancer
    to the far edge. Rows are separated by the hairline on --line-dark. */
 @media (max-width: 620px) {
-  .foot .fnav { display: grid; grid-template-columns: repeat(2, 1fr); gap: .2rem 1rem; }
-  .foot .fnav a { display: flex; align-items: center; min-block-size: 2.75rem; padding-block: .55rem; padding-inline: 0; border-bottom: 1px solid var(--line-dark); }
+  .foot .fnav { display: grid; grid-template-columns: repeat(2, 1fr); gap: .2rem 1rem; margin-inline: 0; }
+  .foot .fnav a { display: flex; align-items: center; justify-content: flex-start; min-block-size: 2.75rem; padding-block: .55rem; padding-inline: 0; border-bottom: 1px solid var(--line-dark); }
 }
 .foot .meta { color: var(--bone-mute); }
 .foot .meta + .meta { margin-top: .4rem; }

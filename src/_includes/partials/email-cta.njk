@@ -2,7 +2,7 @@
   <a class="email-big" href="{{ site.email | mailto(emailSubject) }}">{{ site.email }}</a>
   <button class="btn btn-ghost copy-email" type="button" hidden>Copy address</button>
   <details class="copy-email-manual">
-    <summary class="btn btn-ghost copy-email">Copy address manually</summary>
+    <summary class="btn btn-ghost copy-email">Copy address<span class="visually-hidden"> manually</span></summary>
     <div class="copy-email-help">
       <p id="email-copy-instructions">Select and copy this address, then paste it into your email.</p>
       <input type="text" value="{{ site.email }}" aria-label="Email address" aria-describedby="email-copy-instructions" readonly>
