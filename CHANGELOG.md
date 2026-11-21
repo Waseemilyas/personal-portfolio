@@ -1,5 +1,24 @@
 # Release notes
 
+## v2026.11.21.2 — 21 November 2026
+
+The site now makes its articles easier to browse and its pages easier to read.
+
+### Reading and browsing
+
+- On phones, the article contents list stays within reach while you read.
+- On wide screens, the contents list sits beside the article and highlights the section you’re reading.
+- Case study stories appear before the contents list on narrow screens.
+- Case studies and notes now include links to their sections, so you can jump straight to the part you want.
+- Home, Work and Notes start fetching articles as their links come into view, so opening one takes less waiting.
+- The Work page shows each case’s role, craft and outcome before you open it, making it easier to compare projects.
+
+### Easier to use
+
+- Navigation and diagrams remain legible when your device uses forced colours.
+- Footer links and contact controls sit more steadily on screen, and long Lab links break at the slash.
+
+
 ## v2026.11.21.1 — 21 November 2026
 
 The notes now make it easier to explore the site and get in touch.
