@@ -30,7 +30,7 @@ layout: base.njk
     {% include "partials/reading-contact.njk" %}
     {%- set next = collections.casestudies | getNextCollectionItem(page) or collections.casestudies | first %}
     {%- if next and next.url != page.url %}
-    <a class="nextread" href="{{ next.url }}" data-cal>
+    <a class="nextread" href="{{ next.url }}" data-cal data-prefetch-article>
       <span class="nextread-k">Next case study · {{ next.data.ref }}</span>
       <span class="nextread-t">{{ next.data.title }}</span>
       <span class="nextread-d">{{ next.data.kicker }}</span>
