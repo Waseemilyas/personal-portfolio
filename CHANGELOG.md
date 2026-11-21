@@ -1,5 +1,27 @@
 # Release notes
 
+## v2026.11.21.4 — 21 November 2026
+
+The site build now produces a more dependable release.
+
+### Improvements
+
+- Shared JavaScript remains available when only part of the site is rebuilt.
+
+
+## v2026.11.21.3 — 21 November 2026
+
+The site is easier to browse across screen sizes, and visible articles can open more quickly in Firefox.
+
+### Improvements
+
+- The capability map is easier to read on tablets and desktops.
+- Case study section links stay within reach on desktop.
+- Visible articles can open more quickly in Firefox.
+- Lab cards and status details line up more clearly across screen sizes.
+- Your browser can connect securely to the site before sending a request, when it supports secure DNS.
+- Touch and home screen icons use less data to download.
+
 ## v2026.11.21.2 — 21 November 2026
 
 The site now makes its articles easier to browse and its pages easier to read.
