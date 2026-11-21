@@ -4,8 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { builtSite, skipReason } from "./built-site.mjs";
+import { basename, join } from "node:path";
+import { builtScriptUrl, builtSite, skipReason } from "./built-site.mjs";
 import { inlineScripts, trustedTypePolicies } from "./csp.mjs";
 
 test("pages ship minified scripts with their policy name and data blocks intact", { skip: skipReason }, async () => {
@@ -20,8 +20,9 @@ test("pages ship minified scripts with their policy name and data blocks intact"
   assert.ok(data.length >= 2);
   for (const [, , body] of data) assert.doesNotThrow(() => JSON.parse(body ?? ""));
 
-  const published = readFileSync(join(site, "assets/js/site.js"), "utf8");
-  assert.ok(published.endsWith("\n//# sourceMappingURL=site.js.map\n"));
-  const map = JSON.parse(readFileSync(join(site, "assets/js/site.js.map"), "utf8"));
+  const script = builtScriptUrl(html);
+  const published = readFileSync(join(site, script), "utf8");
+  assert.ok(published.endsWith(`\n//# sourceMappingURL=${basename(script)}.map\n`));
+  const map = JSON.parse(readFileSync(join(site, `${script}.map`), "utf8"));
   assert.deepEqual(map.sourcesContent, [readFileSync("src/assets/js/site.js", "utf8")]);
 });

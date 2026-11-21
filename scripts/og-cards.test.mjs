@@ -2,11 +2,12 @@
 // and must never turn a draft into a public image. Exercise the real build path.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { JSDOM } from "jsdom";
+import { scriptIntegrity } from "./csp.mjs";
 
 test("a normal build creates and refreshes share cards without publishing drafts", { timeout: 300_000 }, () => {
   const root = mkdtempSync(join(tmpdir(), "portfolio-cards-"));
@@ -22,6 +23,13 @@ test("a normal build creates and refreshes share cards without publishing drafts
   };
   const text = (title, draft = false) => `---\ntitle: '${title}'\ndate: 2026-08-08\nsummary: Build fixture.\ndraft: ${draft}\n---\nBuild fixture.\n`;
   const metadata = () => new JSDOM(readFileSync(join(output, "notes/build-probe/index.html"), "utf8")).window.document;
+  const checkScript = (page) => {
+    const script = new JSDOM(readFileSync(page, "utf8")).window.document.querySelector("script[src]");
+    assert.ok(script, page);
+    const path = new URL(script.getAttribute("src"), "https://example.test").pathname;
+    assert.equal(scriptIntegrity(readFileSync(join(output, path))), script.getAttribute("integrity"), `${page} must load its own script`);
+    return path;
+  };
   try {
     // Use the normal src/ and _site/ paths in an isolated working directory.
     cpSync("package.json", join(root, "package.json"));
@@ -52,17 +60,25 @@ test("a normal build creates and refreshes share cards without publishing drafts
     assert.ok(existsSync(withdrawnPage), "the second note was published before removal");
     const published = readFileSync(image);
     const previousCard = readFileSync(withdrawnCard);
+    const previousScript = checkScript(withdrawnPage);
+    const scripts = join(output, "assets/js");
+    const previousFiles = readdirSync(scripts).sort();
     writeFileSync(note, text("A title that must stay in the source"));
+    appendFileSync(join(input, "assets/js/site.js"), '\nwindow.dispatchEvent(new Event("build-probe"));\n');
     for (const flag of ["--dryrun", "--to=json"]) {
       build(flag);
       assert.ok(readFileSync(image).equals(published), `${flag} must leave the published card's pixels alone`);
       assert.equal(metadata().querySelector('meta[property="og:image:alt"]').content, 'Note · 8 AUG 2026. A renamed note & "quoted" title.');
+      assert.deepEqual(readdirSync(scripts).sort(), previousFiles, `${flag} must leave the script directory alone`);
+      assert.equal(checkScript(withdrawnPage), previousScript);
     }
     for (const flag of ["--input=src/contact.njk", "--formats=njk", "--incremental=src/contact.njk"]) {
       build(flag);
       assert.ok(existsSync(withdrawnPage), `${flag} must leave previously built pages in place`);
       assert.ok(existsSync(withdrawnCard), `${flag} must leave previously built cards in place`);
       assert.deepEqual(readFileSync(withdrawnCard), previousCard);
+      assert.equal(checkScript(withdrawnPage), previousScript);
+      assert.notEqual(checkScript(join(output, "contact/index.html")), previousScript);
     }
     writeFileSync(note, text("A note returned to draft", true));
     unlinkSync(withdrawn);
@@ -72,6 +88,9 @@ test("a normal build creates and refreshes share cards without publishing drafts
     assert.ok(!existsSync(image), "a note returned to draft must also lose its share card");
     assert.ok(!existsSync(withdrawnCard), "a deleted note must also lose its share card");
     assert.ok(existsSync(join(output, "notes/index.html")), "the Notes index must remain available");
+    assert.equal(checkScript(join(output, "index.html")), checkScript(join(output, "contact/index.html")));
+    assert.ok(!existsSync(join(output, previousScript)), "a complete build removes the script no page uses");
+    assert.ok(!existsSync(join(output, `${previousScript}.map`)), "a complete build removes its source map");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

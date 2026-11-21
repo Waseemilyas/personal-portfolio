@@ -10,11 +10,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { JSDOM, VirtualConsole, requestInterceptor } from "jsdom";
-import { builtSite, skipReason } from "./built-site.mjs";
+import { builtScriptUrl, builtSite, skipReason } from "./built-site.mjs";
 import monitoring from "../src/_data/monitoring.js";
 
 const site = "https://waseemilyas.uk";
-const siteScript = "/assets/js/site.js";
 const sample = {
   missingPath: "sample-missing-path",
   query: "sample-query-value",
@@ -40,6 +39,8 @@ test("error reporting sends errors and source lines without visitor browsing dat
   try {
     // Pages serves this document at the requested path, even if that path is private.
     const html = readFileSync(join(outDir, "404.html"), "utf8");
+
+    const siteScript = builtScriptUrl(html);
 
     /** @type {string[]} */
     const loaded = [];

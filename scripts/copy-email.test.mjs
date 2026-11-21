@@ -6,12 +6,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { JSDOM } from "jsdom";
-import { builtSite, skipReason } from "./built-site.mjs";
+import { builtScriptUrl, builtSite, skipReason } from "./built-site.mjs";
 
 test("contact page: automatic copy confirms success and manual copy survives refusal or missing APIs", { skip: skipReason }, async () => {
   const outDir = await builtSite();
   const html = readFileSync(join(outDir, "contact/index.html"), "utf8");
-  const script = readFileSync(join(outDir, "assets/js/site.js"), "utf8");
+  const script = readFileSync(join(outDir, builtScriptUrl(html)), "utf8");
 
   /** @param {((text: string) => Promise<void>) | null} writeText */
   const load = (writeText, enableScript = true) => {

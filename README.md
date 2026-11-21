@@ -71,8 +71,10 @@ eleventy.config.js
 ```
 
 Visitors download minified JavaScript. The build minifies `src/assets/js/site.js` with
-esbuild (`scripts/minify-js.mjs`) and publishes it with `site.js.map` beside it, so a
-browser's developer tools and Sentry read the original source. Every page's inline
+esbuild (`scripts/minify-js.mjs`) and gives the script and its source map matching
+filenames based on their content. A partial build keeps earlier versions available
+to pages it leaves alone. A complete build removes obsolete versions. The map lets
+browser developer tools and Sentry read the original source. Every page's inline
 scripts, including the production error loader, are minified too. Edit the sources as
 usual; the output never uses syntax newer than ES2020, which the sources already use.
 The policy hashes and the script's integrity are taken from the minified bytes.
