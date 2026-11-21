@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.11.21.6 — 21 November 2026
+
+The domain check now catches when a site accepts probes from origins it should reject.
+
+
 ## v2026.11.21.5 — 21 November 2026
 
 Datasheet rows now fit beside desktop case studies on most laptop screens, so you can see more of each case study without scrolling the panel.
