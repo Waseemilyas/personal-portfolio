@@ -58,10 +58,14 @@ and the content below it stay put when the script swaps them.
 External links are destinations, not services this repository operates.
 
 Supporting browsers prerender internal pages on link intent using native speculation
-rules with `moderate` eagerness. The single Next note or Next case study link also
-qualifies for an `eager` HTML prefetch. Current Chromium starts it when the link
-enters the viewport on phones or shortly after hover on desktop. Older Chromium
-can start it on arrival. Both rules are limited to same-origin links ending in
+rules with `moderate` eagerness. The links to an article that a reader most often
+opens next also qualify for an `eager` HTML prefetch: the case-study cards on Home
+and Work, the notes on Notes, and the single Next note or Next case study link.
+Current Chromium starts it when the link enters the viewport on phones or shortly
+after hover on desktop, so the tap needs no network round trip. Older Chromium
+can start it on arrival. On a phone this spends up to about 36 KB of HTML on a
+listing page whose articles the reader does not open. `scripts/speculation-rules.test.mjs`
+fails if a listing's article link stops matching the rule. Both rules are limited to same-origin links ending in
 `/` and hashed by the Content Security Policy. Browsers without speculation
 rules use normal links.
 

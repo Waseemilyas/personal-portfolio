@@ -252,11 +252,12 @@
 </footer>
 
 <script src="/assets/js/site.js" defer></script>
-<!-- Fetch the recommended next article early; keep full prerendering on stronger link intent. -->
+<!-- Fetch an article early when its link is the reader's likely next step: a case-study card
+     on Home or Work, a note on Notes, or the Next link. Keep full prerendering on stronger link intent. -->
 <script type="speculationrules">
 {
   "prefetch": [{
-    "where": { "and": [{ "href_matches": "/*" }, { "selector_matches": "a.nextread[href$=\"/\"]" }] },
+    "where": { "and": [{ "href_matches": "/*" }, { "selector_matches": "a.nextread[href$=\"/\"], a.workcard[href$=\"/\"], .workcard h2 a[href$=\"/\"], .note-item h2 a[href$=\"/\"]" }] },
     "eagerness": "eager"
   }],
   "prerender": [{
