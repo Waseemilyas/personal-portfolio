@@ -376,6 +376,32 @@
     });
   }
 
+  function setupArticlePrefetch() {
+    // Firefox reuses the HTTP cache on navigation, but its native link hint
+    // falls back to the strict default-src policy. Use the same-origin
+    // connection the policy already permits. Speculation rules take precedence.
+    if (HTMLScriptElement.supports?.("speculationrules") || !("IntersectionObserver" in window) ||
+        !document.createElement("link").relList.supports?.("prefetch") ||
+        window.matchMedia("(prefers-reduced-data: reduce)").matches) return;
+    if (document.readyState !== "complete") {
+      window.addEventListener("load", setupArticlePrefetch, { once: true });
+      return;
+    }
+
+    const visibleLinks = new IntersectionObserver((entries) => {
+      for (const { isIntersecting, target } of entries) {
+        if (!isIntersecting || !(target instanceof HTMLAnchorElement)) continue;
+        visibleLinks.unobserve(target);
+        void fetch(target.href, { mode: "same-origin", redirect: "error", priority: "low" })
+          .then((response) => response.arrayBuffer())
+          .catch(() => { /* A missed prefetch leaves the link to load normally. */ });
+      }
+    });
+    for (const link of document.querySelectorAll('a[data-prefetch-article][href$="/"]')) {
+      if (link instanceof HTMLAnchorElement && link.origin === location.origin) visibleLinks.observe(link);
+    }
+  }
+
   /* GitHub Pages serves the 404 page at whatever address was asked for. Links reach
      it mangled: a chat app keeps the closing bracket or full stop, a phone capitalises
      a word, a link is cut short or misspelt, or it names a section by another word.
@@ -521,4 +547,5 @@
   setupArticleContents();
   setupCopyEmail();
   setupPageTransitions();
+  setupArticlePrefetch();
 })();

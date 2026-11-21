@@ -44,7 +44,7 @@ description: "Waseem Ilyas runs Automancer, a UK automation consultancy helping 
     </div>
     <div class="worklist" data-cal>
       {%- for cs in collections.casestudies %}
-      <a class="workcard" href="{{ cs.url }}">
+      <a class="workcard" href="{{ cs.url }}" data-prefetch-article>
         <span class="ref">{{ cs.data.ref }}</span>
         <div><h3>{{ cs.data.title }}</h3><span class="kick">{{ cs.data.kicker }}</span></div>
         <span class="go">Read →</span>

@@ -43,3 +43,49 @@ test("listing pages fetch every article they link to early", { skip: skipReason 
   const next = cs.querySelector("a.nextread");
   assert.ok(next && eagerSelectors(cs).some((s) => next.matches(s)), "an article's Next link is fetched early");
 });
+
+test("the article prefetch fallback waits for a visible link and respects browser capabilities", { skip: skipReason }, async () => {
+  const outDir = await builtSite();
+  const html = readFileSync(join(outDir, "work/index.html"), "utf8");
+  const script = readFileSync(join(outDir, "assets/js/site.js"), "utf8");
+
+  for (const mode of ["fallback", "native speculation", "reduced data"]) {
+    const dom = new JSDOM(html, { url: "https://waseemilyas.uk/work/", runScripts: "outside-only" });
+    const { window } = dom;
+    try {
+      // Let jsdom finish loading. Drive only the entries the browser would report.
+      await new Promise((resolve) => window.addEventListener("load", resolve, { once: true }));
+      window.matchMedia = (media) => ({ matches: media.includes("reduced-motion") || mode === "reduced data" });
+      window.HTMLScriptElement.supports = () => mode === "native speculation";
+      window.DOMTokenList.prototype.supports = () => true;
+      const observed = new Set();
+      const requested = [];
+      let notify;
+      window.IntersectionObserver = class {
+        constructor(callback) { notify = callback; }
+        observe(link) { observed.add(link); }
+        unobserve(link) { observed.delete(link); }
+      };
+      window.fetch = async (url) => {
+        requested.push(url);
+        return new Response("");
+      };
+      window.eval(script);
+      assert.deepEqual(requested, [], mode);
+      if (mode !== "fallback") {
+        assert.equal(observed.size, 0, mode);
+        continue;
+      }
+      const article = window.document.querySelector(".workcard h2 a");
+      assert.ok(article && observed.has(article));
+      assert.ok([...observed].every((link) => link.matches(".workcard h2 a")));
+      notify([{ isIntersecting: false, target: article }]);
+      assert.deepEqual(requested, []);
+      notify([{ isIntersecting: true, target: article }]);
+      assert.deepEqual(requested, [article.href]);
+      assert.equal(observed.has(article), false, "a link is prefetched only once");
+    } finally {
+      window.close();
+    }
+  }
+});

@@ -20,7 +20,7 @@ permalink: "/work/"
       <article class="workcard workcard-spec">
         <span class="ref">{{ cs.data.ref }}</span>
         <div>
-          <h2><a href="{{ cs.url }}">{{ cs.data.title }}</a></h2>
+          <h2><a href="{{ cs.url }}" data-prefetch-article>{{ cs.data.title }}</a></h2>
           <span class="kick">{{ cs.data.kicker }}</span>
           <dl class="workspec">
             {%- for row in cs.data.datasheet %}{% if row.k in ["ROLE", "CRAFT", "OUTCOME"] %}

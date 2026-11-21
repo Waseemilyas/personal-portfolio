@@ -257,7 +257,7 @@
 <script type="speculationrules">
 {
   "prefetch": [{
-    "where": { "and": [{ "href_matches": "/*" }, { "selector_matches": "a.nextread[href$=\"/\"], a.workcard[href$=\"/\"], .workcard h2 a[href$=\"/\"], .note-item h2 a[href$=\"/\"]" }] },
+    "where": { "and": [{ "href_matches": "/*" }, { "selector_matches": "a[data-prefetch-article][href$=\"/\"]" }] },
     "eagerness": "eager"
   }],
   "prerender": [{
