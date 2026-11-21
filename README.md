@@ -44,6 +44,8 @@ reuse it; `scripts/test-setup.mjs` names and removes the shared directory.
 Strict `checkJs` uses tsrs, the Rust port of the TypeScript compiler, over production browser,
 build and CLI JavaScript. After the frozen install, `tsconfig.json` resolves imports
 without a build or generated types. Exact tool versions live in `package.json`.
+Run `pnpm exec tsrs --showConfig` to see the effective compiler options and the
+files covered by the strict check.
 
 `pnpm lint` is type-aware: oxlint hands tsrs's linter (`tsrs-lint`, through
 `OXLINT_TSGOLINT_PATH` in the `lint` script) the same programs, so rules can see types.
