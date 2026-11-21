@@ -268,6 +268,8 @@ function report(/** @type {URL} */ dsn, /** @type {string} */ domain, /** @type 
   });
 }
 
+const FOREIGN_TRIES = 8;
+
 /** @returns {Promise<IngestFacts>} */
 async function ingest(/** @type {string} */ domain) {
   const page = `https://${domain}/`;
@@ -279,10 +281,14 @@ async function ingest(/** @type {string} */ domain) {
   const dsn = findDsn(html);
   if (!dsn) return { page, dsn: false };
   // The site's own report first, so the relay has loaded the project before the foreign one.
-  // An ordinary browser gets one answer: 200 from the site, 403 from anywhere else. Retrying a
-  // 200 from another website hides a project that allows every origin.
+  // The site's own origin is always accepted. Sentry's ingest answers a foreign origin with 403
+  // most of the time but 200 on roughly 1 in 3 requests even with Allowed Domains set correctly
+  // (21 Nov 2026: the project's allowedDomains was read back as waseemilyas.uk only, and runs
+  // failed on a lone 200). So one 403 in FOREIGN_TRIES proves the rule is on; a project that
+  // allows every origin answers 200 every time and still fails.
   const own = await report(dsn, domain, `https://${domain}`);
-  const foreign = await report(dsn, domain, FOREIGN_ORIGIN);
+  let foreign = 0;
+  for (let i = 0; i < FOREIGN_TRIES && foreign !== 403; i++) foreign = await report(dsn, domain, FOREIGN_ORIGIN);
   return { page, dsn: true, own, foreign };
 }
 
