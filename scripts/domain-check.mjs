@@ -19,13 +19,16 @@
 //           other website. The DSN is public in every page, and the Sentry organisation's
 //           quota is shared with other projects, so a project that allows every origin lets
 //           any site flood it. The probe is a real error event, since that is what costs
-//           quota, sent from the site first and then from another origin. It carries a web
-//           crawler's user agent, so the project's web-crawler inbound filter drops the
-//           site's copy: Sentry counts it as filtered, stores nothing and charges no quota.
-//           (An empty client report is not a fair probe: on 21 Nov 2026 Sentry answered 200
-//           to 5 of 154 from another origin while refusing 114 of 114 events from it.)
-//           A visit that sends no Origin (a script, not a browser) is still accepted; Sentry's
-//           organisation-wide spike protection is the backstop for that.
+//           quota, sent from the site first and then from another origin. It carries an ordinary
+//           browser's user agent. A web crawler's user agent is not a fair probe: Sentry's
+//           web-crawler filter answers 200 to it before the origin rule, on about 1 in 3 requests
+//           from another website (21 Nov 2026), so a run of those 200s looks like the origin rule
+//           is off. An ordinary browser gets 403 every time the origin is not allowed. Its own
+//           copy is stored as one issue named "domain-check origin probe"; that is the probe, not
+//           a visitor's error. An empty client report is not a fair probe either: the same day
+//           Sentry answered 200 to 5 of 154 from another origin while refusing 114 of 114 events
+//           from it. A visit that sends no Origin (a script, not a browser) is still accepted;
+//           Sentry's organisation-wide spike protection is the backstop for that.
 //   security-txt  /.well-known/security.txt follows RFC 9116 and does not expire within
 //           MIN_DAYS. Each release renews it (scripts/security-txt.mjs).
 //
@@ -45,9 +48,8 @@ export const ALLOWED_CAS = { "letsencrypt.org": "Let's Encrypt" };
 export const MIN_DAYS = 21;
 /** An origin that no page can be served from (RFC 6761), for the refused-report probe. */
 export const FOREIGN_ORIGIN = "https://origin-probe.invalid";
-const FOREIGN_TRIES = 8;
-/** A user agent Sentry's web-crawler inbound filter drops, so an accepted probe is not stored. */
-export const PROBE_USER_AGENT = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+/** An ordinary browser. A crawler user agent is filtered before the origin rule and answers 200. */
+export const PROBE_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 const RESOLVERS = {
   cloudflare: "https://cloudflare-dns.com/dns-query",
   google: "https://dns.google/resolve",
@@ -186,8 +188,8 @@ function redirect(/** @type {string} */ url) {
 }
 
 /**
- * The probe envelope: one debug-level error event as the site's error loader would send
- * it, from a web crawler's user agent so the project's inbound filter drops it.
+ * The probe envelope: one error event as the site's error loader would send it, from an
+ * ordinary browser. A crawler's user agent is filtered before the origin rule is applied.
  */
 export function probeEnvelope(/** @type {string} */ domain, /** @type {Date} */ now = new Date()) {
   const eventId = randomUUID().replaceAll("-", "");
@@ -195,9 +197,9 @@ export function probeEnvelope(/** @type {string} */ domain, /** @type {Date} */ 
     event_id: eventId,
     timestamp: now.getTime() / 1000,
     platform: "javascript",
-    level: "debug",
+    level: "error",
     environment: "domain-check",
-    message: { formatted: "domain-check origin probe (dropped by the web-crawler filter)" },
+    message: { formatted: "domain-check origin probe" },
     request: { url: `https://${domain}/`, headers: { "User-Agent": PROBE_USER_AGENT } },
   };
   return `${JSON.stringify({ event_id: eventId, sent_at: now.toISOString() })}\n{"type":"event"}\n${JSON.stringify(event)}\n`;
@@ -230,13 +232,10 @@ async function ingest(/** @type {string} */ domain) {
   const dsn = findDsn(html);
   if (!dsn) return { page, dsn: false };
   // The site's own report first, so the relay has loaded the project before the foreign one.
+  // An ordinary browser gets one answer: 200 from the site, 403 from anywhere else. Retrying a
+  // 200 from another website hides a project that allows every origin.
   const own = await report(dsn, domain, `https://${domain}`);
-  // Sentry's ingest answers a foreign origin 403 or, on some requests, 200 (21 Nov 2026: about
-  // 1 in 3, with Allowed Domains confirmed as waseemilyas.uk only through the Sentry API). So
-  // ask up to FOREIGN_TRIES times and stop at the first 403: that proves the setting is
-  // enforced, and a project that allows every origin never answers 403.
-  let foreign = 0;
-  for (let i = 0; i < FOREIGN_TRIES && foreign !== 403; i++) foreign = await report(dsn, domain, FOREIGN_ORIGIN);
+  const foreign = await report(dsn, domain, FOREIGN_ORIGIN);
   return { page, dsn: true, own, foreign };
 }
 
