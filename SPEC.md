@@ -215,7 +215,20 @@ whose own CAA records govern it. The zone is DNSSEC-signed. `scripts/domain-chec
 (`.github/workflows/domain.yml`, after every release and daily) fails if the CAA set
 changes, if the served certificate comes from an authority it does not allow or has
 fewer than 21 days left (the sign of a blocked renewal), if DNSSEC stops validating at
-Cloudflare's or Google's resolver, or if `http://` stops redirecting permanently to `https://`.
+Cloudflare's or Google's resolver, if `http://` stops redirecting permanently to `https://`,
+or if the HTTPS record below goes missing, unsigned or changes shape.
+
+GitHub Pages sends no HSTS header, so the apex publishes a DNSSEC-signed HTTPS record
+(RFC 9460) instead: `waseemilyas.uk HTTPS 1 . alpn="h2"`. A browser that reads it switches
+`http://waseemilyas.uk/...` to `https://` before sending anything, and must not fall back
+to plaintext, so nobody on the network can answer the first request in GitHub's place.
+Measured on 21 Nov 2026: Chromium 159 (with the system resolver) and Firefox 159 with DNS over
+HTTPS now upgrade internally (Chromium marks it `Non-Authoritative-Reason: DNS`); before the
+record both sent the first request in plaintext and relied on GitHub's 301. Firefox on Linux
+with the system resolver ignores the record and still gets the 301. The record carries no
+address hints or ECH keys, which would go stale when GitHub changes its servers, and no
+`h3`, which Pages does not serve. `www` is a CNAME, which cannot carry its own HTTPS
+record, so `http://www.waseemilyas.uk/` still answers with GitHub's plaintext 301 to the apex.
 
 Browser errors go to Sentry, and a normal visit makes no request for it. The first
 error or blocked resource on a page downloads the pinned Sentry SDK

@@ -130,13 +130,13 @@ carries that SHA in its revision meta tag. The revision comes from
 A last job then runs `node scripts/domain-check.mjs` (`.github/workflows/domain.yml`),
 which also runs daily: the domain's CAA records allow only Let's Encrypt and no
 wildcards, the served certificate comes from that authority with at least 21 days
-left, DNSSEC validates, `http://` redirects to `https://`, and the Sentry project
+left, DNSSEC validates, `http://` redirects to `https://`, the apex publishes a
+signed HTTPS DNS record that sends browsers straight to `https://`, the Sentry project
 behind the live page's DSN accepts an error event from `https://waseemilyas.uk` and
 refuses one from any other website, and `/.well-known/security.txt` is published and
-not within 21 days of expiry. The probe event carries a web crawler's user agent, so
-the project's web-crawler inbound filter drops it: Sentry counts it as filtered and
-stores nothing. Keep that filter on, or the probe becomes a daily debug event in the
-`domain-check` environment. If GitHub Pages ever
+not within 21 days of expiry. The probe event carries an ordinary browser's user agent
+and is stored as one issue, "domain-check origin probe", in the `domain-check`
+environment; that issue is the probe, not a visitor's error. If GitHub Pages ever
 moves to another certificate authority, add it to `ALLOWED_CAS` in that script and as
 a CAA `issue` record in the Cloudflare zone before the old certificate runs out.
 

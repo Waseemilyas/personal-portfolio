@@ -14,6 +14,13 @@
 //   dnssec  Cloudflare's and Google's validating resolvers both mark the apex answer as
 //           authenticated (AD), so a forged DNS answer cannot redirect the site.
 //   https   plain http:// on the apex and www answers with a permanent redirect to https://.
+//   https-rr  the apex publishes a DNSSEC-signed HTTPS record (RFC 9460) in service mode for
+//           the apex itself, advertising only protocols GitHub Pages serves. GitHub Pages sends
+//           no Strict-Transport-Security header, so without it a visit to http://waseemilyas.uk
+//           goes out in plaintext and someone on the network can answer it instead of GitHub.
+//           Browsers that read the record (Chromium, and Firefox with DNS over HTTPS, 21 Nov
+//           2026) switch to https:// before sending anything and must not fall back. Address
+//           hints are refused: they would go stale when GitHub changes its addresses.
 //   ingest  the error-reporting DSN on the live home page belongs to a Sentry project that
 //           accepts error events sent from the site's own origin and refuses them from any
 //           other website. The DSN is public in every page, and the Sentry organisation's
@@ -50,6 +57,8 @@ export const MIN_DAYS = 21;
 export const FOREIGN_ORIGIN = "https://origin-probe.invalid";
 /** An ordinary browser. A crawler user agent is filtered before the origin rule and answers 200. */
 export const PROBE_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+/** ALPN protocols GitHub Pages answers on 443 (no HTTP/3: it sends no Alt-Svc). */
+export const SERVED_ALPN = ["h2", "http/1.1"];
 const RESOLVERS = {
   cloudflare: "https://cloudflare-dns.com/dns-query",
   google: "https://dns.google/resolve",
@@ -57,7 +66,8 @@ const RESOLVERS = {
 
 /**
  * @typedef {{ flags: number, tag: string, value: string }} Caa
- * @typedef {{ resolver: string, ad: boolean, caa: string[], caaAd: boolean }} DnsFacts
+ * @typedef {{ resolver: string, ad: boolean, caa: string[], caaAd: boolean, https: string[], httpsAd: boolean }} DnsFacts
+ * @typedef {{ priority: number, target: string, params: Map<string, string> }} HttpsRecord
  * @typedef {{ host: string, issuer: string, validTo: Date }} CertFacts
  * @typedef {{ url: string, status: number, location: string }} RedirectFacts
  * @typedef {{ page: string, dsn: boolean, own?: number, foreign?: number }} IngestFacts
@@ -72,6 +82,41 @@ export function parseCaa(/** @type {string} */ data) {
   return { flags: Number(m[1]), tag: m[2].toLowerCase(), value: m[3] };
 }
 
+/** Parses one HTTPS record as resolvers print it: `1 . alpn=h2` or `1 . alpn="h2,http/1.1"`. */
+export function parseHttps(/** @type {string} */ data) {
+  const m = /^(\d+)\s+(\S+)((?:\s+[a-z0-9-]+(?:=(?:"[^"]*"|\S*))?)*)\s*$/.exec(data.trim());
+  if (!m) throw new Error(`unreadable HTTPS record: ${data}`);
+  /** @type {Map<string, string>} */
+  const params = new Map();
+  for (const [, key, value = ""] of m[3].matchAll(/([a-z0-9-]+)(?:=("[^"]*"|\S*))?/g)) params.set(key, value.replace(/^"|"$/g, ""));
+  return { priority: Number(m[1]), target: m[2], params };
+}
+
+/** Every reason the apex's HTTPS records fail to send browsers straight to https://. */
+function httpsRecordProblems(/** @type {string} */ domain, /** @type {string[]} */ data) {
+  if (!data.length) return ["publishes no HTTPS record, so a visit to http:// goes out in plaintext before GitHub redirects it"];
+  /** @type {HttpsRecord[]} */
+  let records;
+  try {
+    records = data.map(parseHttps);
+  } catch (error) {
+    return [/** @type {Error} */ (error).message];
+  }
+  const problems = [];
+  if (records.some((r) => r.priority === 0)) problems.push("has an alias-mode HTTPS record; publish a service-mode one (priority 1) for the apex itself");
+  const self = [".", domain, `${domain}.`];
+  for (const r of records.filter((x) => x.priority > 0)) {
+    const at = `"${r.priority} ${r.target}"`;
+    if (!self.includes(r.target)) problems.push(`HTTPS record ${at} sends browsers to ${r.target}; use "." so they connect to the apex as now`);
+    const extra = [...r.params.keys()].filter((k) => k !== "alpn");
+    if (extra.length) problems.push(`HTTPS record ${at} carries ${extra.join(", ")}; keep only alpn, since hints and ECH keys go stale when GitHub changes its servers`);
+    const alpn = (r.params.get("alpn") ?? "").split(",").filter(Boolean);
+    const unserved = alpn.filter((p) => !SERVED_ALPN.includes(p));
+    if (unserved.length) problems.push(`HTTPS record ${at} advertises ${unserved.join(", ")}, which GitHub Pages does not serve`);
+  }
+  return problems;
+}
+
 /** The CA named by an issue/issuewild value ("" when it forbids issuance). */
 const caOf = (/** @type {string} */ value) => value.split(";")[0].trim().toLowerCase();
 
@@ -79,9 +124,11 @@ const caOf = (/** @type {string} */ value) => value.split(";")[0].trim().toLower
 export function evaluate(/** @type {Facts} */ facts) {
   const failures = [];
   const allowed = Object.keys(ALLOWED_CAS);
-  for (const { resolver, ad, caa, caaAd } of facts.dns) {
+  for (const { resolver, ad, caa, caaAd, https, httpsAd } of facts.dns) {
     const at = `${facts.domain} (${resolver})`;
     if (!ad) failures.push(`dnssec: ${at} answer is not DNSSEC-authenticated`);
+    for (const problem of httpsRecordProblems(facts.domain, https)) failures.push(`https-rr: ${at} ${problem}`);
+    if (https.length && !httpsAd) failures.push(`dnssec: ${at} HTTPS record answer is not DNSSEC-authenticated`);
     if (!caa.length) {
       failures.push(`caa: ${at} publishes no CAA records, so any CA may issue certificates for it`);
       continue;
@@ -251,10 +298,10 @@ function securityTxt(/** @type {string} */ domain) {
 /** Reads the live facts for `domain`. */
 export async function gather(/** @type {string} */ domain) {
   const dnsFacts = await Promise.all(Object.keys(RESOLVERS).map(async (resolver) => {
-    const [a, caa] = await Promise.all([dns(resolver, domain, "A"), dns(resolver, domain, "CAA")]);
-    /** @type {{ type: number, data: string }[]} */
-    const answers = caa.Answer ?? [];
-    return { resolver, ad: a.AD === true, caaAd: caa.AD === true, caa: answers.filter((r) => r.type === 257).map((r) => r.data) };
+    const [a, caa, https] = await Promise.all([dns(resolver, domain, "A"), dns(resolver, domain, "CAA"), dns(resolver, domain, "HTTPS")]);
+    /** @type {(body: any, type: number) => string[]} */
+    const data = (body, type) => (body.Answer ?? []).filter((/** @type {{ type: number }} */ r) => r.type === type).map((/** @type {{ data: string }} */ r) => r.data);
+    return { resolver, ad: a.AD === true, caaAd: caa.AD === true, caa: data(caa, 257), httpsAd: https.AD === true, https: data(https, 65) };
   }));
   const hosts = [domain, `www.${domain}`];
   return {
@@ -272,7 +319,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const { values } = parseArgs({ options: { domain: { type: "string", default: "waseemilyas.uk" } } });
   const facts = await gather(String(values.domain));
   const failures = evaluate(facts);
-  for (const { resolver, caa } of facts.dns) console.log(`[domain] ${resolver} CAA: ${caa.join(" | ") || "none"}`);
+  for (const { resolver, caa, https } of facts.dns) {
+    console.log(`[domain] ${resolver} CAA: ${caa.join(" | ") || "none"}; HTTPS: ${https.join(" | ") || "none"}`);
+  }
   for (const { host, issuer, validTo } of facts.certs) console.log(`[domain] ${host}: ${issuer}, valid to ${validTo.toISOString().slice(0, 10)}`);
   const { own, foreign } = facts.ingest;
   if (facts.ingest.dsn) console.log(`[domain] Sentry ingest: own origin ${own}, another website ${foreign}`);
@@ -280,5 +329,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     for (const failure of failures) console.error(`✗ ${failure}`);
     process.exit(1);
   }
-  console.log(`[domain] ${values.domain}: CAA, certificates, DNSSEC, HTTPS redirects, error-report origins and security.txt all pass`);
+  console.log(`[domain] ${values.domain}: CAA, certificates, DNSSEC, HTTPS redirects and record, error-report origins and security.txt all pass`);
 }

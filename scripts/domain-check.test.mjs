@@ -3,11 +3,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { PROBE_USER_AGENT, evaluate, findDsn, parseCaa, probeEnvelope } from "./domain-check.mjs";
+import { PROBE_USER_AGENT, evaluate, findDsn, parseCaa, parseHttps, probeEnvelope } from "./domain-check.mjs";
 import { expiresFor } from "./security-txt.mjs";
 
 const now = new Date("2026-11-20T00:00:00Z");
 const STRICT = ['0 issue "letsencrypt.org"', '0 issuewild ";"'];
+const HTTPS_RR = ["1 . alpn=h2"];
 const TXT_URL = "https://example.test/.well-known/security.txt";
 const securityTxt = (expires = expiresFor(now), extra = "") => ({
   url: TXT_URL,
@@ -18,7 +19,7 @@ const securityTxt = (expires = expiresFor(now), extra = "") => ({
 const facts = (change = {}) => ({
   domain: "example.test",
   now,
-  dns: [{ resolver: "r", ad: true, caaAd: true, caa: STRICT }],
+  dns: [{ resolver: "r", ad: true, caaAd: true, caa: STRICT, httpsAd: true, https: HTTPS_RR }],
   certs: [{ host: "example.test", issuer: "Let's Encrypt", validTo: new Date("2027-01-20T00:00:00Z") }],
   redirects: [{ url: "http://example.test/", status: 301, location: "https://example.test/" }],
   ingest: { page: "https://example.test/", dsn: true, own: 200, foreign: 403 },
@@ -26,7 +27,7 @@ const facts = (change = {}) => ({
   ...change,
 });
 const dnsWith = (/** @type {Partial<import("./domain-check.mjs").DnsFacts>} */ change) =>
-  facts({ dns: [{ resolver: "r", ad: true, caaAd: true, caa: STRICT, ...change }] });
+  facts({ dns: [{ resolver: "r", ad: true, caaAd: true, caa: STRICT, httpsAd: true, https: HTTPS_RR, ...change }] });
 const fails = (/** @type {import("./domain-check.mjs").Facts} */ f, /** @type {RegExp} */ pattern) => {
   const failures = evaluate(f);
   assert.ok(failures.some((x) => pattern.test(x)), `expected ${pattern} in ${JSON.stringify(failures)}`);
@@ -49,6 +50,27 @@ test("CAA rules", () => {
   fails(dnsWith({ caa: [...STRICT, '0 issuewild "letsencrypt.org"'] }), /forbid wildcard/);
   fails(dnsWith({ caa: [...STRICT, '128 tbs "x"'] }), /critical tbs/);
   fails(dnsWith({ caa: ["garbage"] }), /unreadable CAA/);
+});
+
+test("parses resolver HTTPS record text, quoted or not", () => {
+  const r = parseHttps('1 . alpn="h2,http/1.1" ipv4hint=185.199.108.153');
+  assert.equal(r.priority, 1);
+  assert.equal(r.target, ".");
+  assert.equal(r.params.get("alpn"), "h2,http/1.1");
+  assert.equal(r.params.get("ipv4hint"), "185.199.108.153");
+  assert.equal(parseHttps("1 . alpn=h2").params.get("alpn"), "h2");
+});
+
+test("HTTPS record rules", () => {
+  // Without it, Chromium and Firefox send the first request for http:// in plaintext.
+  fails(dnsWith({ https: [] }), /no HTTPS record, so a visit to http:\/\/ goes out in plaintext/);
+  fails(dnsWith({ httpsAd: false }), /HTTPS record answer is not DNSSEC-authenticated/);
+  fails(dnsWith({ https: ["0 waseemilyas.github.io."] }), /alias-mode/);
+  fails(dnsWith({ https: ["1 elsewhere.example. alpn=h2"] }), /sends browsers to elsewhere\.example\./);
+  fails(dnsWith({ https: ["1 . alpn=h2 ipv4hint=185.199.108.153"] }), /carries ipv4hint; keep only alpn/);
+  fails(dnsWith({ https: ['1 . alpn="h3,h2"'] }), /advertises h3, which GitHub Pages does not serve/);
+  fails(dnsWith({ https: ["one . alpn=h2"] }), /unreadable HTTPS record/);
+  assert.deepEqual(evaluate(dnsWith({ https: ['1 example.test. alpn="h2,http/1.1"'] })), []);
 });
 
 test("DNSSEC, certificate and redirect rules", () => {
