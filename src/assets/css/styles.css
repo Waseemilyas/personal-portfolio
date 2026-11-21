@@ -935,6 +935,41 @@ p, li { text-wrap: pretty; }
 .contact-close a, .foot .meta a { vertical-align: baseline; margin-block: -6px; }
 @media (max-width: 720px) { .nav a { justify-content: flex-start; } .nav .cta { justify-content: center; } }
 
+/* ---------- forced colors ---------- */
+@media screen and (forced-colors: active) {
+  /* Background differences disappear. Keep a visible current page, row edge,
+     and selected tab using marks independent of the palette's hues. */
+  .nav a[aria-current="page"], .cap-phone .node[aria-selected="true"] {
+    text-decoration: underline 2px;
+    text-underline-offset: .2em;
+  }
+  .worklist { gap: 0; }
+  .worklist .workcard + .workcard { border-block-start: 1px solid CanvasText; }
+
+  /* Inline SVG paint can retain the authored colours when the canvas changes. */
+  .capfig svg {
+    --graphite-700: Canvas;
+    --line-dark: CanvasText;
+    --bone-mute: CanvasText;
+    --bone: CanvasText;
+    --signal: CanvasText;
+    --trace: CanvasText;
+  }
+  .capfig svg .trace.on { stroke-width: 3; }
+  .capfig svg .node[aria-selected="true"] .ring { stroke-width: 3; }
+  .capfig svg .node[aria-selected="true"] text { text-decoration: underline; }
+
+  .diagram-panel :is(.wf-node, .wf-node-live) rect, .figure svg rect { fill: Canvas; stroke: CanvasText; }
+  .diagram-panel :is(.wf-node, .wf-node-live) text, .diagram-panel .wf-arrowhead,
+  .figure svg :is(text, marker path) { fill: CanvasText; }
+  .diagram-panel svg g[marker-end], .figure svg g[marker-end] { stroke: CanvasText; }
+  .diagram-panel svg .wf-ticks { stroke: CanvasText; }
+  .diagram-panel .wf-node-live rect, .figure svg g > g:last-child > rect { stroke-width: 2; }
+  .figure .djoin, .diagram-panel .djoin { background: none; border-inline-start: 1px solid CanvasText; }
+  .figure .djoin::after, .diagram-panel .djoin::after { border-block-start-color: CanvasText; }
+  .dnode-live { font-weight: 700; }
+}
+
 /* ---------- reading on paper ----------
    Browser Print / Save as PDF uses the same article, without site navigation.
    A named page leaves other routes and the visitor's paper size alone. */

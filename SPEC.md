@@ -111,6 +111,10 @@ JavaScript all five descriptions and their links are available as a list.
 panel at a time. Pointer selection and keyboard focus activate a tab. Left/Right
 and Home/End move between tabs, and Tab moves to the active panel and its link.
 Narrow frames use full titles on buttons, with the same selection as the SVG map.
+With a system contrast theme active, the current header link and selected
+capability are underlined, and work rows keep visible dividers. The capability
+map and workflow diagrams use the system palette for their labels, shapes and
+arrows. The selected map node has a heavier ring.
 Main headings are visible from first paint. Supporting blocks in the first
 screen enter with CSS alone (`data-cal` slots). `setupReveals` only defers
 below-the-fold blocks while they are off-screen. Reduced motion animates nothing.
