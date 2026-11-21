@@ -247,6 +247,28 @@ try:
                 })()"""
             capture(label + "-page-" + str(i), checks, before=[("open", base + route)])
         receipts.append(label + ": all " + str(len(pages)) + " generated pages loaded without horizontal overflow")
+    # Tablet and small-laptop widths: no Lab card is left alone on a row, and the
+    # status panel's values start on one shared line (per column when two-up).
+    lab_rows_full = """(() => {
+        const grids = [...document.querySelectorAll('.lab-grid')];
+        return grids.length > 0 && grids.every(grid => {
+            const rows = new Map();
+            for (const card of grid.children) { const top = Math.round(card.getBoundingClientRect().top); rows.set(top, (rows.get(top) || 0) + 1); }
+            const counts = [...rows.values()];
+            return counts.every(count => count === counts[0]);
+        });
+    })()"""
+    status_aligned = """(() => {
+        const rows = [...document.querySelectorAll('.panel .readout')].map(row => [row.getBoundingClientRect().left, row.querySelector('dd').getBoundingClientRect().left]);
+        const columns = new Map();
+        for (const [row, value] of rows) { const key = Math.round(row); columns.set(key, [...(columns.get(key) || []), Math.round(value)]); }
+        return rows.length === 4 && [...columns.values()].every(values => new Set(values).size === 1);
+    })()"""
+    for width, height in [(1024, 768), (768, 1024), (667, 375)]:
+        run("set", "viewport", str(width), str(height))
+        capture("tablet-home-" + str(width), {"lab rows full": lab_rows_full, "status values aligned": status_aligned}, before=[("open", base + "/")])
+        capture("tablet-lab-" + str(width), {"lab rows full": lab_rows_full}, before=[("open", base + "/lab/")])
+    receipts.append("1024x768, 768x1024, 667x375: Lab cards fill every row and the status values share one line")
     run("set", "media", "light")
     home_actions_fit = """(() => {
         const links = [...document.querySelectorAll('.hero .actions a')];

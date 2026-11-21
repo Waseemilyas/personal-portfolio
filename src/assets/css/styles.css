@@ -409,7 +409,8 @@ p, li { text-wrap: pretty; }
     line-height: 1.35;
   }
   .hero:has(.panel) .actions { margin-block-start: .6rem; gap: .65rem; }
-  .hero .panel dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.2rem; }
+  .hero .panel dl { grid-template-columns: repeat(2, auto minmax(0, 1fr)); column-gap: 1.2rem; }
+  .hero .readout { grid-column: span 2; }
   .hero .readout:nth-last-child(2) { border-block-end: 0; }
 }
 
@@ -428,7 +429,11 @@ p, li { text-wrap: pretty; }
 .panel .phead .live { display: inline-flex; gap: .45rem; align-items: center; color: var(--bone-mute); font-size: var(--step--1); }
 .panel .phead .live .blip { width: 6px; height: 6px; border-radius: 50%; background: var(--signal); animation: blip 2.4s var(--ease) infinite; }
 @keyframes blip { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
-.readout { display: grid; grid-template-columns: auto 1fr; gap: .55rem 1rem; padding-block: .7rem; border-bottom: 1px solid var(--line-dark); }
+/* The rows share one label column (subgrid), so every value starts on the same line.
+   Without subgrid each row keeps its own auto column, as before. */
+.panel dl { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+.readout { display: grid; grid-template-columns: auto 1fr; grid-column: 1 / -1; gap: .55rem 1rem; padding-block: .7rem; border-bottom: 1px solid var(--line-dark); }
+.panel .readout { grid-template-columns: subgrid; }
 .readout:last-of-type { border-bottom: 0; }
 .readout dt { font-family: var(--mono); font-size: var(--step--1); letter-spacing: .06em; color: var(--signal); }
 .readout dd { font-size: var(--step--1); color: var(--bone); }
@@ -811,6 +816,12 @@ p, li { text-wrap: pretty; }
 
 /* ---------- lab (console) ---------- */
 .lab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1.1rem; }
+/* Three or four cards never leave one alone on a row: three go one or three across,
+   four go one, two or four across. Other counts keep the auto-fit columns. */
+.lab-grid:has(> :nth-child(3):last-child, > :nth-child(4):last-child) { grid-template-columns: minmax(0, 1fr); }
+@media (width >= 37.5rem) { .lab-grid:has(> :nth-child(4):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (width >= 45rem) { .lab-grid:has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (width >= 70rem) { .lab-grid:has(> :nth-child(4):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .lab-card { border: 1px solid var(--line-dark); border-radius: var(--rounded-lg); padding: 1.3rem 1.4rem; background: var(--graphite-800); text-decoration: none; display: flex; flex-direction: column; gap: .5rem; transition: border-color .2s var(--ease), transform .2s var(--ease); }
 .lab-card:hover { border-color: var(--signal); transform: translateY(-2px); }
 .lab-card .tag { font-family: var(--mono); font-size: var(--step--1); color: var(--signal); letter-spacing: .05em; }
