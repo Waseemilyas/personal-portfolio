@@ -21,9 +21,14 @@ shorter than the window, the footer sits on the window's bottom edge.
 On case studies below 861px, the datasheet follows the article text and shows
 its labels and values side by side. Wider screens show it beside the narrative,
 under the “On this page” list. With JavaScript, the list and datasheet follow
-the article together from 861px wide and 400px high. The datasheet scrolls
-within the sidebar when space is short. A section link near the end lands
-far enough down the screen to leave the sidebar available for another jump.
+the article together from 861px wide and 400px high, using the height of the
+window below the header. There the datasheet sets each label beside its value
+once the column is wide enough, and with a mouse or trackpad the contents links
+are 32px tall instead of 44px. Every row then fits beside the story in windows
+from 1024 × 768 and 1280 × 720 up. The datasheet scrolls within the sidebar only
+in shorter windows, or on a 1024 × 768 touch screen for the longest case study.
+A section link near the end lands far enough down the screen to leave the
+sidebar available for another jump.
 The layout works without JavaScript. In print, the datasheet follows the article text.
 
 GitHub Pages serves `/404.html` at whatever address was asked for. Below its hero,

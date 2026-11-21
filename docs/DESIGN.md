@@ -475,7 +475,7 @@ extend rather than fork.
 | `.email-row` | both | home, `/contact/`, notes and case studies | The primary email CTA. `.email-big` is mono and underlined in the surface's signal colour, display-scale on console. The shared `partials/email-cta.njk` renders a native manual copy disclosure with a read-only address field. Both controls read "Copy address" on screen (the disclosure's name adds a visually hidden "manually"), so they are the same width and the row does not reflow when `site.js` swaps them. Where one-click copy is available, `site.js` swaps in a mono ghost button and restores the disclosure open if the write fails. `[data-copied]` turns the button the signal colour while it reads "Copied ✓". |
 | `.milestone` in `.arc-line` | console | home, `/about/` | Timeline. `.key` milestones get a signal dot with glow. |
 | `.proof` | console | home, `/about/` | Bordered `→` list on `--graphite-800`; the 10px radius rung. |
-| `.datasheet` | essay | case studies, `/about/` | Sticky `top: 4.5rem` sidebar `dl` (under the contents rail on case studies). On `/about/` it is the labelled "At a glance" `section`. On narrow screens, case studies show a compact label/value grid after the article text. |
+| `.datasheet` | essay | case studies, `/about/` | Sticky `top: 4.5rem` sidebar `dl` (under the contents rail on case studies, label beside value from a 20rem column). On `/about/` it is the labelled "At a glance" `section`. On narrow screens, case studies show a compact label/value grid after the article text. |
 | `.prose` | essay | case studies, notes, `/about/` | Long-form container, `70ch`. |
 | `.nextread` | essay | case-study and note detail pages | One whole-card link to the next item, just above `.casenav`: the next case study by `order`, or the next older note, wrapping to the first at the end. Built in `case.njk` / `note.njk` with Eleventy's `getNextCollectionItem` over `collections.casestudies` / `collections.notes`, so drafts never appear. `--paper-sink` card, `--rounded-lg`, mono `--signal-deep` label (`.nextread-k`), `--step-2` title (`.nextread-t`, a span, not a heading, so the heading contract is untouched), `--ink-mute` kicker or summary (`.nextread-d`), arrow (`.nextread-go`). Hover borders and titles it in `--signal-deep`. |
 | `.casenav` | essay | case-study and note detail pages | Footer nav **inside** the `<article>`, not under it. A fixed pair: back-to-index link + `mailto`. Mono in `--signal-deep`. Directly after `.nextread` it drops its hairline and top padding. |
@@ -489,12 +489,15 @@ is a native disclosure with 44px targets. With JavaScript it follows the article
 beneath the header on the paper surface and names the current section beside its
 label. Opening it reveals the section links in a scrollable list.
 From 861px it is a rail in the right column: a `--line-light` hairline with
-`--ink-mute` links in `--step--1`, still 44px tall. The section being read
+`--ink-mute` links in `--step--1`, still 44px tall for touch and 32px with a fine
+pointer. The section being read
 (`aria-current`, set by site.js) turns `--ink` with a 2px `--signal-deep` bar on the
 hairline; forced colours underline it. A note's rail is sticky at `top: 4.5rem`.
 With JavaScript and at least 400px of viewport height, a case study's list and
-datasheet share that sticky inset and at most 70% of the viewport height. The
-datasheet is keyboard-scrollable when it overflows. The contents list is hidden in print.
+datasheet share that sticky inset and the viewport height below it. Beside the
+article the datasheet uses tighter rows, and puts each label beside its value once
+it is at least 20rem wide (a container query), so all its rows fit on a 1280 × 720
+laptop window. It is keyboard-scrollable when it still overflows. The contents list is hidden in print.
 
 Single-route components are in the stylesheet but deliberately not listed here:
 `.capfig` / `.capread` (the homepage capability map), `.panel` / `.readout` (the
