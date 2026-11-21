@@ -408,16 +408,9 @@ function pruneCache() {
 }
 
 /**
- * Wire card metadata and PNGs into the same build that writes their pages.
+ * Add card metadata to rendered pages and return the writer for their PNGs.
  * @param {{
  * on(event: "eleventy.before", callback: () => void): void,
- * on(event: "eleventy.after", callback: (event: {
- *   directories: {input: string, inputFile?: string, inputGlob?: string, output: string},
- *   dryRun: boolean,
- *   incremental: boolean,
- *   outputMode: string,
- *   results: {outputPath: string | false}[]
- * }) => void | Promise<void>): void,
  * addTransform(name: string, transform: (this: {page: {outputPath: string | false, url: string}}, content: string) => string): void
  * }} config
  */
@@ -446,14 +439,15 @@ export function addShareCards(config) {
     return content.replace(/(<meta (?:property|name)="(?:og|twitter):image(:alt)?" content=")[^"]*(")/g,
       (_match, start, alt, end) => `${start}${esc(alt ? cardAlt(text) : url)}${end}`);
   });
-  config.on("eleventy.after", async ({ directories, incremental }) => {
-    const changed = [...cards].filter(([image, html]) => rendered.get(image) !== html || !existsSync(join(directories.output, image)));
-    mkdirSync(join(directories.output, "assets/img/og"), { recursive: true });
-    const missing = changed.filter(([image, html]) => !reuse(html, join(directories.output, image)));
+  return async (/** @type {string} */ output, /** @type {boolean} */ complete) => {
+    const changed = [...cards].filter(([image, html]) => rendered.get(image) !== html || !existsSync(join(output, image)));
+    const cardDir = join(output, "assets/img/og");
+    mkdirSync(cardDir, { recursive: true });
+    const missing = changed.filter(([image, html]) => !reuse(html, join(output, image)));
     const timing = { start: 0, draw: 0, first: 0, squeeze: 0 };
     if (missing.length) {
       const shots = await render(missing.map(([, html]) => html), timing);
-      const targets = missing.map(([image]) => join(directories.output, image));
+      const targets = missing.map(([image]) => join(output, image));
       shots.forEach((png, i) => writeFileSync(targets[i], png));
       const squeezing = performance.now();
       const squeezed = squeeze(targets);
@@ -464,11 +458,8 @@ export function addShareCards(config) {
       }
     }
     for (const [image, html] of changed) rendered.set(image, html);
-    if (!incremental) pruneCache();
-    // A full rebuild also removes cards for articles that were deleted or drafted.
-    // Incremental builds only know the pages they rebuilt, so retain other cards.
-    const cardDir = join(directories.output, "assets/img/og");
-    if (!incremental && existsSync(cardDir)) {
+    if (complete) {
+      pruneCache();
       for (const file of readdirSync(cardDir)) {
         const image = `/assets/img/og/${file}`;
         if (file.endsWith(".png") && !cards.has(image)) {
@@ -480,5 +471,5 @@ export function addShareCards(config) {
     const s = (/** @type {number} */ ms) => (ms / 1000).toFixed(1);
     console.log(`[share cards] Rendered ${missing.length} PNGs, reused ${changed.length - missing.length}.` + (missing.length
       ? ` Chromium start ${s(timing.start)} s, render ${s(timing.draw)} s (first card ${s(timing.first)} s), compress ${s(timing.squeeze)} s.` : ""));
-  });
+  };
 }
