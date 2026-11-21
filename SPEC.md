@@ -73,6 +73,15 @@ then fit in about 12 KB compressed, inside a new connection's first round trip.
 `/assets/css/styles.css` is still published whole, so a page cached from before
 inlining keeps its styles.
 
+Home's six sections below the hero, and the 404 page's index, use
+`content-visibility: auto`: the browser skips their style, layout and paint until
+they near the viewport, so the first paint lays out the first screen only. A
+skipped section stays in the accessibility tree and find in page, and keeps its
+real height once drawn. The reveal script reads which blocks start on screen from
+an IntersectionObserver instead of measuring them, so it does not force the skipped
+sections into layout. A visit that opens on an address with a `#fragment` draws
+every section from the start, so the browser lands on the target exactly.
+
 The skip link gives focus to the main landmark, including with scripts disabled.
 The document leaves scroll space above focused controls and anchor targets for
 the sticky header. After native keyboard focus scrolling, the script checks

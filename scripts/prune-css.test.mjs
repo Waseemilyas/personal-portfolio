@@ -33,7 +33,7 @@ test("a rule goes only when every selector in its list needs a missing name", ()
 test("classes the scripts add at runtime are read, and an unreadable one stops the build", () => {
   const base = readFileSync("src/_includes/base.njk", "utf8");
   const site = readFileSync("src/assets/js/site.js", "utf8");
-  assert.deepEqual(new Set(scriptClasses(`${base}\n${site}`)), new Set(["js", "onsite", "cal-wait", "in", "on"]));
+  assert.deepEqual(new Set(scriptClasses(`${base}\n${site}`)), new Set(["js", "deeplink", "onsite", "cal-wait", "in", "on"]));
   assert.throws(() => scriptClasses("el.classList.add(name)"), /cannot read/);
   assert.throws(() => scriptClasses('el.className = "open"'), /cannot read/);
   assert.throws(() => scriptClasses('el.setAttribute("class", "open")'), /cannot read/);

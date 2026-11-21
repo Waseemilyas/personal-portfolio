@@ -10,7 +10,7 @@
 // A style rule is left out of a page only when every selector in its list needs a
 // class or id that the page never uses. A class or id counts as used when it appears
 // in the page's HTML or as a word in any script the page runs (site.js adds `in`,
-// `on`, `cal-wait`, `js` and `onsite` at runtime), so state a script sets later is
+// `on`, `cal-wait`, `js`, `deeplink` and `onsite` at runtime), so state a script sets later is
 // always kept. Classes inside :not(), :is(), :where() and :has() never count as
 // required, element and attribute selectors are always kept, and @font-face,
 // @keyframes, @view-transition and every other at-rule except @media, @supports and

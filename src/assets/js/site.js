@@ -96,20 +96,26 @@
 
   /* First-screen blocks (data-cal="0".."4") and corner marks animate in CSS alone.
      This only defers below-the-fold blocks: one already on screen is never hidden,
-     and one hidden here rises once its top crosses 88% of the viewport. */
+     and one hidden here rises once its top crosses 88% of the viewport.
+     An observer's first report, not a measurement, says which blocks are on screen:
+     measuring would make the browser lay out the Home sections it is skipping
+     (content-visibility in styles.css). */
   function setupReveals() {
     if (rm || !("IntersectionObserver" in window)) return;
-    var io = new IntersectionObserver(function (es) {
+    var rise = new IntersectionObserver(function (es) {
       es.forEach(function (e) {
-        if (e.isIntersecting) { e.target.classList.replace("cal-wait", "in"); io.unobserve(e.target); }
+        if (e.isIntersecting) { e.target.classList.replace("cal-wait", "in"); rise.unobserve(e.target); }
       });
     }, { rootMargin: "0px 0px -12% 0px" });
-    document.querySelectorAll('[data-cal=""]').forEach(function (el) {
-      var r = el.getBoundingClientRect();
-      if (r.top < window.innerHeight && r.bottom > 0) return;
-      el.classList.add("cal-wait");
-      io.observe(el);
+    var onScreen = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        onScreen.unobserve(e.target);
+        if (e.isIntersecting) return;
+        e.target.classList.add("cal-wait");
+        rise.observe(e.target);
+      });
     });
+    document.querySelectorAll('[data-cal=""]').forEach(function (el) { onScreen.observe(el); });
   }
 
   function setupCapabilityMap() {
@@ -265,6 +271,8 @@
       for (var i = 0; i < links.length; i++) {
         var a = links[i];
         if (!(a instanceof HTMLAnchorElement) || a.origin !== location.origin || a.pathname !== path) continue;
+        // A link in a section the browser is skipping is off screen; measuring it would lay it out.
+        if (a.checkVisibility && !a.checkVisibility({ contentVisibilityAuto: true })) continue;
         var title = a.querySelector("h2, h3, .nextread-t") || a.closest(".note-item h2, .workcard h2");
         if (!(title instanceof HTMLElement)) continue;
         var r = title.getBoundingClientRect();
