@@ -20,6 +20,12 @@ test("published articles link to their own focusable section headings without sc
       const doc = new JSDOM(readFileSync(join(out, route, "index.html"), "utf8")).window.document;
       const links = [...doc.querySelectorAll('main nav[aria-label="On this page"] a[href]')];
       const headings = [...doc.querySelectorAll("main .prose h2")];
+      const expected = headings.length > 1 || index === "work" ? [...headings] : [];
+      if (index === "work") {
+        const datasheet = doc.querySelector(".datasheet h2");
+        assert.ok(datasheet, `${route}: the datasheet has a heading readers can jump to`);
+        expected.push(datasheet);
+      }
       const requiredLink = requiredLinks.get(route);
       if (requiredLink) {
         assert.ok(links.some((link) => link.getAttribute("href") === requiredLink), `${route} links to ${requiredLink}`);
@@ -33,7 +39,7 @@ test("published articles link to their own focusable section headings without sc
         assert.equal(link.textContent.trim(), target.textContent.trim(), `${route}${href}: label matches heading`);
         assert.equal([...doc.querySelectorAll("[id]")].filter((el) => el.id === target.id).length, 1);
         return target;
-      }), headings.length > 1 ? headings : [], `${route}: section links follow reading order`);
+      }), expected, `${route}: section links follow reading order`);
     }
   }
   assert.equal(requiredLinks.size, 0, "the section links can be reached from Work and Notes");

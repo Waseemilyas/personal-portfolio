@@ -12,18 +12,18 @@ layout: base.njk
     </div>
 
     <div class="casegrid">
-      <aside class="datasheet" data-cal="2" aria-label="Case datasheet">
-        <div class="dh">Datasheet</div>
+      <div class="prose" data-cal="1">
+        {{ article.html | safe }}
+      </div>
+
+      <section class="datasheet" data-cal="2" aria-labelledby="case-datasheet">
+        <h2 class="dh" id="case-datasheet" tabindex="-1">Datasheet</h2>
         <dl>
           {%- for row in datasheet %}
           <dt>{{ row.k }}</dt><dd>{{ row.v | replace(" · ", "&nbsp;· ") | safe }}</dd>
           {%- endfor %}
         </dl>
-      </aside>
-
-      <div class="prose" data-cal="1">
-        {{ article.html | safe }}
-      </div>
+      </section>
     </div>
 
     {% set emailSubject = 'About your case study: ' + title %}

@@ -538,10 +538,6 @@ p, li { text-wrap: pretty; }
 .article-contents a { display: inline-flex; align-items: center; min-block-size: 44px; min-inline-size: 44px; color: var(--signal-deep); text-underline-offset: 3px; }
 .article-contents a:active { color: var(--ink); }
 .casegrid { display: grid; grid-template-columns: 1.6fr .9fr; gap: clamp(1.6rem, 4vw, 3.4rem); align-items: start; }
-@media screen and (min-width: 861px) {
-  .casegrid > .prose { grid-area: 1 / 1; }
-  .casegrid > .datasheet { grid-area: 1 / 2; }
-}
 .prose { max-width: calc(70 * var(--ch)); }
 .prose h2 { font-size: var(--step-2); color: var(--ink); margin: 2rem 0 .8rem; letter-spacing: -0.02em; }
 .prose h3 { font-size: var(--step-1); color: var(--ink); margin: 1.6rem 0 .6rem; }
@@ -558,6 +554,7 @@ p, li { text-wrap: pretty; }
 .datasheet { border: 1px solid var(--line-light); border-radius: var(--rounded-lg); background: var(--paper-sink); position: sticky; top: 4.5rem; }
 @media (max-width: 860px) { .datasheet { position: static; } }
 .datasheet .dh { font-family: var(--mono); font-size: var(--step--1); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-mute); padding: .9rem 1.1rem; border-bottom: 1px solid var(--line-light); }
+.casegrid .dh { font-weight: 400; line-height: inherit; }
 .datasheet dl { display: grid; grid-template-columns: 1fr; padding: .4rem 1.1rem 1.1rem; }
 .datasheet dt { font-family: var(--mono); font-size: var(--step--1); letter-spacing: .05em; color: var(--signal-deep); margin-top: 1rem; }
 .datasheet dd { font-size: var(--step--1); color: var(--ink); line-height: 1.5; margin-top: .25rem; }
@@ -567,6 +564,7 @@ p, li { text-wrap: pretty; }
   .case-study { padding-block-start: clamp(2rem, 5vw, 3.5rem); }
   .case-study .casehead { padding-block-end: 1.1rem; margin-block-end: 1.2rem; }
   .casegrid { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+  .casegrid > .prose > :first-child { margin-block-start: 0; }
   .casegrid > .datasheet { position: static; max-inline-size: calc(70 * var(--ch)); }
   .casegrid .datasheet dl {
     grid-template-columns: min(6em, 34%) minmax(0, 1fr);
@@ -950,7 +948,6 @@ p, li { text-wrap: pretty; }
   .reading-page .casehead h1 { max-inline-size: none; }
   .reading-page .casehead .kick { font-size: var(--step-0); line-height: 1.45; }
   .reading-page .casegrid { display: flex; flex-direction: column; gap: 0; align-items: stretch; }
-  .reading-page .casegrid > .datasheet { order: 1; }
   .reading-page .prose, .reading-page .prose p { max-inline-size: none; }
   .reading-page .prose p { margin-block-end: 9pt; line-height: 1.5; }
   .reading-page p, .reading-page li { orphans: 3; widows: 3; }

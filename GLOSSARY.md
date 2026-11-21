@@ -20,4 +20,4 @@ The public portfolio describes Waseem's practice through work, notes and a conne
 
 **Essay**: The light reading surface used for longer narrative content.
 
-**Datasheet**: The compact summary of a case study's context and outcome beside its narrative.
+**Datasheet**: The compact summary of a case study's context and outcome, beside the narrative on wide screens and after it on narrow screens.
