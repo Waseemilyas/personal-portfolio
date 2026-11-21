@@ -456,11 +456,18 @@ p, li { text-wrap: pretty; }
 .hero ~ .section > .shell { padding-block: var(--space-section-block); }
 .deeplink .hero ~ .section { content-visibility: visible; }
 @media print { .hero ~ .section { content-visibility: visible; } }
-.section-head { display: flex; align-items: baseline; gap: var(--space-head-gap); margin-bottom: var(--space-head-below); flex-wrap: wrap; }
+.section-head { display: grid; gap: .5rem; margin-block-end: clamp(1.4rem, 3.2vw, var(--space-head-below)); overflow-wrap: anywhere; }
 .section-head .ref { font-family: var(--mono); font-size: var(--step--1); color: var(--signal); letter-spacing: .06em; }
-.section-head h1, .section-head h2 { font-size: var(--step-3); font-weight: 700; }
-.section-head p { color: var(--bone-mute); max-width: calc(42 * var(--ch)); margin-left: auto; font-size: var(--step-0); }
-@media (max-width: 620px) { .section-head p { margin-left: 0; } .section-head .ref { flex-basis: 100%; } }
+.section-head h1, .section-head h2 { justify-self: start; font-size: var(--step-3); font-weight: 700; }
+.section-head p { color: var(--bone-mute); max-inline-size: calc(60 * var(--ch)); font-size: var(--step-0); }
+@media screen and (width < 621px) {
+  .section:has(> .shell > .section-head) { --space-section-block: clamp(2.75rem, 6vh, 3.5rem); }
+}
+@media screen and (width >= 68rem) {
+  .section-head { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: var(--space-head-gap); }
+  .section-head:has(> p) { grid-template-columns: auto minmax(0, 1fr) min(40%, calc(42 * var(--ch))); }
+  .section-head p { max-inline-size: none; }
+}
 .essay .section-head .ref { color: var(--signal-deep); }
 .essay .section-head h1, .essay .section-head h2 { color: var(--ink); }
 .essay .section-head p { color: var(--ink-mute); }
