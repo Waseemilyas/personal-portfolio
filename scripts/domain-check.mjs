@@ -299,6 +299,7 @@ async function ingest(/** @type {string} */ domain) {
   // project answers 403 and keeps answering it. Stop at the first 403. A project that allows
   // every origin answers 200 every time, so it uses all of the tries and still fails.
   const own = await report(dsn, domain, `https://${domain}`);
+  /** @type {number[]} */
   const statuses = [];
   for (let i = 0; i < FOREIGN_TRIES && !statuses.includes(403); i++) {
     statuses.push(await report(dsn, domain, FOREIGN_ORIGIN));
