@@ -166,6 +166,33 @@ const HOSTED_CHROME = process.env.GITHUB_ACTIONS === "true" && !process.env.CHRO
   ? fileURLToPath(new URL("./chrome-for-testing.sh", import.meta.url))
   : null;
 
+/**
+ * Playwright's browsers in its caches (~/.cache on Linux, ~/Library/Caches on a Mac), newest
+ * build first: the executables of every `<prefix>-<build>` folder that `paths` names.
+ * @param {string} prefix @param {(dir: string) => string[]} paths
+ */
+function playwrightBrowsers(prefix, paths) {
+  const folder = new RegExp(`^${prefix}-(\\d+)$`);
+  return [join(homedir(), ".cache/ms-playwright"), join(homedir(), "Library/Caches/ms-playwright")]
+    .filter((cache) => existsSync(cache))
+    .flatMap((cache) => readdirSync(cache)
+      .map((dir) => ({ dir, build: Number(folder.exec(dir)?.[1]) }))
+      .filter(({ build }) => build > 0)
+      .sort((a, b) => b.build - a.build)
+      .flatMap(({ dir }) => paths(join(cache, dir))));
+}
+
+/** @param {string} name */
+const onPath = (name) => spawnSync("sh", ["-c", `command -v ${name}`], { encoding: "utf8" }).stdout.trim();
+
+const MAC_ARCHES = ["arm64", "x64"];
+
+/**
+ * The browser that draws the cards. A headless shell comes first wherever one is installed:
+ * it is the build CI pins, starts in about a second and has no desktop parts to stall on.
+ * Full Chrome is the fallback; on a Mac, Playwright's full Chromium once never answered and
+ * held a build for 12 minutes, while its headless shell drew every card in 2.7 s.
+ */
 function findChrome() {
   if (process.env.CHROME) return process.env.CHROME;
   if (HOSTED_CHROME) {
@@ -175,27 +202,29 @@ function findChrome() {
       timeout: 120_000,
     }).trim();
   }
-  for (const name of ["chromium", "chromium-browser", "google-chrome", "google-chrome-stable"]) {
-    const found = spawnSync("sh", ["-c", `command -v ${name}`], { encoding: "utf8" }).stdout.trim();
-    if (found) return found;
-  }
-  // macOS keeps browsers in app bundles, off PATH; Playwright's own Chromium counts too,
-  // on a Mac and on Linux, where lanes have it installed but no browser on PATH.
-  const apps = ["Google Chrome.app/Contents/MacOS/Google Chrome", "Chromium.app/Contents/MacOS/Chromium"]
-    .flatMap((app) => [join("/Applications", app), join(homedir(), "Applications", app)]);
-  const bundled = [join(homedir(), "Library/Caches/ms-playwright"), join(homedir(), ".cache/ms-playwright")]
-    .filter((cache) => existsSync(cache))
-    .flatMap((cache) => readdirSync(cache).filter((dir) => /^chromium-\d+$/.test(dir))
-      .sort((a, b) => Number(b.slice(9)) - Number(a.slice(9)))
-      .flatMap((dir) => [
-        ...["arm64", "x64"].map((arch) =>
-          join(cache, dir, `chrome-mac-${arch}/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`)),
-        join(cache, dir, "chrome-linux64/chrome"),
-        join(cache, dir, "chrome-linux/chrome"),
-      ]));
-  const found = [...apps, ...bundled].find((path) => existsSync(path));
+  const shell = onPath("chrome-headless-shell");
+  if (shell) return shell;
+  const candidates = [
+    ...playwrightBrowsers("chromium_headless_shell", (dir) => [
+      join(dir, "chrome-headless-shell-linux64/chrome-headless-shell"),
+      ...MAC_ARCHES.map((arch) => join(dir, `chrome-headless-shell-mac-${arch}/chrome-headless-shell`)),
+      join(dir, "chrome-linux/headless_shell"),
+      join(dir, "chrome-mac/headless_shell"),
+    ]),
+    ...["chromium", "chromium-browser", "google-chrome", "google-chrome-stable"].map(onPath).filter(Boolean),
+    // macOS keeps browsers in app bundles, off PATH.
+    ...["Google Chrome.app/Contents/MacOS/Google Chrome", "Chromium.app/Contents/MacOS/Chromium"]
+      .flatMap((app) => [join("/Applications", app), join(homedir(), "Applications", app)]),
+    ...playwrightBrowsers("chromium", (dir) => [
+      ...MAC_ARCHES.map((arch) =>
+        join(dir, `chrome-mac-${arch}/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`)),
+      join(dir, "chrome-linux64/chrome"),
+      join(dir, "chrome-linux/chrome"),
+    ]),
+  ];
+  const found = candidates.find((path) => existsSync(path));
   if (found) return found;
-  throw new Error("No Chromium found: set CHROME=/path/to/chrome");
+  throw new Error("No Chromium found: install one (npx playwright install chromium-headless-shell) or set CHROME=/path/to/chrome");
 }
 
 /** @param {string} profile */
@@ -206,14 +235,13 @@ function removeProfile(profile) {
 
 /**
  * Launch headless Chromium and return its DevTools ws:// address.
- * @param {string} executable @param {number} timeoutMs
+ * @param {string} executable @param {number} timeoutMs @param {boolean} sandbox
  * @returns {Promise<{chrome: import("node:child_process").ChildProcess, wsUrl: string, profile: string}>}
  */
-function launchChrome(executable, timeoutMs) {
+function launchChrome(executable, timeoutMs, sandbox) {
   const profile = mkdtempSync(join(tmpdir(), "og-cards-"));
   const chrome = spawn(executable, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
-    // Hosted CI restricts user namespaces; this browser renders only our inlined card HTML.
-    ...(process.env.CI ? ["--no-sandbox"] : []),
+    ...(sandbox ? [] : ["--no-sandbox"]),
     "--no-first-run", "--hide-scrollbars", "--force-color-profile=srgb", "about:blank"], { stdio: ["ignore", "ignore", "pipe"] });
   return new Promise((resolve, reject) => {
     let log = "";
@@ -245,13 +273,24 @@ async function render(pages, timing = { start: 0, draw: 0, first: 0 }) {
   const began = performance.now();
   // A stalled first launch (seen on hosted CI: only dbus noise on stderr) is
   // retried once with a longer budget before the build is allowed to fail.
+  // Hosted CI and some agent machines refuse the user namespaces Chromium's sandbox
+  // needs; there the browser runs without it, as it only ever draws our inlined card HTML.
+  let sandbox = !process.env.CI;
   /** @type {Awaited<ReturnType<typeof launchChrome>> | undefined} */
   let launched;
   /** @type {unknown} */
   let lastError;
   for (const timeout of [60_000, 120_000]) {
-    try { launched = await launchChrome(executable, timeout); break; }
-    catch (error) { lastError = error; console.warn(`Chromium launch failed, ${timeout === 60_000 ? "retrying once" : "giving up"}:`, error); }
+    try { launched = await launchChrome(executable, timeout, sandbox); break; }
+    catch (error) {
+      lastError = error;
+      if (sandbox && String(error).includes("No usable sandbox")) {
+        sandbox = false;
+        try { launched = await launchChrome(executable, timeout, sandbox); break; }
+        catch (unsandboxed) { lastError = unsandboxed; }
+      }
+      console.warn(`Chromium launch failed, ${timeout === 60_000 ? "retrying once" : "giving up"}:`, lastError);
+    }
   }
   if (!launched) throw lastError;
   const { chrome, wsUrl, profile } = launched;
