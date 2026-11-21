@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.11.21.7 — 21 November 2026
+
+The site keeps section headings with their introductions on narrower screens.
+
+
 ## v2026.11.21.6 — 21 November 2026
 
 The domain check now catches when a site accepts probes from origins it should reject.
