@@ -5,7 +5,7 @@ description: Drive the real portfolio pages, capability map and mobile navigatio
 
 # Verify the portfolio
 
-Last verified: 2026-11-20 on Linux with Chromium (about 57 s at load 10–17, 14 pages, 35 screenshots).
+Last verified: 2026-11-21 on Linux with Chromium (about 180 s at load 12–17, 14 pages, 50 screenshots).
 
 ## Launch
 
