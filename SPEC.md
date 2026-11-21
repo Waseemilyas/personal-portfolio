@@ -230,8 +230,15 @@ The DSN is public in every page, so the Sentry project accepts reports only from
 `https://waseemilyas.uk` (Allowed Domains); a browser on any other website, a copy of
 the site or a local preview gets 403. The Sentry organisation's error quota is shared
 with other projects, and this stops another site spending it. `scripts/domain-check.mjs`
-fails, after every release and daily, if the live ingest stops refusing another
-origin or starts refusing the site's own.
+fails, after every release and daily, if the live ingest stops refusing an error
+event from another origin or starts refusing the site's own. Its probe event has a web
+crawler's user agent, so the project's web-crawler inbound filter drops it unstored.
+
+`/.well-known/security.txt` (RFC 9116) tells anyone who finds a security problem to
+email `waseem@automancer.uk`. Its Expires date is 180 days after the built commit, so
+every release renews it and a rebuild of the same commit is identical. `site-check`
+checks the built file, and the domain check fails when the live one is within 21 days
+of expiry, which happens only after about five months without a release.
 
 A shared link shows a 1200×630 preview card. Each note and case study has its own,
 carrying its label, title and (for a case study) kicker in the site's fonts; every

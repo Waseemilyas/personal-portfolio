@@ -53,6 +53,9 @@ jobs:
         with:
           path: _site
           retention-days: 1
+          # Publishes .well-known/security.txt. site-check has already refused any file
+          # outside the public inventory, so no other dot-file can reach the upload.
+          include-hidden-files: true
 
   # Keep publishing credentials out of the runner that installs dependencies and builds the site.
   deploy:

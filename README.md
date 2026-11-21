@@ -131,9 +131,12 @@ A last job then runs `node scripts/domain-check.mjs` (`.github/workflows/domain.
 which also runs daily: the domain's CAA records allow only Let's Encrypt and no
 wildcards, the served certificate comes from that authority with at least 21 days
 left, DNSSEC validates, `http://` redirects to `https://`, and the Sentry project
-behind the live page's DSN accepts error reports from `https://waseemilyas.uk` and
-refuses them from any other website (it posts an empty client report, which records
-nothing). If GitHub Pages ever
+behind the live page's DSN accepts an error event from `https://waseemilyas.uk` and
+refuses one from any other website, and `/.well-known/security.txt` is published and
+not within 21 days of expiry. The probe event carries a web crawler's user agent, so
+the project's web-crawler inbound filter drops it: Sentry counts it as filtered and
+stores nothing. Keep that filter on, or the probe becomes a daily debug event in the
+`domain-check` environment. If GitHub Pages ever
 moves to another certificate authority, add it to `ALLOWED_CAS` in that script and as
 a CAA `issue` record in the Cloudflare zone before the old certificate runs out.
 

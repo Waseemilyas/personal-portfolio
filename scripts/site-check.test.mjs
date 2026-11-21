@@ -8,11 +8,14 @@ import { dirname, join } from "node:path";
 
 import { withPolicy } from "./csp.mjs";
 import { publicAssets } from "./public-assets.mjs";
+import { expiresFor } from "./security-txt.mjs";
 import { runSiteChecks } from "./site-check.mjs";
 
 const SITE = "https://example.test";
 const REV = "a".repeat(40);
 const SITE_SCRIPT = "void 0;";
+const securityTxt = (expires = expiresFor(new Date())) =>
+  `Contact: mailto:waseem@automancer.uk\nExpires: ${expires}\nCanonical: ${SITE}/.well-known/security.txt\n`;
 const SITE_SCRIPT_INTEGRITY = "sha256-T1YEXClWF9CUhD2vRqC2ZkctVhPSMrn+MCIkJI7U02I=";
 
 const png = (width, height) => {
@@ -66,6 +69,7 @@ function check(mutate = () => {}, mutateTree = () => {}) {
     "sitemap.xml": sitemap("/", "/about/", "/notes/n/"),
     "notes/feed.xml": feed,
     "revision.txt": `${REV}\n`,
+    ".well-known/security.txt": securityTxt(),
     "assets/img/og-card.png": png(1200, 630),
     "assets/js/site.js": SITE_SCRIPT,
     "assets/js/site.js.map": "{}",
@@ -151,6 +155,7 @@ const bad = {
   "note without a BlogPosting": [(f) => (f["notes/n/index.html"] = notePage({ headline: "Something else" })), "social"],
   "email link without a subject": [(f) => (f["about/index.html"] = page("/about/", '<h1>A</h1><a href="mailto:me@example.test">me</a>')), "contact"],
   "stale revision.txt": [(f) => (f["revision.txt"] = `${"b".repeat(40)}\n`), "revision"],
+  "expired security.txt": [(f) => (f[".well-known/security.txt"] = securityTxt("2026-01-01T00:00:00Z")), "security"],
 };
 for (const [name, [mutate, check_]] of Object.entries(bad)) {
   test(`fails on: ${name}`, () => {
