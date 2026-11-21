@@ -87,9 +87,12 @@ apps. `pnpm build` generates the cards and their metadata directly from the rend
 pages; `pnpm serve` refreshes changed cards as you edit. Drafts produce no cards. There
 are no generated images or text manifests to commit.
 
-Local builds use Chromium. Off PATH, the build also finds Playwright's Chromium
-(macOS and Linux) and, on a Mac, Google Chrome or Chromium in their usual places.
-Otherwise set `CHROME=/path/to/chrome`. CI and GitHub Pages use the same pinned
+Local builds find a browser themselves, headless shell first: `chrome-headless-shell`
+on PATH, then Playwright's headless shell (macOS and Linux), then Chromium or Google
+Chrome on PATH or in their usual Mac places, then Playwright's full Chromium. A machine
+whose kernel refuses Chromium's sandbox gets one unsandboxed retry; the browser only
+draws the site's own card HTML. If none is installed, run
+`npx playwright install chromium-headless-shell` or set `CHROME=/path/to/chrome`. CI and GitHub Pages use the same pinned
 Chrome for Testing Headless Shell. On the first render in a job,
 `scripts/chrome-for-testing.sh` downloads the Linux x64 bundle and verifies its
 SHA-256 before extracting it. Python 3 with Pillow compresses the cards. The
