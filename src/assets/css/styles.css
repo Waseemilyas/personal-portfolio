@@ -466,15 +466,23 @@ p, li { text-wrap: pretty; }
 .essay .section-head p { color: var(--ink-mute); }
 
 /* ---------- capability map ---------- */
-.cap { display: grid; grid-template-columns: 1.4fr .9fr; gap: var(--space-grid-gap); align-items: center; }
-@media (max-width: 820px) { .cap { grid-template-columns: 1fr; } }
+#capability .shell { container: capability / inline-size; }
+.cap { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-grid-gap); align-items: center; }
+.cap[data-enhanced] { max-inline-size: 42rem; margin-inline: auto; }
+@container capability (min-width: 55rem) {
+  .cap[data-enhanced] {
+    /* Leave the diagram at least 31rem of drawing space after frame padding. */
+    grid-template-columns: minmax(32.25rem, 1.4fr) minmax(0, .9fr);
+    max-inline-size: none;
+  }
+}
 .capfig { border: 1px solid var(--line-dark); border-radius: var(--rounded-xl); background: radial-gradient(120% 120% at 80% 10%, var(--graphite-800), var(--graphite-900)); padding: .5rem; container-type: inline-size; min-inline-size: 0; }
 .capfig svg { display: block; width: 100%; height: auto; }
 .node { cursor: pointer; }
 .node circle { transition: .25s var(--ease); }
 .node .ring { fill: var(--graphite-700); stroke: var(--line-dark); stroke-width: 1.5; }
 .node .core { fill: var(--bone-mute); transition: .25s var(--ease); }
-.node text { font-family: var(--mono); font-size: 11px; letter-spacing: .04em; fill: var(--bone-mute); transition: .25s var(--ease); }
+.node text { font-family: var(--sans); font-size: 18px; font-weight: 500; fill: var(--bone-mute); transition: .25s var(--ease); }
 .trace { fill: none; stroke: var(--line-dark); stroke-width: 1.5; transition: .3s var(--ease); }
 .node:hover .core, .node:focus-visible .core, .node[aria-selected="true"] .core { fill: var(--signal); }
 .node:hover .ring, .node:focus-visible .ring, .node[aria-selected="true"] .ring { stroke: var(--signal); }
@@ -486,7 +494,6 @@ p, li { text-wrap: pretty; }
 .capread .k { font-family: var(--mono); font-size: var(--step--1); color: var(--signal); letter-spacing: .06em; }
 .capread h3 { font-size: var(--step-1); margin: .5rem 0 .55rem; letter-spacing: -0.02em; }
 .capread p { color: var(--bone-mute); font-size: var(--step-0); max-width: calc(60 * var(--ch)); }
-.cap:not([data-enhanced]) { grid-template-columns: 1fr; }
 .cap:not([data-enhanced]) .cap-panels {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr));
@@ -725,15 +732,8 @@ p, li { text-wrap: pretty; }
 .diagram-panel .wf-node-live rect { fill: color-mix(in oklch, var(--signal) 16%, transparent); stroke: var(--signal); }
 .diagram-panel .wf-ticks { stroke: var(--line-dark); }
 
-/* Phone-readable diagram labels.
-   Settled SVG labels are user units, so they shrink with the viewBox.
-   At 390px they render about 6px, while captions and prose stay readable.
-   The wide SVG is the settled design and is left unchanged. When the frame
-   is too narrow for that composition to keep labels at the settled desktop
-   size, the same authored words are shown in HTML at --step-0.
-   One query per frame, not a viewport ladder.
-   36rem: capability column and case-study figure (settled near 660px and up).
-   28rem: workflow panel (settled desktop column is about 500px; do not restyle it). */
+/* On narrow frames, HTML keeps labels at body size instead of scaling
+   the SVG with its viewBox. Each fallback follows its own frame width. */
 .diagram-phone, .cap-phone { display: none; }
 .dflow { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; padding-block: 0.85rem; padding-inline: 0.45rem; }
 .drow { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.55rem; max-inline-size: 100%; }
@@ -827,9 +827,14 @@ p, li { text-wrap: pretty; }
 @media (prefers-reduced-motion: no-preference) {
   .cap-phone .node { transition: transform 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease), background-color 160ms var(--ease); }
 }
+/* The graph's 64-unit circles make 44px targets at this width. */
+@container (width < 31rem) {
+  .capfig > svg { display: none; }
+  .cap-phone { display: block; }
+}
 @container (max-width: 36rem) {
-  .capfig > svg, .figure > svg { display: none; }
-  .cap-phone, .figure > .diagram-phone { display: block; }
+  .figure > svg { display: none; }
+  .figure > .diagram-phone { display: block; }
 }
 @container (max-width: 28rem) {
   .diagram-panel > svg { display: none; }

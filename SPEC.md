@@ -121,7 +121,9 @@ JavaScript all five descriptions and their links are available as a list.
 `setupCapabilityMap` enhances the list with the interactive map and shows one
 panel at a time. Pointer selection and keyboard focus activate a tab. Left/Right
 and Home/End move between tabs, and Tab moves to the active panel and its link.
-Narrow frames use full titles on buttons, with the same selection as the SVG map.
+The map and the buttons both use the full capability titles and share the same
+selection. Below 31rem of drawing space, the buttons replace the graph so each
+target stays at least 44px tall.
 With a system contrast theme active, the current header link and selected
 capability are underlined, and work rows keep visible dividers. The capability
 map and workflow diagrams use the system palette for their labels, shapes and
