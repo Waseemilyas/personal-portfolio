@@ -31,7 +31,8 @@ pnpm check scripts/nav-drawer.test.mjs      # plus only this named owner test
 
 CI runs `pnpm test`, a production build and `node scripts/site-check.mjs` once on
 the pull request. The rendered checker covers page headings, metadata, links,
-JSON-LD, draft exclusion, sitemap/feed parity, revision bytes and OG image headers.
+JSON-LD, draft exclusion, sitemap/feed parity, revision bytes, OG image headers
+and the public file inventory.
 Image pixels are not decoded. The privacy scanner complements the judgement rules
 in [AGENTS.md](AGENTS.md); it cannot decide whether anonymised copy identifies a client.
 
@@ -117,11 +118,13 @@ always exercises a fresh render. Delete the folder to force fresh cards.
 ## Deployment
 
 `.github/workflows/deploy.yml` builds and publishes `_site/` on a main push or
-manual dispatch. It checks the generated site, uploads it to GitHub Pages, then
-polls the custom domain until `/revision.txt` is exactly the deployed SHA; the job
-fails if production never serves it. Each HTML page also carries that SHA in its
-revision meta tag. The revision comes from `SITE_REVISION`, else `GITHUB_SHA`,
-else `git rev-parse HEAD` (`scripts/revision.mjs`).
+manual dispatch. Add a static file to `scripts/public-assets.mjs` when it is
+intended for publication. The build copies that list, and `site-check` rejects
+extra files and filesystem links before the workflow uploads the checked site.
+The workflow polls the custom domain until `/revision.txt` is exactly the
+deployed SHA and fails if production never serves it. Each HTML page also
+carries that SHA in its revision meta tag. The revision comes from
+`SITE_REVISION`, else `GITHUB_SHA`, else `git rev-parse HEAD` (`scripts/revision.mjs`).
 
 A last job then runs `node scripts/domain-check.mjs` (`.github/workflows/domain.yml`),
 which also runs daily: the domain's CAA records allow only Let's Encrypt and no

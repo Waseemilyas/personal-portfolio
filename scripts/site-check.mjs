@@ -16,6 +16,8 @@
 //   xml         sitemap.xml (urlset) and notes/feed.xml (Atom) parse as XML with the right root
 //   sitemap     built pages and sitemap URLs match both ways (404.html is not listed)
 //   drafts      a `draft: true` post has no built page and no sitemap/feed reference
+//   artifact    the upload contains only public assets, checked pages and their share cards;
+//               symbolic links, hard links and other special files are rejected
 //   csp         one Content Security Policy meta, first after <meta charset>, default-src 'none',
 //               no 'unsafe-*', allowing the page's script hashes and exact external script URLs,
 //               each external script's integrity matching its bytes, and each inline style hash;
@@ -27,19 +29,29 @@
 // Usage: node scripts/site-check.mjs [--site-dir _site] [--posts-dir src/notes/posts]
 //        [--site-url https://waseemilyas.uk] [--revision <sha>]
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
+import { join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { JSDOM } from "jsdom";
 
 import { inlineScripts, inlineStyles, scriptHash, scriptIntegrity, trustedTypePolicies } from "./csp.mjs";
 import { cardAlt, cardImage, cardText } from "./og-cards.mjs";
+import { publicAssets } from "./public-assets.mjs";
 import { revision as buildRevision } from "./revision.mjs";
 import monitoring from "../src/_data/monitoring.js";
 
 const OG_SIZE = { width: 1200, height: 630 };
 const SITEMAP_NS = "http://www.sitemaps.org/schemas/sitemap/0.9";
 const ATOM_NS = "http://www.w3.org/2005/Atom";
+const REQUIRED_FILES = [
+  ...Object.values(publicAssets),
+  "assets/img/og-card.png",
+  "assets/js/site.js",
+  "assets/js/site.js.map",
+  "notes/feed.xml",
+  "revision.txt",
+  "sitemap.xml",
+];
 
 /** @param {string} file built path, e.g. "work/index.html" */
 const urlPath = (file) =>
@@ -73,9 +85,27 @@ export function runSiteChecks({
   /** @param {string} check @param {string} file @param {string} message */
   const fail = (check, file, message) => failures.push(`${check}: ${file}: ${message}`);
 
-  if (!existsSync(join(siteDir, "index.html"))) return [`build: ${siteDir}: no built site, run the build first`];
+  if (!lstatSync(resolve(siteDir), { throwIfNoEntry: false })?.isDirectory()) {
+    return [`build: ${siteDir}: expected a built site directory, run the build first`];
+  }
+  /** @type {Set<string>} */
+  const files = new Set();
+  for (const entry of readdirSync(siteDir, { recursive: true, withFileTypes: true })) {
+    if (entry.isDirectory()) continue;
+    const path = join(entry.parentPath, entry.name);
+    const file = relative(siteDir, path).split(sep).join("/");
+    if (entry.isFile() && lstatSync(path).nlink === 1) files.add(file);
+    else fail("artifact", file, "expected a regular file with exactly one hard link");
+  }
+  // Validate the tree before any content check can follow a link outside it.
+  if (failures.length) return failures.sort();
+  if (!files.has("index.html")) return [`build: ${siteDir}: no built site, run the build first`];
+  const expectedFiles = new Set(REQUIRED_FILES);
+  for (const file of REQUIRED_FILES) {
+    if (!files.has(file)) fail("artifact", file, "required public file is missing");
+  }
   /** @param {string} p */
-  const exists = (p) => existsSync(join(siteDir, p));
+  const exists = (p) => files.has(p);
   const read = (/** @type {string} */ p) => readFileSync(join(siteDir, p), "utf8");
   const origin = new URL(siteUrl).origin;
 
@@ -83,8 +113,9 @@ export function runSiteChecks({
     fail("revision", "revision.txt", `must be exactly ${revision} plus one newline`);
   }
 
-  const pages = readdirSync(siteDir, { recursive: true, encoding: "utf8" }).filter((f) => f.endsWith(".html")).sort();
+  const pages = [...files].filter((file) => file.endsWith(".html")).sort();
   for (const page of pages) {
+    expectedFiles.add(page);
     const html = read(page);
     const doc = new JSDOM(html).window.document;
     const pagePath = urlPath(page);
@@ -229,8 +260,12 @@ export function runSiteChecks({
     const alt = metaContent('meta[property="og:image:alt"]');
     if (alt.length !== 1 || !alt[0]) bad("social", "expected exactly one non-empty og:image:alt");
     const card = cardText(html, pagePath);
-    if (card && (ogImage !== siteUrl + cardImage(pagePath) || alt[0] !== cardAlt(card))) {
-      bad("social", "its share card is missing or no longer matches the page: run pnpm build");
+    if (card) {
+      const image = cardImage(pagePath);
+      expectedFiles.add(image.slice(1));
+      if (ogImage !== siteUrl + image || alt[0] !== cardAlt(card)) {
+        bad("social", "its share card is missing or no longer matches the page: run pnpm build");
+      }
     }
     if (/^\/notes\/[^/]+\/$/.test(pagePath)) {
       if (metaContent('meta[property="og:type"]')[0] !== "article") bad("social", "a note must be og:type article");
@@ -241,6 +276,10 @@ export function runSiteChecks({
         bad("social", "a note needs a BlogPosting block with its <h1> as headline and a datePublished");
       }
     }
+  }
+
+  for (const file of [...files].sort()) {
+    if (!expectedFiles.has(file)) fail("artifact", file, "file is outside the public site inventory");
   }
 
   /** @type {Record<string, string[]>} */
@@ -283,7 +322,7 @@ export function runSiteChecks({
   }
   for (const slug of drafts) {
     const route = `/notes/${slug}/`;
-    if (exists(`notes/${slug}`)) fail("drafts", route, "draft has a built page");
+    if (existsSync(join(siteDir, "notes", slug))) fail("drafts", route, "draft has a built page");
     for (const [file, urls] of Object.entries(referenced)) {
       if (urls.some((u) => u.replace(origin, "").replace(/\/$/, "") === route.slice(0, -1))) fail("drafts", file, `references draft ${route}`);
     }

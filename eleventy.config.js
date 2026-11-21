@@ -8,6 +8,7 @@ import { scriptIntegrity, withPolicy } from "./scripts/csp.mjs";
 import { STYLESHEET, inlineStylesheet, readStylesheet } from "./scripts/inline-css.mjs";
 import { pruneCss } from "./scripts/prune-css.mjs";
 import { minifyInlineScripts, minifySiteScript } from "./scripts/minify-js.mjs";
+import { publicAssets } from "./scripts/public-assets.mjs";
 import monitoring from "./src/_data/monitoring.js";
 import site from "./src/_data/site.json" with { type: "json" };
 
@@ -23,7 +24,7 @@ const SITE_SCRIPT_MAP = "site.js.map";
  * @param {{
  * on: Parameters<typeof addShareCards>[0]["on"],
  * addGlobalData(name: string, value: string): void,
- * addPassthroughCopy(paths: Record<string, string>, options?: {filter?: (path: string) => boolean}): void,
+ * addPassthroughCopy(paths: Record<string, string>): void,
  * addCollection(name: string, collect: (api: {getFilteredByTag(tag: string): CollectionItem[]}) => CollectionItem[]): void,
  * addFilter(name: string, filter: (value: string, ...args: string[]) => string): void,
  * addTransform(name: string, transform: (this: {page: {outputPath: string | false, url: string}}, content: string) => string): void,
@@ -34,14 +35,7 @@ export default function (eleventyConfig) {
   addShareCards(eleventyConfig);
   eleventyConfig.addGlobalData("siteRevision", revision());
 
-  // Static passthrough: assets, plus the root-level files GitHub Pages needs.
-  // site.js is published minified (written after the build, below), not copied.
-  eleventyConfig.addPassthroughCopy({ "src/assets": "assets" }, { filter: (/** @type {string} */ path) => path !== "js/site.js" });
-  eleventyConfig.addPassthroughCopy({ "src/static": "/" });
-  // The pinned Sentry SDK, fetched by pages only after an error (src/_data/monitoring.js).
-  eleventyConfig.addPassthroughCopy({ [`vendor/${monitoring.sdkFile}`]: `assets/js/${monitoring.sdkFile}` });
-  // Prayer-time audio fetched over HTTP by Home Assistant; intentional, do not remove (see audio/README.md).
-  eleventyConfig.addPassthroughCopy({ "audio/*.mp3": "audio" });
+  eleventyConfig.addPassthroughCopy(publicAssets);
 
   // Case studies collection (datasheet narratives in src/work/).
   eleventyConfig.addCollection("casestudies", (api) =>
