@@ -75,10 +75,12 @@ can start it on arrival. On a phone this spends up to about 36 KB of HTML on a
 listing page whose articles the reader does not open. Both rules are limited to
 same-origin links ending in `/` and hashed by the Content Security Policy.
 In Firefox, once the current page has loaded, `site.js` starts a low-priority
-same-origin request for those article links as they enter the viewport. Firefox
-can then serve the next page from its HTTP cache. The script skips this request
-in browsers with native speculation rules and when the browser reports a
-preference for reduced data. All links still navigate normally.
+same-origin request when the pointer enters an article link or it receives
+keyboard focus. On devices with a coarse pointer, the request starts when the
+link enters the viewport. Firefox can then serve the next page from its HTTP
+cache. The script skips this request in browsers with native speculation rules
+and when the browser reports a preference for reduced data. All links still
+navigate normally.
 
 Every page carries the site stylesheet inline in its `<head>`, comments and spare
 whitespace removed, so the first paint needs no second request and a returning

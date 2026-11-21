@@ -44,25 +44,33 @@ test("listing pages fetch every article they link to early", { skip: skipReason 
   assert.ok(next && eagerSelectors(cs).some((s) => next.matches(s)), "an article's Next link is fetched early");
 });
 
-test("the article prefetch fallback waits for a visible link and respects browser capabilities", { skip: skipReason }, async () => {
+test("the article prefetch fallback uses touch visibility or desktop intent", { skip: skipReason }, async () => {
   const outDir = await builtSite();
   const html = readFileSync(join(outDir, "work/index.html"), "utf8");
   const script = readFileSync(join(outDir, builtScriptUrl(html)), "utf8");
 
-  for (const mode of ["fallback", "native speculation", "reduced data"]) {
-    const dom = new JSDOM(html, { url: "https://waseemilyas.uk/work/", runScripts: "outside-only" });
+  for (const mode of ["touch", "desktop", "native speculation", "reduced data"]) {
+    const dom = new JSDOM(html, {
+      url: "https://waseemilyas.uk/work/",
+      runScripts: "outside-only",
+      pretendToBeVisual: true,
+    });
     const { window } = dom;
     try {
       // Let jsdom finish loading. Drive only the entries the browser would report.
       await new Promise((resolve) => window.addEventListener("load", resolve, { once: true }));
-      window.matchMedia = (media) => ({ matches: media.includes("reduced-motion") || mode === "reduced data" });
+      window.matchMedia = (media) => ({
+        matches: media === "(prefers-reduced-motion: reduce)" ||
+          (media === "(any-pointer: coarse)" && mode === "touch") ||
+          (media === "(prefers-reduced-data: reduce)" && mode === "reduced data"),
+      });
       window.HTMLScriptElement.supports = () => mode === "native speculation";
       window.DOMTokenList.prototype.supports = () => true;
       const observed = new Set();
       const requested = [];
       let notify;
       window.IntersectionObserver = class {
-        constructor(callback) { notify = callback; }
+        constructor(callback) { notify = (entries) => callback(entries, this); }
         observe(link) { observed.add(link); }
         unobserve(link) { observed.delete(link); }
       };
@@ -72,12 +80,26 @@ test("the article prefetch fallback waits for a visible link and respects browse
       };
       window.eval(script);
       assert.deepEqual(requested, [], mode);
-      if (mode !== "fallback") {
+      const [article, another] = window.document.querySelectorAll(".workcard h2 a");
+      assert.ok(article instanceof window.HTMLAnchorElement && another instanceof window.HTMLAnchorElement);
+      const enter = () => article.dispatchEvent(new window.Event("pointerenter"));
+      if (mode !== "touch") {
         assert.equal(observed.size, 0, mode);
+        enter();
+        if (mode === "desktop") {
+          assert.deepEqual(requested, [article.href], "a hover loads only that article");
+          article.focus();
+          enter();
+          assert.deepEqual(requested, [article.href], "focus and a second hover reuse the request");
+          another.focus();
+          assert.deepEqual(requested, [article.href, another.href], "keyboard focus loads the focused article");
+        } else {
+          article.focus();
+          assert.deepEqual(requested, [], mode);
+        }
         continue;
       }
-      const article = window.document.querySelector(".workcard h2 a");
-      assert.ok(article && observed.has(article));
+      assert.ok(observed.has(article));
       assert.ok([...observed].every((link) => link.matches(".workcard h2 a")));
       notify([{ isIntersecting: false, target: article }]);
       assert.deepEqual(requested, []);
