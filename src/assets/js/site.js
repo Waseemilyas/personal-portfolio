@@ -417,7 +417,7 @@
     // Firefox reuses the HTTP cache on navigation, but its native link hint
     // falls back to the strict default-src policy. Use the same-origin
     // connection the policy already permits. Speculation rules take precedence.
-    if (HTMLScriptElement.supports?.("speculationrules") || !("IntersectionObserver" in window) ||
+    if (HTMLScriptElement.supports?.("speculationrules") ||
         !document.createElement("link").relList.supports?.("prefetch") ||
         window.matchMedia("(prefers-reduced-data: reduce)").matches) return;
     if (document.readyState !== "complete") {
@@ -425,17 +425,37 @@
       return;
     }
 
-    const visibleLinks = new IntersectionObserver((entries) => {
-      for (const { isIntersecting, target } of entries) {
-        if (!isIntersecting || !(target instanceof HTMLAnchorElement)) continue;
-        visibleLinks.unobserve(target);
-        void fetch(target.href, { mode: "same-origin", redirect: "error", priority: "low" })
-          .then((response) => response.arrayBuffer())
-          .catch(() => { /* A missed prefetch leaves the link to load normally. */ });
-      }
-    });
+    const requested = new Set();
+    /** @param {HTMLAnchorElement} link */
+    function prefetch(link) {
+      const url = link.href;
+      if (requested.has(url)) return;
+      requested.add(url);
+      void fetch(url, { mode: "same-origin", redirect: "error", priority: "low" })
+        .then((response) => response.arrayBuffer())
+        .catch(() => { /* A missed prefetch leaves the link to load normally. */ });
+    }
+
+    // Touch has no hover lead time. On other devices, wait for link intent
+    // so just reading a listing does not download its articles.
+    const visibleLinks = window.matchMedia("(any-pointer: coarse)").matches && "IntersectionObserver" in window
+      ? new IntersectionObserver((entries, observer) => {
+        for (const { isIntersecting, target } of entries) {
+          if (!isIntersecting || !(target instanceof HTMLAnchorElement)) continue;
+          observer.unobserve(target);
+          prefetch(target);
+        }
+      })
+      : null;
     for (const link of document.querySelectorAll('a[data-prefetch-article][href$="/"]')) {
-      if (link instanceof HTMLAnchorElement && link.origin === location.origin) visibleLinks.observe(link);
+      if (!(link instanceof HTMLAnchorElement) || link.origin !== location.origin) continue;
+      if (visibleLinks) {
+        visibleLinks.observe(link);
+      } else {
+        const onIntent = () => prefetch(link);
+        link.addEventListener("pointerenter", onIntent, { once: true });
+        link.addEventListener("focus", onIntent, { once: true });
+      }
     }
   }
 
