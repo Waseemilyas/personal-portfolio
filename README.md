@@ -133,10 +133,13 @@ wildcards, the served certificate comes from that authority with at least 21 day
 left, DNSSEC validates, `http://` redirects to `https://`, the apex publishes a
 signed HTTPS DNS record that sends browsers straight to `https://`, the Sentry project
 behind the live page's DSN accepts an error event from `https://waseemilyas.uk` and
-refuses one from any other website, and `/.well-known/security.txt` is published and
-not within 21 days of expiry. The probe event carries an ordinary browser's user agent
-and is stored as one issue, "domain-check origin probe", in the `domain-check`
-environment; that issue is the probe, not a visitor's error. If GitHub Pages ever
+refuses most of a fixed set from any other website, and `/.well-known/security.txt` is
+published and not within 21 days of expiry. A cold Sentry relay answers 200 to the
+first foreign reports and then drops them, so one 200 is not a leak; a project that
+allows every origin answers 200 to all of them and still fails. The probe event carries
+an ordinary browser's user agent. The site's own copy is stored as one issue,
+"domain-check origin probe", in the `domain-check` environment; that issue is the
+probe, not a visitor's error. If GitHub Pages ever
 moves to another certificate authority, add it to `ALLOWED_CAS` in that script and as
 a CAA `issue` record in the Cloudflare zone before the old certificate runs out.
 
