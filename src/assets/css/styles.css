@@ -596,10 +596,10 @@ p, li { text-wrap: pretty; }
     flex-direction: column;
     grid-column: 2;
     grid-row: 1 / span 2;
-    gap: 1.6rem;
     position: sticky;
     inset-block-start: 4.5rem;
-    max-block-size: 70dvh;
+    max-block-size: calc(100dvh - 5.25rem);
+    gap: 1.2rem;
   }
   .case-rail:has(> .datasheet) > .article-contents {
     flex-shrink: 0;
@@ -637,6 +637,22 @@ p, li { text-wrap: pretty; }
 .datasheet dd { font-size: var(--step--1); color: var(--ink); line-height: 1.5; margin-top: .25rem; }
 .datasheet a { color: var(--signal-deep); text-underline-offset: 3px; transition: text-decoration-thickness .2s var(--ease); }
 .datasheet a:hover { text-decoration-thickness: 2px; }
+/* Beside a case study the whole datasheet should fit under the contents rail on a
+   laptop screen: tighter rows, and label beside value once the column allows it. */
+@media screen and (width >= 861px) {
+  .casegrid .datasheet { container-type: inline-size; }
+  .casegrid .datasheet .dh { padding-block: .75rem; }
+  .casegrid .datasheet dl { padding-block: .2rem .9rem; }
+  .casegrid .datasheet dt { margin-top: .75rem; }
+  .casegrid .datasheet dd { margin-top: .1rem; }
+  @container (inline-size >= 20rem) {
+    .casegrid .datasheet dl { grid-template-columns: max-content minmax(0, 1fr); align-items: baseline; gap: .45rem 1rem; padding-block: .85rem .9rem; }
+    .casegrid .datasheet :is(dt, dd) { margin-top: 0; }
+  }
+}
+@media screen and (width >= 861px) and (pointer: fine) {
+  :is(.casegrid, .notegrid) .article-contents a { min-block-size: 2rem; padding-block: .3rem; }
+}
 @media screen and (width < 861px) {
   .case-study { padding-block-start: clamp(2rem, 5vw, 3.5rem); }
   .case-study .casehead { padding-block-end: 1.1rem; margin-block-end: 1.2rem; }

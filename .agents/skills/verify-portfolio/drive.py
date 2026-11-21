@@ -409,13 +409,17 @@ try:
             role.top >= document.querySelector('.topbar').getBoundingClientRect().bottom &&
             role.bottom <= sheet.top && sheet.bottom <= innerHeight;
     })()""")
+    require("""(() => {
+        const sheet = document.querySelector('.casegrid .datasheet');
+        return sheet.scrollHeight <= sheet.clientHeight + 1;
+    })()""")
     capture("laptop-case-rail")
     run("focus", '.article-contents a[href="#section-role"]')
     run("press", "Enter")
     require("document.activeElement.id === 'section-role'")
     run("click", '.article-contents a[href="#case-datasheet"]')
     require("document.activeElement.id === 'case-datasheet'")
-    receipts.append("laptop case study: Outcome keeps the contents and Datasheet in view, a second keyboard jump reaches Role, and Datasheet is focusable from the rail")
+    receipts.append("laptop case study: Outcome keeps the contents and every Datasheet row in view, a second keyboard jump reaches Role, and Datasheet is focusable from the rail")
     run("set", "viewport", "390", "844")
     run("open", base + "/work/cs-care/")
     run("click", ".article-contents summary")
