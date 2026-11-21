@@ -7,6 +7,10 @@ GitHub Pages. Live domain: <https://waseemilyas.uk>.
 ## Stack
 
 - **Eleventy (11ty)** static site generator — zero client framework, pure HTML/CSS/vanilla JS.
+  Pinned exactly to the v4 canary (`4.0.0-alpha.12`): it installs half the packages 3.1.8
+  did and needs none of the advisory overrides 3.1.8 did, and it builds this site
+  byte for byte the same. Move to `4.0.0` when it is released. Diff `_site/` from the
+  old and new builds before taking any later canary.
 - **Geist + Geist Mono**, self-hosted (no CDN dependency).
 - Two-surface art direction: warm-graphite *console* + near-white *paper essay*.
 
@@ -14,7 +18,7 @@ GitHub Pages. Live domain: <https://waseemilyas.uk>.
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm run serve     # local dev server with live reload
+pnpm run serve     # local dev server with live reload, on localhost only
 pnpm run build     # static build → _site/
 ```
 
