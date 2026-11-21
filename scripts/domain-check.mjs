@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Live checks on the waseemilyas.uk domain itself, which no build of the site can see.
-// Read-only; exits 1 listing every failure. Run after each release and daily
+// Changes nothing; exits 1 listing every failure. Run after each release and daily
 // (.github/workflows/domain.yml).
 //
 //   caa     the apex publishes CAA records that let exactly the CAs in ALLOWED_CAS issue
@@ -14,6 +14,13 @@
 //   dnssec  Cloudflare's and Google's validating resolvers both mark the apex answer as
 //           authenticated (AD), so a forged DNS answer cannot redirect the site.
 //   https   plain http:// on the apex and www answers with a permanent redirect to https://.
+//   ingest  the error-reporting DSN on the live home page belongs to a Sentry project that
+//           accepts reports sent from the site's own origin and refuses them from any other
+//           website. The DSN is public in every page, and the Sentry organisation's quota is
+//           shared with other projects, so a project that allows every origin lets any site
+//           flood it. The probe is an empty client report, which records nothing in Sentry.
+//           A visit that sends no Origin (a script, not a browser) is still accepted; Sentry's
+//           organisation-wide spike protection is the backstop for that.
 //
 // The www name is a CNAME to GitHub, so GitHub's own CAA records govern it; its
 // certificate is the apex's (one certificate covers both names).
@@ -26,6 +33,8 @@ import { parseArgs } from "node:util";
 /** CAA issuer domain → the certificate issuer organisation it signs as. */
 export const ALLOWED_CAS = { "letsencrypt.org": "Let's Encrypt" };
 export const MIN_DAYS = 21;
+/** An origin that no page can be served from (RFC 6761), for the refused-report probe. */
+export const FOREIGN_ORIGIN = "https://origin-probe.invalid";
 const RESOLVERS = {
   cloudflare: "https://cloudflare-dns.com/dns-query",
   google: "https://dns.google/resolve",
@@ -36,7 +45,8 @@ const RESOLVERS = {
  * @typedef {{ resolver: string, ad: boolean, caa: string[], caaAd: boolean }} DnsFacts
  * @typedef {{ host: string, issuer: string, validTo: Date }} CertFacts
  * @typedef {{ url: string, status: number, location: string }} RedirectFacts
- * @typedef {{ domain: string, now: Date, dns: DnsFacts[], certs: CertFacts[], redirects: RedirectFacts[] }} Facts
+ * @typedef {{ page: string, dsn: boolean, own?: number, foreign?: number }} IngestFacts
+ * @typedef {{ domain: string, now: Date, dns: DnsFacts[], certs: CertFacts[], redirects: RedirectFacts[], ingest: IngestFacts }} Facts
  */
 
 /** Parses one CAA answer as resolvers print it: `0 issue "letsencrypt.org"`. */
@@ -94,7 +104,22 @@ export function evaluate(/** @type {Facts} */ facts) {
       failures.push(`https: ${url} answered ${status}${location ? ` → ${location}` : ""}, not a permanent redirect to https://`);
     }
   }
+  const { page, dsn, own, foreign } = facts.ingest;
+  if (!dsn) {
+    failures.push(`ingest: ${page} carries no Sentry DSN, so browser errors on the live site are not reported`);
+  } else {
+    if (own !== 200) failures.push(`ingest: Sentry answered ${own} to a report from https://${facts.domain}, so the site's own error reports are refused`);
+    if (foreign !== 403) {
+      failures.push(`ingest: Sentry answered ${foreign} to a report from another website, not 403; set the project's Allowed Domains to ${facts.domain} only`);
+    }
+  }
   return failures;
+}
+
+/** The Sentry DSN the page's error loader carries, or null. */
+export function findDsn(/** @type {string} */ html) {
+  const m = /"(https:\/\/[0-9a-f]{32}@[a-z0-9.-]+\.ingest(?:\.[a-z]+)?\.sentry\.io\/\d+)"/.exec(html);
+  return m ? new URL(m[1]) : null;
 }
 
 /** Retries a network read once, so one dropped packet does not fail a release. */
@@ -140,6 +165,40 @@ function redirect(/** @type {string} */ url) {
   });
 }
 
+/**
+ * Posts an empty client report (no discarded events, so nothing is recorded) to the
+ * DSN's envelope endpoint as a browser on `origin` would, and returns the status.
+ */
+function report(/** @type {URL} */ dsn, /** @type {string} */ origin) {
+  const url = `${dsn.origin}/api${dsn.pathname}/envelope/?sentry_key=${dsn.username}&sentry_version=7`;
+  const body = `{}\n{"type":"client_report"}\n${JSON.stringify({ timestamp: Date.now() / 1000, discarded_events: [] })}\n`;
+  return twice(async () => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { origin, "content-type": "text/plain;charset=UTF-8" },
+      body,
+      signal: AbortSignal.timeout(10_000),
+    });
+    await res.body?.cancel();
+    if (res.status >= 500) throw new Error(`Sentry ingest answered ${res.status}`);
+    return res.status;
+  });
+}
+
+/** @returns {Promise<IngestFacts>} */
+async function ingest(/** @type {string} */ domain) {
+  const page = `https://${domain}/`;
+  const html = await twice(async () => {
+    const res = await fetch(page, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error(`${page} answered ${res.status}`);
+    return res.text();
+  });
+  const dsn = findDsn(html);
+  if (!dsn) return { page, dsn: false };
+  const [own, foreign] = await Promise.all([report(dsn, `https://${domain}`), report(dsn, FOREIGN_ORIGIN)]);
+  return { page, dsn: true, own, foreign };
+}
+
 /** Reads the live facts for `domain`. */
 export async function gather(/** @type {string} */ domain) {
   const dnsFacts = await Promise.all(Object.keys(RESOLVERS).map(async (resolver) => {
@@ -155,6 +214,7 @@ export async function gather(/** @type {string} */ domain) {
     dns: dnsFacts,
     certs: await Promise.all(hosts.map(certificate)),
     redirects: await Promise.all(hosts.map((host) => redirect(`http://${host}/`))),
+    ingest: await ingest(domain),
   };
 }
 
@@ -164,9 +224,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const failures = evaluate(facts);
   for (const { resolver, caa } of facts.dns) console.log(`[domain] ${resolver} CAA: ${caa.join(" | ") || "none"}`);
   for (const { host, issuer, validTo } of facts.certs) console.log(`[domain] ${host}: ${issuer}, valid to ${validTo.toISOString().slice(0, 10)}`);
+  const { own, foreign } = facts.ingest;
+  if (facts.ingest.dsn) console.log(`[domain] Sentry ingest: own origin ${own}, another website ${foreign}`);
   if (failures.length) {
     for (const failure of failures) console.error(`✗ ${failure}`);
     process.exit(1);
   }
-  console.log(`[domain] ${values.domain}: CAA, certificates, DNSSEC and HTTPS redirects all pass`);
+  console.log(`[domain] ${values.domain}: CAA, certificates, DNSSEC, HTTPS redirects and error-report origins all pass`);
 }
