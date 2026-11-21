@@ -548,12 +548,34 @@ p, li { text-wrap: pretty; }
 .casehead .kick { color: var(--ink-mute); font-size: var(--step-1); font-weight: 400; max-width: calc(52 * var(--ch)); text-wrap: pretty; }
 /* A note's date and length sit on their own mono line under its summary, as on the index. */
 .casehead .note-meta { margin-top: .9rem; font-family: var(--mono); font-size: var(--step--1); color: var(--ink-mute); }
-.article-contents { margin-block-start: 1.25rem; }
+/* On this page opens the body: a row of links above the text, and from 861px a
+   rail beside it (above the datasheet on case studies). A note's rail stays in
+   view while the note is read; site.js marks the section being read with
+   aria-current="location". */
+.article-contents { margin-block-end: 1.5rem; }
 .article-contents p { font-family: var(--mono); font-size: var(--step--1); color: var(--ink-mute); }
 .article-contents ul { display: flex; flex-wrap: wrap; gap: 0 .75rem; padding-inline-start: 0; list-style: none; }
 .article-contents a { display: inline-flex; align-items: center; min-block-size: 44px; min-inline-size: 44px; color: var(--signal-deep); text-underline-offset: 3px; }
 .article-contents a:active { color: var(--ink); }
-.casegrid { display: grid; grid-template-columns: 1.6fr .9fr; gap: clamp(1.6rem, 4vw, 3.4rem); align-items: start; }
+.casegrid { display: grid; grid-template-columns: 1.6fr .9fr; grid-template-rows: auto 1fr; gap: 1.6rem clamp(1.6rem, 4vw, 3.4rem); align-items: start; }
+.casegrid > .prose { grid-column: 1; grid-row: 1 / span 2; }
+.casegrid > .article-contents { grid-column: 2; grid-row: 1; margin-block-end: 0; }
+.casegrid > .datasheet { grid-column: 2; grid-row: 2; }
+@media screen and (width >= 861px) {
+  .notegrid { display: grid; grid-template-columns: minmax(0, calc(70 * var(--ch))) minmax(11rem, 16rem); justify-content: space-between; column-gap: clamp(1.6rem, 4vw, 3.4rem); align-items: start; }
+  .notegrid > .prose { grid-column: 1; grid-row: 1; }
+  .notegrid > .article-contents { grid-column: 2; grid-row: 1; position: sticky; top: 4.5rem; margin-block-end: 0; }
+  :is(.casegrid, .notegrid) > .prose > :first-child { margin-block-start: 0; }
+  :is(.casegrid, .notegrid) > .article-contents p { margin-block-end: .5rem; }
+  :is(.casegrid, .notegrid) > .article-contents ul { flex-direction: column; flex-wrap: nowrap; border-inline-start: 1px solid var(--line-light); }
+  :is(.casegrid, .notegrid) > .article-contents a {
+    display: flex; min-inline-size: 0; margin-inline-start: -1px; padding: .45rem 0 .45rem .9rem;
+    border-inline-start: 2px solid transparent; color: var(--ink-mute);
+    font-size: var(--step--1); line-height: 1.35; text-decoration: none; text-wrap: pretty;
+  }
+  :is(.casegrid, .notegrid) > .article-contents a:hover { color: var(--ink); text-decoration: underline; }
+  :is(.casegrid, .notegrid) > .article-contents a[aria-current] { color: var(--ink); border-inline-start-color: var(--signal-deep); }
+}
 .prose { max-width: calc(70 * var(--ch)); }
 .prose h2 { font-size: var(--step-2); color: var(--ink); margin: 2rem 0 .8rem; letter-spacing: -0.02em; }
 .prose h3 { font-size: var(--step-1); color: var(--ink); margin: 1.6rem 0 .6rem; }
@@ -579,7 +601,9 @@ p, li { text-wrap: pretty; }
 @media screen and (width < 861px) {
   .case-study { padding-block-start: clamp(2rem, 5vw, 3.5rem); }
   .case-study .casehead { padding-block-end: 1.1rem; margin-block-end: 1.2rem; }
-  .casegrid { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+  .casegrid { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; gap: 1.25rem; }
+  .casegrid > :is(.prose, .article-contents, .datasheet) { grid-column: auto; grid-row: auto; }
+  .casegrid > .article-contents { margin-block-end: .25rem; }
   .casegrid > .prose > :first-child { margin-block-start: 0; }
   .casegrid > .datasheet { position: static; max-inline-size: calc(70 * var(--ch)); }
   .casegrid .datasheet dl {
@@ -939,7 +963,8 @@ p, li { text-wrap: pretty; }
 @media screen and (forced-colors: active) {
   /* Background differences disappear. Keep a visible current page, row edge,
      and selected tab using marks independent of the palette's hues. */
-  .nav a[aria-current="page"], .cap-phone .node[aria-selected="true"] {
+  .nav a[aria-current="page"], .cap-phone .node[aria-selected="true"],
+  .article-contents a[aria-current] {
     text-decoration: underline 2px;
     text-underline-offset: .2em;
   }

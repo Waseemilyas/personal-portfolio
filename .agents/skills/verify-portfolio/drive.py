@@ -339,6 +339,19 @@ try:
     run("click", "[data-not-found-match] a")
     require("location.pathname === '/notes/unglamorous-half-of-automation/'")
     receipts.append("not-found page opened /Work/CS-Care) as /work/cs-care/ and offered and followed the closest note for a misspelt address")
+    run("set", "viewport", "1440", "900")
+    require("""(() => {
+        const rail = document.querySelector('.notegrid > .article-contents').getBoundingClientRect();
+        return rail.left >= document.querySelector('.notegrid > .prose').getBoundingClientRect().right && !document.querySelector('.article-contents [aria-current]');
+    })()""")
+    run("click", ".article-contents li:nth-child(4) a")
+    run("wait", "--fn", """(() => {
+        const link = document.querySelector('.article-contents li:nth-child(4) a'), rail = document.querySelector('.article-contents').getBoundingClientRect();
+        return link.getAttribute('aria-current') === 'location' && document.querySelectorAll('.article-contents [aria-current]').length === 1 &&
+            document.activeElement.id === link.hash.slice(1) && rail.top >= document.querySelector('.topbar').getBoundingClientRect().bottom && rail.bottom <= innerHeight;
+    })()""")
+    capture("desktop-note-rail")
+    receipts.append("desktop note: On this page sits beside the text, stays in view after a jump, and marks only the section it opened")
     run("set", "viewport", "390", "844")
     run("focus", ".reading-contact .email-big")
     run("press", "Tab")

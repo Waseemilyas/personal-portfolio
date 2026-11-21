@@ -186,6 +186,54 @@
 
   /* Manual copy is available at first paint. Swap in the one-click control
      if the browser has a clipboard API and the visitor hasn't started copying. */
+  /* On this page marks the section being read. A section counts once its heading
+     comes within a tenth of the window below the header: a contents jump lands the
+     heading just under the header and marks that section, not a short one after it.
+     Only headings in the text are tracked: the datasheet sits beside the text on
+     wide screens. */
+  function setupContentsMarker() {
+    const nav = document.querySelector(".article-contents");
+    if (!nav) return;
+    /** @type {{link: Element, heading: HTMLElement}[]} */
+    const sections = [];
+    nav.querySelectorAll('a[href^="#"]').forEach(function (link) {
+      const heading = document.getElementById(decodeURIComponent((link.getAttribute("href") || "").slice(1)));
+      if (heading && heading.closest(".prose")) sections.push({ link: link, heading: heading });
+    });
+    if (sections.length < 2) return;
+    const topbar = document.querySelector(".topbar");
+    /** @type {Element | null} */
+    let current = null;
+    let queued = false;
+    const mark = function () {
+      queued = false;
+      const root = document.documentElement;
+      // At the foot of a short page the last headings cannot reach the line, so
+      // any heading on screen counts.
+      const atEnd = window.scrollY + window.innerHeight >= root.scrollHeight - 2;
+      const line = atEnd ? window.innerHeight : (topbar ? topbar.getBoundingClientRect().bottom : 0) + window.innerHeight * 0.1;
+      /** @type {Element | null} */
+      let reading = null;
+      sections.forEach(function (s) { if (s.heading.getBoundingClientRect().top <= line) reading = s.link; });
+      // There, a contents jump that could not bring its heading up still marks it.
+      const jumped = atEnd && sections.find(function (s) { return "#" + s.heading.id === decodeURIComponent(location.hash); });
+      if (jumped && jumped.heading.getBoundingClientRect().top >= 0) reading = jumped.link;
+      if (reading === current) return;
+      if (current) current.removeAttribute("aria-current");
+      if (reading) reading.setAttribute("aria-current", "location");
+      current = reading;
+    };
+    const queue = function () {
+      if (queued) return;
+      queued = true;
+      window.requestAnimationFrame(mark);
+    };
+    window.addEventListener("scroll", queue, { passive: true });
+    window.addEventListener("resize", queue);
+    window.addEventListener("hashchange", queue);
+    queue();
+  }
+
   function setupCopyEmail() {
     var clipboard = navigator.clipboard;
     if (!window.isSecureContext || typeof clipboard?.writeText !== "function") return;
@@ -444,6 +492,7 @@
   setupFocusVisibility();
   setupCapabilityMap();
   setupReveals();
+  setupContentsMarker();
   setupCopyEmail();
   setupPageTransitions();
 })();
