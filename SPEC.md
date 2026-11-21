@@ -269,10 +269,11 @@ The DSN is public in every page, so the Sentry project accepts reports only from
 `https://waseemilyas.uk` (Allowed Domains); a browser on any other website, a copy of
 the site or a local preview is refused. The Sentry organisation's error quota is shared
 with other projects, and this stops another site spending it. `scripts/domain-check.mjs`
-fails, after every release and daily, if the live ingest stops refusing most of a fixed
-set of error events from another origin, or starts refusing the site's own. One answer
-is not enough: a relay that has not yet loaded the project answers 200 and an event id,
-then drops the event, so a cold run can see several of those before the refusals. The
+fails, after every release and daily, if the live ingest stops refusing an error event
+from another origin, or starts refusing the site's own. One answer is not enough: a
+relay that has not yet loaded the project answers 200 and an event id, then drops the
+event, and probes sent together can all arrive in that window. The check sends them one
+at a time and stops at the first refusal. The
 probe event carries an ordinary browser's user agent. The site's own copy is stored as
 one issue, "domain-check origin probe"; that is the probe, not a visitor's error.
 
