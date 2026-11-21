@@ -13,6 +13,11 @@ On Home, Selected work follows the introduction. “Read the work” jumps to it
 heading and gives it focus, so the next Tab reaches the first case study even
 with scripts disabled. Case-study cards have an inset focus outline.
 
+On Work, each case-study row also shows the role, craft and outcome from that case's
+datasheet, so the work can be compared before any of it is opened. A click or tap
+anywhere on the row opens the case; the link's accessible name is the title. On a page
+shorter than the window, the footer sits on the window's bottom edge.
+
 On case studies below 861px, the datasheet sits before the article text and shows
 its labels and values side by side. Wider screens show it in a sticky sidebar.
 The layout works without JavaScript. In print, the datasheet follows the article text.

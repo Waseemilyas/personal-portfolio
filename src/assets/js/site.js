@@ -265,7 +265,7 @@
       for (var i = 0; i < links.length; i++) {
         var a = links[i];
         if (!(a instanceof HTMLAnchorElement) || a.origin !== location.origin || a.pathname !== path) continue;
-        var title = a.querySelector("h2, h3, .nextread-t") || a.closest(".note-item h2");
+        var title = a.querySelector("h2, h3, .nextread-t") || a.closest(".note-item h2, .workcard h2");
         if (!(title instanceof HTMLElement)) continue;
         var r = title.getBoundingClientRect();
         if (r.height && r.top < window.innerHeight && r.bottom > 0) return title;
