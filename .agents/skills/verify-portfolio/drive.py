@@ -264,11 +264,19 @@ try:
         for (const [row, value] of rows) { const key = Math.round(row); columns.set(key, [...(columns.get(key) || []), Math.round(value)]); }
         return rows.length === 4 && [...columns.values()].every(values => new Set(values).size === 1);
     })()"""
+    section_intro_aligned = """(() => {
+        const head = document.querySelector('.section-head');
+        const title = head.querySelector('h1, h2').getBoundingClientRect();
+        const intro = head.querySelector('p').getBoundingClientRect();
+        const content = head.nextElementSibling.getBoundingClientRect();
+        return intro.top >= title.bottom && Math.abs(title.left - intro.left) < 1 &&
+            Math.abs(intro.left - content.left) < 1 && intro.bottom < content.top;
+    })()"""
     for width, height in [(1024, 768), (768, 1024), (667, 375)]:
         run("set", "viewport", str(width), str(height))
-        capture("tablet-home-" + str(width), {"lab rows full": lab_rows_full, "status values aligned": status_aligned}, before=[("open", base + "/")])
-        capture("tablet-lab-" + str(width), {"lab rows full": lab_rows_full}, before=[("open", base + "/lab/")])
-    receipts.append("1024x768, 768x1024, 667x375: Lab cards fill every row and the status values share one line")
+        capture("tablet-home-" + str(width), {"lab rows full": lab_rows_full, "status values aligned": status_aligned, "section intro aligned": section_intro_aligned}, before=[("open", base + "/")])
+        capture("tablet-lab-" + str(width), {"lab rows full": lab_rows_full, "section intro aligned": section_intro_aligned}, before=[("open", base + "/lab/")])
+    receipts.append("1024x768, 768x1024, 667x375: Lab cards fill every row, status values share one line, and section introductions align with their titles and cards")
     run("set", "media", "light")
     home_actions_fit = """(() => {
         const links = [...document.querySelectorAll('.hero .actions a')];

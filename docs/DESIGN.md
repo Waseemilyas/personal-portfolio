@@ -195,6 +195,11 @@ Two deliberate limits on that claim:
   they are not rungs, and tokenising them would imply a rhythm that is not there.
   `--space-head-gap` / `--space-head-below` apply to heads (`.section-head`,
   `.casehead`, `.about-grid`'s top margin); a `1rem` gap elsewhere is unrelated.
+  Below `68rem`, a section heading stacks its ref, title and description on
+  the same edge as the content. The description can use up to 60 Geist ch,
+  and the gap below the heading shrinks with the viewport. Below 621px sections
+  with these headings also use tighter block padding. From `68rem`, the ref
+  and title share a baseline and the optional description has its own column.
 - **`var()` does not resolve in SVG presentation attributes.** `fill="var(--x)"`
   and `stroke="var(--x)"` silently fail in every browser. Inline SVG that needs a
   token must be styled from CSS — see the `.diagram-panel .wf-*` rules
