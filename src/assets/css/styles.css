@@ -435,6 +435,22 @@ p, li { text-wrap: pretty; }
 
 /* ---------- section frame ---------- */
 .section { padding-block: var(--space-section-block); }
+/* The sections below a hero (Home, the 404 index) skip style, layout and paint
+   until they near the viewport, so the first screen paints without laying out the
+   rest of the page. Once drawn, the browser keeps each section's real height
+   (auto); 900px is the first guess, about the average Home section on a phone.
+   The block padding moves to the section's one .shell, the same space: Firefox
+   drops a skipped box's own padding from the height it remembers, which shortened
+   the page by 135px for every section scrolled past.
+   Find in page, focus and the accessibility tree still reach the skipped content.
+   A visit that opens on an address with a #fragment (.deeplink, set in <head>)
+   draws every section, because Chromium scrolls to the target before the sections
+   above it are drawn and leaves it hundreds of pixels off.
+   About's career arc gained nothing: About paints before it is parsed. */
+.hero ~ .section { padding-block: 0; content-visibility: auto; contain-intrinsic-size: auto 900px; }
+.hero ~ .section > .shell { padding-block: var(--space-section-block); }
+.deeplink .hero ~ .section { content-visibility: visible; }
+@media print { .hero ~ .section { content-visibility: visible; } }
 .section-head { display: flex; align-items: baseline; gap: var(--space-head-gap); margin-bottom: var(--space-head-below); flex-wrap: wrap; }
 .section-head .ref { font-family: var(--mono); font-size: var(--step--1); color: var(--signal); letter-spacing: .06em; }
 .section-head h1, .section-head h2 { font-size: var(--step-3); font-weight: 700; }
