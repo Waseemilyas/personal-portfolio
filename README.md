@@ -107,7 +107,11 @@ draws the site's own card HTML. If none is installed, run
 Chrome for Testing Headless Shell. On the first render in a job,
 `scripts/chrome-for-testing.sh` downloads the Linux x64 bundle and verifies its
 SHA-256 before extracting it. Python 3 with Pillow compresses the cards. CI and
-Pages use Python 3.15 with Pillow 13.0.0. Without Pillow a local build leaves larger,
+Pages use Python 3.15 and install Pillow with `pip install --require-hashes
+--only-binary=:all: -r scripts/requirements.txt`. That file pins the version and the
+SHA-256 of every file PyPI published for it, so pip refuses a substituted or later-added
+file; `scripts/build-installs.test.mjs` keeps every workflow install on it, and Dependabot
+updates version and hashes together. Without Pillow a local build leaves larger,
 full-colour PNGs. All images stay in `_site/`, alongside the HTML they describe.
 
 Finished cards are also kept in `node_modules/.cache/share-cards/`. Each is named by a hash of
