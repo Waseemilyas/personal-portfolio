@@ -2,11 +2,12 @@
 // in site-check.mjs gets one red case against a small known-good built site.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 import { withPolicy } from "./csp.mjs";
+import { publicAssets } from "./public-assets.mjs";
 import { runSiteChecks } from "./site-check.mjs";
 
 const SITE = "https://example.test";
@@ -33,9 +34,9 @@ const page = (path, body = "<h1>Title</h1><p>Text</p>", head = "") => withPolicy
 <meta property="og:url" content="${SITE}${path}">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <script type="application/ld+json">{"@context":"https://schema.org"}</script>${head || `<meta property="og:type" content="website">
-<meta property="og:image" content="${SITE}/og.png"><meta property="og:image:alt" content="Default card.">`}</head>
-<body>${body}<script src="/site.js" integrity="${SITE_SCRIPT_INTEGRITY}" defer></script></body></html>`,
-{ externalScripts: [{ url: `${SITE}/site.js`, integrity: SITE_SCRIPT_INTEGRITY }] });
+<meta property="og:image" content="${SITE}/assets/img/og-card.png"><meta property="og:image:alt" content="Default card.">`}</head>
+<body>${body}<script src="/assets/js/site.js" integrity="${SITE_SCRIPT_INTEGRITY}" defer></script></body></html>`,
+{ externalScripts: [{ url: `${SITE}/assets/js/site.js`, integrity: SITE_SCRIPT_INTEGRITY }] });
 
 // A note shares its own card, whose alt text repeats the note's label and title.
 const NOTE_BODY = '<div class="casehead"><h1>A note</h1><p class="note-meta"><time datetime="2026-08-08T00:00:00.000Z">8 August 2026</time> · 1 min read</p></div>';
@@ -49,10 +50,14 @@ const sitemap = (...paths) =>
   `<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((p) => `<url><loc>${SITE}${p}</loc></url>`).join("")}</urlset>`;
 const feed = `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"><id>${SITE}/notes/</id></feed>`;
 
-/** @param {(files: Record<string, string | Buffer>) => void} [mutate] */
-function check(mutate = () => {}) {
+/**
+ * @param {(files: Record<string, string | Buffer>) => void} [mutate]
+ * @param {(siteDir: string) => void} [mutateTree]
+ */
+function check(mutate = () => {}, mutateTree = () => {}) {
   /** @type {Record<string, string | Buffer>} */
   const files = {
+    ...Object.fromEntries(Object.values(publicAssets).map((file) => [file, "Public asset fixture"])),
     "index.html": page("/", '<h1>Home</h1><a href="/about/">About</a><a href="mailto:me@example.test?subject=Hello">me</a>'),
     "about/index.html": page("/about/"),
     "notes/n/index.html": notePage(),
@@ -61,8 +66,9 @@ function check(mutate = () => {}) {
     "sitemap.xml": sitemap("/", "/about/", "/notes/n/"),
     "notes/feed.xml": feed,
     "revision.txt": `${REV}\n`,
-    "og.png": png(1200, 630),
-    "site.js": SITE_SCRIPT,
+    "assets/img/og-card.png": png(1200, 630),
+    "assets/js/site.js": SITE_SCRIPT,
+    "assets/js/site.js.map": "{}",
   };
   mutate(files);
   const root = mkdtempSync(join(tmpdir(), "site-check-"));
@@ -73,6 +79,7 @@ function check(mutate = () => {}) {
     }
     mkdirSync(join(root, "posts"));
     writeFileSync(join(root, "posts", "wip.md"), "---\ntitle: x\ndraft: true\n---\nbody\n");
+    mutateTree(join(root, "site"));
     return runSiteChecks({ revision: REV, siteDir: join(root, "site"), postsDir: join(root, "posts"), siteUrl: SITE });
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -80,6 +87,36 @@ function check(mutate = () => {}) {
 }
 
 test("a good site passes", () => assert.deepEqual(check(), []));
+
+test("rejects undeclared files, including unused share cards", () => {
+  const failures = check((files) => {
+    files["about/preview.txt"] = "Draft preview fixture";
+    files["assets/img/og/notes-wip.png"] = png(1200, 630);
+  });
+  assert.deepEqual(failures, [
+    "artifact: about/preview.txt: file is outside the public site inventory",
+    "artifact: assets/img/og/notes-wip.png: file is outside the public site inventory",
+  ]);
+});
+
+test("rejects links at public file and directory paths", () => {
+  const failures = check(undefined, (siteDir) => {
+    renameSync(join(siteDir, "about"), join(siteDir, "../about"));
+    symlinkSync("../about", join(siteDir, "about"), "dir");
+    renameSync(join(siteDir, "revision.txt"), join(siteDir, "../revision.txt"));
+    linkSync(join(siteDir, "../revision.txt"), join(siteDir, "revision.txt"));
+  });
+  assert.deepEqual(failures, [
+    "artifact: about: expected a regular file with exactly one hard link",
+    "artifact: revision.txt: expected a regular file with exactly one hard link",
+  ]);
+});
+
+test("requires the unlinked public audio", () => {
+  assert.deepEqual(check((files) => { delete files["audio/adhan.mp3"]; }), [
+    "artifact: audio/adhan.mp3: required public file is missing",
+  ]);
+});
 
 /** @type {Record<string, [(files: Record<string, string | Buffer>) => unknown, string]>} */
 const bad = {
@@ -90,16 +127,16 @@ const bad = {
   "feed that is not XML": [(f) => (f["notes/feed.xml"] = feed.replace("</feed>", "")), "xml"],
   "page missing from sitemap": [(f) => (f["sitemap.xml"] = sitemap("/", "/notes/n/")), "sitemap"],
   "draft listed in sitemap": [(f) => (f["sitemap.xml"] = sitemap("/", "/about/", "/notes/n/", "/notes/wip/")), "drafts"],
-  "og image of the wrong size": [(f) => (f["og.png"] = png(600, 315)), "og-image"],
+  "og image of the wrong size": [(f) => (f["assets/img/og-card.png"] = png(600, 315)), "og-image"],
   "inline script added after the policy": [(f) => (f["index.html"] = page("/").replace("</body>", "<script>steal()</script></body>")), "csp"],
   "unapproved speculation rules": [(f) => (f["index.html"] = page("/").replace("</body>", '<script type="speculationrules">{"prefetch":[{"urls":["https://outside.test/"]}]}</script></body>')), "csp"],
   "inline event handler": [(f) => (f["about/index.html"] = page("/about/", '<h1 onclick="x()">A</h1>')), "csp"],
   "outside script origin allowed": [(f) => (f["about/index.html"] = page("/about/").replace("script-src ", "script-src https://cdn.example ")), "csp"],
   "all same-origin scripts allowed": [(f) => (f["about/index.html"] = page("/about/").replace("script-src ", "script-src 'self' ")), "csp"],
-  "a directory of same-origin scripts allowed": [(f) => (f["about/index.html"] = page("/about/").replace(`${SITE}/site.js`, `${SITE}/`)), "csp"],
+  "a directory of same-origin scripts allowed": [(f) => (f["about/index.html"] = page("/about/").replace(`${SITE}/assets/js/site.js`, `${SITE}/`)), "csp"],
   "script element policy overrides the hashes": [(f) => (f["about/index.html"] = page("/about/").replace("script-src ", "script-src-elem 'self'; script-src ")), "csp"],
   "external script missing integrity": [(f) => (f["about/index.html"] = page("/about/").replace(` integrity="${SITE_SCRIPT_INTEGRITY}"`, "")), "csp"],
-  "external script bytes changed after the policy": [(f) => (f["site.js"] = "void 1;"), "csp"],
+  "external script bytes changed after the policy": [(f) => (f["assets/js/site.js"] = "void 1;"), "csp"],
   "inline style edited after the policy": [(f) => (f["index.html"] = page("/").replace("<style>", "<style>h1{color:red}")), "csp"],
   "outside style origin allowed": [(f) => (f["about/index.html"] = page("/about/").replace("style-src 'self'", "style-src 'self' https://cdn.example")), "csp"],
   "render-blocking stylesheet link": [(f) => (f["about/index.html"] = page("/about/").replace("</head>", '<link rel="stylesheet" href="/x.css"></head>')), "csp"],
@@ -109,7 +146,7 @@ const bad = {
   "policy missing": [(f) => (f["about/index.html"] = page("/about/").replace(/<meta http-equiv[^>]*>/, "")), "csp"],
   "share image without alt text": [(f) => (f["about/index.html"] = page("/about/").replace(/<meta property="og:image:alt"[^>]*>/, "")), "social"],
   "note retitled without a new card": [(f) => (f["notes/n/index.html"] = notePage({ body: NOTE_BODY.replace("A note", "A renamed note"), headline: "A renamed note" })), "social"],
-  "note sharing the default card": [(f) => (f["notes/n/index.html"] = notePage().replace("/assets/img/og/notes-n.png", "/og.png")), "social"],
+  "note sharing the default card": [(f) => (f["notes/n/index.html"] = notePage().replace("/assets/img/og/notes-n.png", "/assets/img/og-card.png")), "social"],
   "note not marked as an article": [(f) => (f["notes/n/index.html"] = notePage({ type: "website" })), "social"],
   "note without a BlogPosting": [(f) => (f["notes/n/index.html"] = notePage({ headline: "Something else" })), "social"],
   "email link without a subject": [(f) => (f["about/index.html"] = page("/about/", '<h1>A</h1><a href="mailto:me@example.test">me</a>')), "contact"],
