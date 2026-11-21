@@ -7,13 +7,23 @@
 // happens if nothing is released for about five months. Node built-ins only: the daily
 // domain job checks out this file and domain-check.mjs alone.
 import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 export const PATH = ".well-known/security.txt";
 export const VALID_DAYS = 180;
 
-/** The commit time of the checked-out commit, so the date never depends on the build clock. */
+/**
+ * The time of the commit this code was checked out at, so two builds of one commit match.
+ * Git runs beside this file, not in the build's working directory, which a test may have
+ * copied elsewhere. A tree with no git history (an exported archive) uses the build clock.
+ */
 export function commitDate() {
-  return new Date(execFileSync("git", ["log", "-1", "--format=%cI"], { encoding: "utf8" }).trim());
+  try {
+    const cwd = fileURLToPath(new URL(".", import.meta.url));
+    return new Date(execFileSync("git", ["log", "-1", "--format=%cI"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim());
+  } catch {
+    return new Date();
+  }
 }
 
 /** The Expires value for a build of a commit made at `committed`. */
