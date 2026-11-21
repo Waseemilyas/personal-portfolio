@@ -212,6 +212,12 @@ Sentry not to infer the visitor's IP address. The SDK sends
 no session reports. Each distinct policy warning includes
 the directive and a public script path or resource category. Extension and Sentry
 URLs are skipped. No Sentry dashboard setting can change the code visitors run.
+The DSN is public in every page, so the Sentry project accepts reports only from
+`https://waseemilyas.uk` (Allowed Domains); a browser on any other website, a copy of
+the site or a local preview gets 403. The Sentry organisation's error quota is shared
+with other projects, and this stops another site spending it. `scripts/domain-check.mjs`
+fails, after every release and daily, if the live ingest stops refusing another
+origin or starts refusing the site's own.
 
 A shared link shows a 1200×630 preview card. Each note and case study has its own,
 carrying its label, title and (for a case study) kicker in the site's fonts; every
