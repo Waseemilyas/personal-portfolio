@@ -272,8 +272,9 @@ with other projects, and this stops another site spending it. `scripts/domain-ch
 fails, after every release and daily, if the live ingest stops refusing an error event
 from another origin, or starts refusing the site's own. One answer is not enough: a
 relay that has not yet loaded the project answers 200 and an event id, then drops the
-event, and probes sent together can all arrive in that window. The check sends them one
-at a time and stops at the first refusal. The
+event, and probes sent together can all arrive in that window. A quick sequence sent one
+at a time can too, so the check stops at the first refusal and, if a whole sequence is
+accepted, waits once and tries again. The
 probe event carries an ordinary browser's user agent. The site's own copy is stored as
 one issue, "domain-check origin probe"; that is the probe, not a visitor's error.
 
