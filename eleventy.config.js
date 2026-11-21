@@ -9,6 +9,7 @@ import { STYLESHEET, inlineStylesheet, readStylesheet } from "./scripts/inline-c
 import { pruneCss } from "./scripts/prune-css.mjs";
 import { minifyInlineScripts, minifySiteScript } from "./scripts/minify-js.mjs";
 import { publicAssets } from "./scripts/public-assets.mjs";
+import { articleSections } from "./scripts/article-sections.mjs";
 import monitoring from "./src/_data/monitoring.js";
 import site from "./src/_data/site.json" with { type: "json" };
 
@@ -26,7 +27,8 @@ const SITE_SCRIPT_MAP = "site.js.map";
  * addGlobalData(name: string, value: string): void,
  * addPassthroughCopy(paths: Record<string, string>): void,
  * addCollection(name: string, collect: (api: {getFilteredByTag(tag: string): CollectionItem[]}) => CollectionItem[]): void,
- * addFilter(name: string, filter: (value: string, ...args: string[]) => string): void,
+ * addFilter<T>(name: string, filter: (value: string, ...args: string[]) => T): void,
+ * getFilter(name: "slugify"): (value: string) => string,
  * addTransform(name: string, transform: (this: {page: {outputPath: string | false, url: string}}, content: string) => string): void,
  * addWatchTarget(path: string): void
  * }} eleventyConfig
@@ -55,6 +57,9 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("readableDate", (d) =>
     new Date(d).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })
   );
+
+  const slugify = eleventyConfig.getFilter("slugify");
+  eleventyConfig.addFilter("articleSections", (html) => articleSections(html, slugify));
 
   // Every email link opens with a subject, so mail that came from the site can be
   // counted and found in the inbox without any tracking on the site itself.

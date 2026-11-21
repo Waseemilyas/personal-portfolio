@@ -18,21 +18,29 @@ the plumbing underneath it.
 
 Three shapes keep recurring.
 
-**Capture once, at the source.** If information is recorded where the work
+## Capture once, at the source
+
+If information is recorded where the work
 actually happens, most of the downstream retyping disappears and so do the
 errors it introduces. This is the least impressive item on the list and often
 the most valuable.
 
-**A trail instead of a memory.** When the system records the decision, who made
+## A trail instead of a memory
+
+When the system records the decision, who made
 it, and when, as a side effect of the normal flow, a disagreement about what
 happened becomes a lookup rather than an argument.
 
-**Searchable, not merely stored.** Plenty of organisations already keep
+## Searchable, not merely stored
+
+Plenty of organisations already keep
 everything. Keeping is not finding. Turning a pile of files into something a
 person can answer a question from is mostly a matter of structure, and it is
 worth more than another place to put things.
 
-**Where AI earns its place.** Inside systems like these there are messy edges:
+## Where AI earns its place
+
+Inside systems like these there are messy edges:
 free text that needs reading, a document that needs summarising, a first draft
 that needs writing, a category that needs guessing. That is genuinely good work
 for a model, and it is worth doing. It works when it sits inside a system that
@@ -40,7 +48,9 @@ is otherwise boring and deterministic, and when a wrong answer is visible and
 correctable rather than quietly authoritative. AI makes a good component and a
 poor foundation.
 
-**How you know it worked.** A system that landed well stops coming up. The
+## How you know it worked
+
+A system that landed well stops coming up. The
 adoption push stops being necessary, because the friction it removed has stopped
 being a topic, and people spend their time talking about the work rather than
 the tool.

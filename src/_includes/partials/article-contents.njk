@@ -1,0 +1,10 @@
+{%- if article.sections | length > 1 %}
+<nav class="article-contents" aria-label="On this page">
+  <p aria-hidden="true">On this page</p>
+  <ul role="list">
+    {%- for section in article.sections %}
+    <li><a href="{{ section.href | escape }}">{{ section.title | escape }}</a></li>
+    {%- endfor %}
+  </ul>
+</nav>
+{%- endif %}

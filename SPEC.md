@@ -125,6 +125,11 @@ Markdown word count at 230 words a minute) on one mono line. The notes index and
 Next note link show the same date and reading time. On the index the whole row opens
 the note: the title link stretches over it, so its accessible name stays the title.
 
+Case studies and notes with two or more body headings show an “On this page” list
+under the introduction. Its links jump to and focus the article's section headings
+below the sticky header, including with JavaScript disabled. The fragment URL can
+be opened directly. Print keeps the headings and omits the list.
+
 Each case study and note ends with the contact controls, a "Next case study" or
 "Next note" link, and a link back to the index. The next link points to the next
 case by `order` or the next older note, wrapping to the first. It works without

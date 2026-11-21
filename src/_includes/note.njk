@@ -1,6 +1,7 @@
 ---
 layout: base.njk
 ---
+{% set article = content | articleSections %}
 <article class="essay section" aria-labelledby="note-title">
   <div class="shell">
     <div class="casehead" data-cal="0">
@@ -10,9 +11,10 @@ layout: base.njk
       <p class="kick">{{ summary }}</p>
       {%- endif %}
       <p class="note-meta"><time datetime="{{ page.date | isoDate }}">{{ page.date | readableDate }}</time> · {{ readingMinutes }} min read</p>
+      {% include "partials/article-contents.njk" %}
     </div>
     <div class="prose" data-cal="1">
-      {{ content | safe }}
+      {{ article.html | safe }}
     </div>
     {% set emailSubject = 'About your note: ' + title %}
     {% include "partials/reading-contact.njk" %}

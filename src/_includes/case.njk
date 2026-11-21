@@ -1,12 +1,14 @@
 ---
 layout: base.njk
 ---
+{% set article = content | articleSections %}
 <article class="essay section case-study" aria-labelledby="case-title">
   <div class="shell">
     <div class="casehead" data-cal="0">
       <span class="ref">{{ ref }}</span>
       <h1 id="case-title">{{ title }}</h1>
       <p class="kick">{{ kicker }}</p>
+      {% include "partials/article-contents.njk" %}
     </div>
 
     <div class="casegrid">
@@ -20,7 +22,7 @@ layout: base.njk
       </aside>
 
       <div class="prose" data-cal="1">
-        {{ content | safe }}
+        {{ article.html | safe }}
       </div>
     </div>
 

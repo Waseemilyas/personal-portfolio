@@ -9,6 +9,8 @@ mind, and the picture is bigger than the thing they need. It has dashboards in
 it. The version that earns its keep is a short list of unremarkable parts, and
 the difficulty is almost never in the parts.
 
+## The inventory
+
 Here is the inventory that keeps turning up.
 
 **A register of what exists.** People, customers, sites, vehicles, properties —
@@ -45,7 +47,9 @@ mine.
 That is close to the whole list. None of it is novel and none of it is the hard
 part.
 
-**The hard part is the joins.** Each item above is, on its own, a solved problem
+## The hard part is the joins
+
+Each item above is, on its own, a solved problem
 you could buy three versions of before lunch. The work is in the handoffs: what
 happens to the queue when the register changes, which fields have to agree, what
 the system does when a job is done by somebody it was not assigned to, and which
@@ -54,13 +58,17 @@ does. Those joins are the shape of how a particular organisation works, and they
 are the reason two businesses in the same sector rarely fit the same system
 without one of them having to give something up.
 
-**What is not on the list.** Dashboards, mostly — a dashboard is a view of the
+## What is not on the list
+
+Dashboards, mostly — a dashboard is a view of the
 record and cannot be built before it. Also an app, usually. Also AI as a
 foundation rather than a component, which I have argued elsewhere. These often
 arrive stated as requirements and turn out, once the need behind them is
 tested, to be preferences.
 
-**Why buying does not delete the list.** A bought platform is not an alternative
+## Why buying does not delete the list
+
+A bought platform is not an alternative
 to the inventory. It is a decision about which parts you take as given and which
 joins you keep ownership of. That is a genuinely good trade in most cases, and
 it is worth making deliberately rather than discovering eight months in. Which

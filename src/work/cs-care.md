@@ -14,7 +14,9 @@ datasheet:
   - { k: "OUTCOME", v: "Operational systems in day-to-day use · paper routines replaced with auditable digital ones" }
   - { k: "CONSTRAINTS", v: "Client never named · no repo links · no screenshots · abstract diagram only" }
 ---
-**Context.** A UK domiciliary care provider needed better digital and operational systems to support the day-to-day work of delivering care. The brief was practical, not glamorous: less manual overhead, more reliable process.
+## Context
+
+A UK domiciliary care provider needed better digital and operational systems to support the day-to-day work of delivering care. The brief was practical, not glamorous: less manual overhead, more reliable process.
 
 <figure class="figure">
   <svg viewBox="0 0 640 230" role="img" aria-label="Abstract delivery map: intake feeding scheduling and records, with an automation layer reducing manual steps. Generated, no client data.">
@@ -44,10 +46,18 @@ datasheet:
   <figcaption>FIG.1 — Abstract delivery map. Generated, no client or care-recipient data.</figcaption>
 </figure>
 
-**Role.** I designed and built the digital and operational systems involved, working close to how the team actually delivers care day to day.
+## Role
 
-**Craft.** Practical software delivery, process design, and automation applied to a real operational setting, where reliability matters more than novelty.
+I designed and built the digital and operational systems involved, working close to how the team actually delivers care day to day.
 
-**Later phases.** What started as a discrete piece of work became a longer programme. Successive phases replaced paper routines with digital ones that hold up to scrutiny: training records, requisitions and approvals, and care-record sign-off that stays auditable as needs change. A broader operations platform, learning delivery, and payroll capture remain in progress.
+## Craft
 
-<p><strong>Outcome.</strong> Cleaner operational systems that reduced manual overhead for the team, delivered through practical software and automation. Qualitative by design — no client figures are published for this anonymised engagement.</p>
+Practical software delivery, process design, and automation applied to a real operational setting, where reliability matters more than novelty.
+
+## Later phases
+
+What started as a discrete piece of work became a longer programme. Successive phases replaced paper routines with digital ones that hold up to scrutiny: training records, requisitions and approvals, and care-record sign-off that stays auditable as needs change. A broader operations platform, learning delivery, and payroll capture remain in progress.
+
+## Outcome
+
+Cleaner operational systems that reduced manual overhead for the team, delivered through practical software and automation. Qualitative by design — no client figures are published for this anonymised engagement.
