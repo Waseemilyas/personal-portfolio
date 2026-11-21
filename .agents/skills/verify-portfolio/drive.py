@@ -243,7 +243,7 @@ try:
                 checks["datasheet placement"] = """(() => {
                     const sheet = document.querySelector('.casegrid .datasheet').getBoundingClientRect();
                     const prose = document.querySelector('.casegrid .prose').getBoundingClientRect();
-                    return innerWidth < 861 ? sheet.bottom <= prose.top : prose.right <= sheet.left;
+                    return innerWidth < 861 ? prose.bottom <= sheet.top : prose.right <= sheet.left;
                 })()"""
             capture(label + "-page-" + str(i), checks, before=[("open", base + route)])
         receipts.append(label + ": all " + str(len(pages)) + " generated pages loaded without horizontal overflow")
@@ -377,9 +377,16 @@ try:
     require("location.hash === '#main' && document.activeElement === document.querySelector('main')")
     receipts.append("JavaScript-disabled skip link focuses main")
     check_home_to_work()
-    require("document.querySelector('.casegrid .datasheet').getBoundingClientRect().bottom <= document.querySelector('.casegrid .prose').getBoundingClientRect().top")
+    run("focus", 'a[href="#case-datasheet"]')
+    run("press", "Enter")
+    run("wait", "--fn", """(() => {
+        const heading = document.getElementById('case-datasheet');
+        const rect = heading.getBoundingClientRect();
+        return location.hash === '#case-datasheet' && document.activeElement === heading &&
+            rect.top >= document.querySelector('.topbar').getBoundingClientRect().bottom && rect.bottom <= innerHeight;
+    })()""")
     require("document.querySelector('.reading-contact button.copy-email').hidden && document.querySelector('.reading-contact .email-big').getBoundingClientRect().height >= 44")
-    receipts.append("JavaScript-disabled Read the work focuses the heading and opens the first case study")
+    receipts.append("JavaScript-disabled Read the work opens the first case study; its Datasheet link focuses the visible heading")
     run("focus", ".reading-contact .copy-email-manual summary")
     run("press", "Enter")
     run("wait", "--fn", MANUAL_COPY_VISIBLE)

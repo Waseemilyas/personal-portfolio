@@ -18,7 +18,7 @@ datasheet, so the work can be compared before any of it is opened. A click or ta
 anywhere on the row opens the case; the link's accessible name is the title. On a page
 shorter than the window, the footer sits on the window's bottom edge.
 
-On case studies below 861px, the datasheet sits before the article text and shows
+On case studies below 861px, the datasheet follows the article text and shows
 its labels and values side by side. Wider screens show it in a sticky sidebar.
 The layout works without JavaScript. In print, the datasheet follows the article text.
 
@@ -126,9 +126,10 @@ Next note link show the same date and reading time. On the index the whole row o
 the note: the title link stretches over it, so its accessible name stays the title.
 
 Case studies and notes with two or more body headings show an “On this page” list
-under the introduction. Its links jump to and focus the article's section headings
-below the sticky header, including with JavaScript disabled. The fragment URL can
-be opened directly. Print keeps the headings and omits the list.
+under the introduction. Case studies also link to their datasheet from that list.
+The links jump to and focus the headings below the sticky header, including with
+JavaScript disabled. The fragment URL can be opened directly. Print keeps the
+headings and omits the list.
 
 Each case study and note ends with the contact controls, a "Next case study" or
 "Next note" link, and a link back to the index. The next link points to the next
