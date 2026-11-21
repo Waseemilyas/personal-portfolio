@@ -32,10 +32,11 @@
 //           from another website (21 Nov 2026), so a run of those 200s looks like the origin rule
 //           is off. Once the relay has loaded the project, an ordinary browser gets 403 every
 //           time the origin is not allowed. A cold relay answers 200 first, with an event id that
-//           is never stored (Sentry counts it as an intentional CORS drop), and a burst of probes
-//           sent together can all land in that window (a release on 21 Nov 2026 got 200 on all 8).
-//           The check therefore sends them one at a time and stops at the first 403. The site's
-//           own copy is stored as
+//           is never stored (Sentry counts it as an intentional CORS drop). A burst sent together
+//           can all land in that window, and so can a quick sequence sent one at a time (CI run
+//           44954078081 got 200 on all 8). The check sends them one at a time, stops at the first
+//           403, and, if a whole sequence is accepted, waits once for the relay to load and tries
+//           again. The site's own copy is stored as
 //           one issue named "domain-check origin probe"; that is the probe, not a visitor's error.
 //           An empty client report is not a fair probe either: the same day Sentry answered 200
 //           to 5 of 154 from another origin while refusing 114 of 114 events from it. A visit that
@@ -280,6 +281,25 @@ function report(/** @type {URL} */ dsn, /** @type {string} */ domain, /** @type 
 }
 
 const FOREIGN_TRIES = 8;
+/** A cold relay can accept a whole quick sequence. One wait, then one more sequence. */
+const COLD_PAUSE_MS = 5_000;
+
+/**
+ * Foreign-origin probes, one at a time, stopping at the first 403. If a whole sequence is
+ * accepted, waits once so a cold relay can load the project, then sends one more sequence.
+ * @returns {Promise<number[]>}
+ */
+async function foreignProbes(/** @type {URL} */ dsn, /** @type {string} */ domain) {
+  /** @type {number[]} */
+  const statuses = [];
+  for (let round = 0; round < 2 && !statuses.includes(403); round++) {
+    if (round === 1) await new Promise((resolve) => setTimeout(resolve, COLD_PAUSE_MS));
+    for (let i = 0; i < FOREIGN_TRIES && !statuses.includes(403); i++) {
+      statuses.push(await report(dsn, domain, FOREIGN_ORIGIN));
+    }
+  }
+  return statuses;
+}
 
 /** @returns {Promise<IngestFacts>} */
 async function ingest(/** @type {string} */ domain) {
@@ -295,15 +315,10 @@ async function ingest(/** @type {string} */ domain) {
   // refused with 403 once the relay has the project, but a cold relay answers 200 (with an event
   // id that is never stored) until it has. Measured on 21 Nov 2026 against waseemilyas-portfolio,
   // whose allowedDomains is waseemilyas.uk only: eight probes sent together all got 200 (CI run
-  // 44948674924) because they arrived before the rule had loaded. Sent one at a time, the same
-  // project answers 403 and keeps answering it. Stop at the first 403. A project that allows
-  // every origin answers 200 every time, so it uses all of the tries and still fails.
+  // 44948674924), and eight sent one at a time still all got 200 (CI run 44954078081). One 403
+  // is the rule. A project that allows every origin answers 200 to both sequences and still fails.
   const own = await report(dsn, domain, `https://${domain}`);
-  /** @type {number[]} */
-  const statuses = [];
-  for (let i = 0; i < FOREIGN_TRIES && !statuses.includes(403); i++) {
-    statuses.push(await report(dsn, domain, FOREIGN_ORIGIN));
-  }
+  const statuses = await foreignProbes(dsn, domain);
   const refused = statuses.filter((status) => status === 403).length;
   return { page, dsn: true, own, foreign: statuses.at(-1), refused, sent: statuses.length };
 }

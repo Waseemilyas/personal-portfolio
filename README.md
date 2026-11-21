@@ -144,8 +144,9 @@ behind the live page's DSN accepts an error event from `https://waseemilyas.uk` 
 refuses an error event from any other website, and `/.well-known/security.txt` is
 published and not within 21 days of expiry. A cold Sentry relay answers 200 to the
 first foreign reports and then drops them, so the check sends those one at a time and
-stops at the first refusal; a project that allows every origin answers 200 to all of
-them and still fails. The probe event carries
+stops at the first refusal. A whole sequence can still be accepted before the relay has
+loaded the project, so the check waits once and tries again; a project that allows every
+origin answers 200 both times and still fails. The probe event carries
 an ordinary browser's user agent. The site's own copy is stored as one issue,
 "domain-check origin probe", in the `domain-check` environment; that issue is the
 probe, not a visitor's error. If GitHub Pages ever

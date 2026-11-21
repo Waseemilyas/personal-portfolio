@@ -90,8 +90,10 @@ test("error-report origin rules", () => {
   // Sentry's default Allowed Domains is "*": every report from another website is accepted.
   fails(ingest({ refused: 0, sent: 8, foreign: 200 }), /refused 0 of 8 reports from another website/);
   // A cold relay answers 200 before it has loaded the project, then drops the event. The check
-  // sends probes one at a time and stops at the first 403, so one refusal is the rule holding.
+  // sends probes one at a time, waits once if a whole sequence is accepted, and stops at the
+  // first 403, so one refusal is the rule holding.
   assert.deepEqual(evaluate(ingest({ refused: 1, sent: 3, foreign: 403 })), []);
+  assert.deepEqual(evaluate(ingest({ refused: 1, sent: 9, foreign: 403 })), []);
   fails(ingest({ own: 403 }), /site's own error reports are refused/);
   fails(ingest({ dsn: false, own: undefined, foreign: undefined, refused: undefined, sent: undefined }), /carries no Sentry DSN/);
 });
