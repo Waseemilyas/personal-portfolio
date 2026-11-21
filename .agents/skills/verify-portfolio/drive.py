@@ -365,6 +365,63 @@ try:
     errors = run("errors")
     assert errors in ("", "No errors", "No page errors", "[]"), errors
     remember(); run("close")
+
+    session += "-forced"; sessions.append(session)
+    browser_args = env["AGENT_BROWSER_ARGS"]
+    env["AGENT_BROWSER_ARGS"] += ",--force-high-contrast"
+    run("set", "viewport", "1440", "900")
+    run("set", "media", "light", "reduced-motion")
+    run("open", base + "/#capability")
+    require("matchMedia('(forced-colors: active)').matches")
+    require("getComputedStyle(document.querySelector('.nav [aria-current=page]')).textDecorationLine === 'underline'")
+    require("getComputedStyle(document.querySelector('.worklist .workcard + .workcard')).borderBlockStartStyle === 'solid'")
+    require("""(() => {
+        const foreground = getComputedStyle(document.body).color;
+        const background = getComputedStyle(document.body).backgroundColor;
+        const svg = document.querySelector('.capfig svg');
+        return svg.querySelectorAll('.node text').length === 5 &&
+            [...svg.querySelectorAll('.node text')].every(label => getComputedStyle(label).fill === foreground) &&
+            [...svg.querySelectorAll('.node .ring')].every(ring => getComputedStyle(ring).fill === background) &&
+            [...svg.querySelectorAll('.trace')].every(trace => getComputedStyle(trace).stroke === foreground);
+    })()""")
+    capture("forced-desktop-capability")
+    run("focus", '.capfig svg .node[aria-selected="true"]')
+    run("press", "ArrowRight")
+    check_capability(nodes[1])
+    require("getComputedStyle(document.querySelector('.capfig svg .node[aria-selected=true] text')).textDecorationLine === 'underline'")
+    receipts.append("forced colors desktop: current page, Work row edges and map labels visible; arrow key moves visible selection")
+
+    run("set", "viewport", "390", "844")
+    run("open", base + "/?forced=phone#capability")
+    capture("forced-phone-capability")
+    run("focus", '.cap-phone .node[aria-selected="true"]')
+    run("press", "ArrowRight")
+    check_capability(nodes[1])
+    require("getComputedStyle(document.querySelector('.cap-phone .node[aria-selected=true]')).textDecorationLine === 'underline' && getComputedStyle(document.querySelector('.cap-phone .node[aria-selected=false]')).textDecorationLine === 'none'")
+    run("open", base + "/automancer/")
+    require("getComputedStyle(document.querySelector('.diagram-panel .diagram-phone')).display !== 'none' && getComputedStyle(document.querySelector('.diagram-panel .djoin')).borderInlineStartStyle === 'solid'")
+    run("set", "viewport", "1440", "900")
+    require("""(() => {
+        const diagram = document.querySelector('.diagram-panel svg');
+        const foreground = getComputedStyle(document.body).color;
+        return getComputedStyle(diagram).display !== 'none' &&
+            getComputedStyle(diagram.querySelector('.wf-node-live text')).fill === foreground &&
+            getComputedStyle(diagram.querySelector('.wf-trace')).stroke === foreground;
+    })()""")
+    receipts.append("forced colors narrow and wide: native tabs show selection after a key press; workflow nodes and connectors stay visible")
+    for case in ("cs-auto", "cs-care", "cs-product"):
+        run("open", base + "/work/" + case + "/")
+        require("""(() => {
+            const diagram = document.querySelector('.figure svg');
+            const foreground = getComputedStyle(document.body).color;
+            return getComputedStyle(diagram).display !== 'none' &&
+                [...diagram.querySelectorAll('text, marker path')].every(element => getComputedStyle(element).fill === foreground) &&
+                [...diagram.querySelectorAll('g[marker-end] path')].every(path => getComputedStyle(path).stroke === foreground);
+        })()""")
+    receipts.append("forced colors: labels and arrows are visible in all three case-study diagrams")
+    remember(); run("close")
+    env["AGENT_BROWSER_ARGS"] = browser_args
+
     # A fresh browser disables author scripts before load, including cached assets.
     session += "-nojs"; sessions.append(session)
     env["AGENT_BROWSER_ARGS"] += ",--blink-settings=scriptEnabled=false"
