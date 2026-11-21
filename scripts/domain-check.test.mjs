@@ -89,10 +89,9 @@ test("error-report origin rules", () => {
     facts({ ingest: { page: "https://example.test/", dsn: true, own: 200, foreign: 403, refused: 8, sent: 8, ...change } });
   // Sentry's default Allowed Domains is "*": every report from another website is accepted.
   fails(ingest({ refused: 0, sent: 8, foreign: 200 }), /refused 0 of 8 reports from another website/);
-  // A cold relay answers 200 before it has loaded the project, then drops the event. A few of
-  // those do not mean the origin rule is off; half or fewer refused does.
-  assert.deepEqual(evaluate(ingest({ refused: 5, sent: 8, foreign: 200 })), []);
-  fails(ingest({ refused: 4, sent: 8, foreign: 200 }), /refused 4 of 8 reports from another website/);
+  // A cold relay answers 200 before it has loaded the project, then drops the event. The check
+  // sends probes one at a time and stops at the first 403, so one refusal is the rule holding.
+  assert.deepEqual(evaluate(ingest({ refused: 1, sent: 3, foreign: 403 })), []);
   fails(ingest({ own: 403 }), /site's own error reports are refused/);
   fails(ingest({ dsn: false, own: undefined, foreign: undefined, refused: undefined, sent: undefined }), /carries no Sentry DSN/);
 });

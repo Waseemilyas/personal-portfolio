@@ -32,8 +32,10 @@
 //           from another website (21 Nov 2026), so a run of those 200s looks like the origin rule
 //           is off. Once the relay has loaded the project, an ordinary browser gets 403 every
 //           time the origin is not allowed. A cold relay answers 200 first, with an event id that
-//           is never stored (Sentry counts it as an intentional CORS drop), so the check sends a
-//           fixed set and requires most of them to be refused. The site's own copy is stored as
+//           is never stored (Sentry counts it as an intentional CORS drop), and a burst of probes
+//           sent together can all land in that window (a release on 21 Nov 2026 got 200 on all 8).
+//           The check therefore sends them one at a time and stops at the first 403. The site's
+//           own copy is stored as
 //           one issue named "domain-check origin probe"; that is the probe, not a visitor's error.
 //           An empty client report is not a fair probe either: the same day Sentry answered 200
 //           to 5 of 154 from another origin while refusing 114 of 114 events from it. A visit that
@@ -177,11 +179,11 @@ export function evaluate(/** @type {Facts} */ facts) {
     if (own !== 200) failures.push(`ingest: Sentry answered ${own} to a report from https://${facts.domain}, so the site's own error reports are refused`);
     // A cold relay answers 200 and an event id before the project's origin rule has loaded, then
     // drops the event (Sentry counts it as an intentional CORS drop; the id is never stored). A
-    // warm relay answers 403. So the status of one probe says nothing. Most of a fixed set must
-    // be refused: a project that allows every origin answers 200 to all of them.
+    // warm relay answers 403, and keeps answering 403. One 403 is the rule; a project that allows
+    // every origin answers 200 to all of them.
     const refused = facts.ingest.refused ?? (foreign === 403 ? 1 : 0);
     const sent = facts.ingest.sent ?? 1;
-    if (refused * 2 <= sent) {
+    if (refused < 1) {
       failures.push(`ingest: Sentry refused ${refused} of ${sent} reports from another website; set the project's Allowed Domains to ${facts.domain} only`);
     }
   }
@@ -289,18 +291,19 @@ async function ingest(/** @type {string} */ domain) {
   });
   const dsn = findDsn(html);
   if (!dsn) return { page, dsn: false };
-  // The site's own report first, so the relay has loaded the project before the foreign ones.
-  // Sentry's own origin is always accepted. A foreign origin is refused with 403 once the relay
-  // has the project, but a cold relay answers 200 (with an event id that is never stored) for
-  // the first several requests even when Allowed Domains is correct. Measured on 21 Nov 2026
-  // against waseemilyas-portfolio, whose allowedDomains is waseemilyas.uk only: a fresh run got
-  // 200 on 8 of 12, and one CI job (run 44931340434) got 200 on all 8 and failed. Stopping at the
-  // first 403 therefore fails a release. Sending a fixed set and requiring a majority of 403s
-  // still fails a project that allows every origin, which answers 200 every time.
+  // The site's own report first. Sentry's own origin is always accepted. A foreign origin is
+  // refused with 403 once the relay has the project, but a cold relay answers 200 (with an event
+  // id that is never stored) until it has. Measured on 21 Nov 2026 against waseemilyas-portfolio,
+  // whose allowedDomains is waseemilyas.uk only: eight probes sent together all got 200 (CI run
+  // 44948674924) because they arrived before the rule had loaded. Sent one at a time, the same
+  // project answers 403 and keeps answering it. Stop at the first 403. A project that allows
+  // every origin answers 200 every time, so it uses all of the tries and still fails.
   const own = await report(dsn, domain, `https://${domain}`);
-  const statuses = await Promise.all(
-    Array.from({ length: FOREIGN_TRIES }, () => report(dsn, domain, FOREIGN_ORIGIN)),
-  );
+  /** @type {number[]} */
+  const statuses = [];
+  for (let i = 0; i < FOREIGN_TRIES && !statuses.includes(403); i++) {
+    statuses.push(await report(dsn, domain, FOREIGN_ORIGIN));
+  }
   const refused = statuses.filter((status) => status === 403).length;
   return { page, dsn: true, own, foreign: statuses.at(-1), refused, sent: statuses.length };
 }
