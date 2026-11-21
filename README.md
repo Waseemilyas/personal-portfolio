@@ -104,8 +104,8 @@ draws the site's own card HTML. If none is installed, run
 `npx playwright install chromium-headless-shell` or set `CHROME=/path/to/chrome`. CI and GitHub Pages use the same pinned
 Chrome for Testing Headless Shell. On the first render in a job,
 `scripts/chrome-for-testing.sh` downloads the Linux x64 bundle and verifies its
-SHA-256 before extracting it. Python 3 with Pillow compresses the cards. The
-release workflows install Pillow. Without it a local build leaves larger,
+SHA-256 before extracting it. Python 3 with Pillow compresses the cards. CI and
+Pages use Python 3.15 with Pillow 13.0.0. Without Pillow a local build leaves larger,
 full-colour PNGs. All images stay in `_site/`, alongside the HTML they describe.
 
 Finished cards are also kept in `node_modules/.cache/share-cards/`. Each is named by a hash of
