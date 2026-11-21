@@ -301,7 +301,7 @@ try:
         run("set", "viewport", str(width), str(height))
         capture(f"capability-{width}", {"full labels and 44px map targets": graph_is_readable},
                 before=[("open", base + "/#capability")])
-    run("click", '.capfig svg [data-key="web"] .ring')
+    run("click", '.capfig svg [data-key="web"] .core')
     check_capability(next(node for node in nodes if node["key"] == "web"))
     receipts.append("capability graph keeps full labels and 44px targets on small and tablet frames; clicking a node at 1024 × 768 opens its readout")
 
