@@ -45,6 +45,7 @@ export const ALLOWED_CAS = { "letsencrypt.org": "Let's Encrypt" };
 export const MIN_DAYS = 21;
 /** An origin that no page can be served from (RFC 6761), for the refused-report probe. */
 export const FOREIGN_ORIGIN = "https://origin-probe.invalid";
+const FOREIGN_TRIES = 8;
 /** A user agent Sentry's web-crawler inbound filter drops, so an accepted probe is not stored. */
 export const PROBE_USER_AGENT = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
 const RESOLVERS = {
@@ -230,7 +231,12 @@ async function ingest(/** @type {string} */ domain) {
   if (!dsn) return { page, dsn: false };
   // The site's own report first, so the relay has loaded the project before the foreign one.
   const own = await report(dsn, domain, `https://${domain}`);
-  const foreign = await report(dsn, domain, FOREIGN_ORIGIN);
+  // Sentry's ingest answers a foreign origin 403 or, on some requests, 200 (21 Nov 2026: about
+  // 1 in 3, with Allowed Domains confirmed as waseemilyas.uk only through the Sentry API). So
+  // ask up to FOREIGN_TRIES times and stop at the first 403: that proves the setting is
+  // enforced, and a project that allows every origin never answers 403.
+  let foreign = 0;
+  for (let i = 0; i < FOREIGN_TRIES && foreign !== 403; i++) foreign = await report(dsn, domain, FOREIGN_ORIGIN);
   return { page, dsn: true, own, foreign };
 }
 
