@@ -491,8 +491,10 @@ label. Opening it reveals the section links in a scrollable list.
 From 861px it is a rail in the right column: a `--line-light` hairline with
 `--ink-mute` links in `--step--1`, still 44px tall. The section being read
 (`aria-current`, set by site.js) turns `--ink` with a 2px `--signal-deep` bar on the
-hairline; forced colours underline it. A note's rail is sticky at `top: 4.5rem`;
-a case study's sits above the sticky datasheet. The contents list is hidden in print.
+hairline; forced colours underline it. A note's rail is sticky at `top: 4.5rem`.
+With JavaScript and at least 400px of viewport height, a case study's list and
+datasheet share that sticky inset and at most 70% of the viewport height. The
+datasheet is keyboard-scrollable when it overflows. The contents list is hidden in print.
 
 Single-route components are in the stylesheet but deliberately not listed here:
 `.capfig` / `.capread` (the homepage capability map), `.panel` / `.readout` (the

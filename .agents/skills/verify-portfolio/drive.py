@@ -374,6 +374,25 @@ try:
     })()""")
     capture("desktop-note-rail")
     receipts.append("desktop note: On this page sits beside the text, stays in view after a jump, and marks only the section it opened")
+    run("set", "viewport", "1280", "768")
+    run("open", base + "/work/cs-care/")
+    run("click", '.article-contents a[href="#section-outcome"]')
+    run("wait", "--fn", """(() => {
+        const rail = document.querySelector('.article-contents');
+        const role = rail.querySelector('[href="#section-role"]').getBoundingClientRect();
+        const sheet = document.querySelector('.casegrid .datasheet').getBoundingClientRect();
+        return document.activeElement.id === 'section-outcome' &&
+            rail.querySelector('[aria-current="location"]')?.hash === '#section-outcome' &&
+            role.top >= document.querySelector('.topbar').getBoundingClientRect().bottom &&
+            role.bottom <= sheet.top && sheet.bottom <= innerHeight;
+    })()""")
+    capture("laptop-case-rail")
+    run("focus", '.article-contents a[href="#section-role"]')
+    run("press", "Enter")
+    require("document.activeElement.id === 'section-role'")
+    run("click", '.article-contents a[href="#case-datasheet"]')
+    require("document.activeElement.id === 'case-datasheet'")
+    receipts.append("laptop case study: Outcome keeps the contents and Datasheet in view, a second keyboard jump reaches Role, and Datasheet is focusable from the rail")
     run("set", "viewport", "390", "844")
     run("open", base + "/work/cs-care/")
     run("click", ".article-contents summary")

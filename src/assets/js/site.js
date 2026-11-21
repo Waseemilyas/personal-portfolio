@@ -184,8 +184,6 @@
     figure.removeAttribute("hidden");
   }
 
-  /* Manual copy is available at first paint. Swap in the one-click control
-     if the browser has a clipboard API and the visitor hasn't started copying. */
   /* The native disclosure works before this script. On narrow screens it follows
      the text and closes before the browser jumps to the chosen heading. */
   function setupArticleContents() {
@@ -195,6 +193,41 @@
     const title = summary?.querySelector("span");
     if (!summary || !title) return;
     details.setAttribute("data-follow", "");
+    const desktop = window.matchMedia("(min-width: 861px)");
+    if (desktop.matches) details.open = true;
+    desktop.addEventListener("change", (event) => { details.open = event.matches; });
+    const rail = details.closest(".case-rail");
+    const caseGrid = rail?.parentElement;
+    const datasheet = caseGrid?.querySelector(".datasheet");
+    if (rail && caseGrid && datasheet instanceof HTMLElement && "ResizeObserver" in window) {
+      const wide = window.matchMedia("screen and (min-width: 861px) and (min-height: 400px)");
+      const measure = () => {
+        if (datasheet.scrollHeight > datasheet.clientHeight) datasheet.tabIndex = 0;
+        else datasheet.removeAttribute("tabindex");
+        if (!wide.matches) return;
+        datasheet.style.setProperty("--case-sheet-clearance", datasheet.offsetTop + 10 + "px");
+        const end = caseGrid.getBoundingClientRect().bottom;
+        // Leave room for the rail when a heading sits near the end of the article.
+        const railHeight = rail.getBoundingClientRect().height + 16;
+        caseGrid.querySelectorAll(".prose h2[id]").forEach((heading) => {
+          if (!(heading instanceof HTMLElement)) return;
+          const clearance = Math.max(0, railHeight + heading.getBoundingClientRect().top - end);
+          heading.style.setProperty("--case-heading-clearance", clearance + "px");
+        });
+      };
+      const placeDatasheet = () => {
+        const focused = document.activeElement;
+        const destination = wide.matches ? rail : caseGrid;
+        if (datasheet.parentElement !== destination) destination.append(datasheet);
+        if (focused instanceof HTMLElement && datasheet.contains(focused)) focused.focus({ preventScroll: true });
+        measure();
+      };
+      const observer = new ResizeObserver(measure);
+      observer.observe(caseGrid);
+      observer.observe(datasheet);
+      wide.addEventListener("change", placeDatasheet);
+      placeDatasheet();
+    }
     details.addEventListener("click", (event) => {
       if (event.target instanceof Element && event.target.closest("a") && summary.offsetHeight) details.open = false;
     });
@@ -238,6 +271,8 @@
         if (!compact && heading.id === "case-datasheet") continue;
         const top = heading.getBoundingClientRect().top;
         if (top <= line) reading = link;
+        if (top > line && top < window.innerHeight && heading.matches(":focus:target") &&
+            top <= line + parseFloat(getComputedStyle(heading).scrollMarginBlockStart)) reading = link;
         if (atEnd && top >= 0 && heading.matches(":target")) {
           reading = link;
           break;
@@ -260,6 +295,8 @@
     queue();
   }
 
+  /* Manual copy is available at first paint. Swap in the one-click control
+     if the browser has a clipboard API and the visitor hasn't started copying. */
   function setupCopyEmail() {
     var clipboard = navigator.clipboard;
     if (!window.isSecureContext || typeof clipboard?.writeText !== "function") return;
