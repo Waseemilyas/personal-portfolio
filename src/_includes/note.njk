@@ -11,10 +11,12 @@ layout: base.njk
       <p class="kick">{{ summary }}</p>
       {%- endif %}
       <p class="note-meta"><time datetime="{{ page.date | isoDate }}">{{ page.date | readableDate }}</time> · {{ readingMinutes }} min read</p>
-      {% include "partials/article-contents.njk" %}
     </div>
-    <div class="prose" data-cal="1">
-      {{ article.html | safe }}
+    <div class="notegrid">
+      {% include "partials/article-contents.njk" %}
+      <div class="prose" data-cal="1">
+        {{ article.html | safe }}
+      </div>
     </div>
     {% set emailSubject = 'About your note: ' + title %}
     {% include "partials/reading-contact.njk" %}

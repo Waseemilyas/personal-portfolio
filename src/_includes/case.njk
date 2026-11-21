@@ -8,10 +8,10 @@ layout: base.njk
       <span class="ref">{{ ref }}</span>
       <h1 id="case-title">{{ title }}</h1>
       <p class="kick">{{ kicker }}</p>
-      {% include "partials/article-contents.njk" %}
     </div>
 
     <div class="casegrid">
+      {% include "partials/article-contents.njk" %}
       <div class="prose" data-cal="1">
         {{ article.html | safe }}
       </div>

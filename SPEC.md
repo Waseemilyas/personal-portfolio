@@ -19,7 +19,8 @@ anywhere on the row opens the case; the link's accessible name is the title. On 
 shorter than the window, the footer sits on the window's bottom edge.
 
 On case studies below 861px, the datasheet follows the article text and shows
-its labels and values side by side. Wider screens show it in a sticky sidebar.
+its labels and values side by side. Wider screens show it in a sticky sidebar,
+under the “On this page” list.
 The layout works without JavaScript. In print, the datasheet follows the article text.
 
 GitHub Pages serves `/404.html` at whatever address was asked for. Below its hero,
@@ -140,9 +141,14 @@ the note: the title link stretches over it, so its accessible name stays the tit
 
 Case studies and notes with two or more body headings show an “On this page” list
 under the introduction. Case studies also link to their datasheet from that list.
-The links jump to and focus the headings below the sticky header, including with
-JavaScript disabled. The fragment URL can be opened directly. Print keeps the
-headings and omits the list.
+Below 861px the list sits above the text. From 861px it is a column beside the
+text: on notes it stays in view while the note is read, and on case studies it sits
+above the sticky datasheet. With JavaScript, the link for the section being read
+is marked (`aria-current="location"`) once its heading comes within a tenth of the
+window under the header; a jump marks the section it opened, also at the foot of a
+short page. The links jump to and focus the headings below the sticky header,
+including with JavaScript disabled. The fragment URL can be opened directly. Print
+keeps the headings and omits the list.
 
 Each case study and note ends with the contact controls, a "Next case study" or
 "Next note" link, and a link back to the index. The next link points to the next
