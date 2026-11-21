@@ -32,11 +32,12 @@
 //        [--site-url https://waseemilyas.uk] [--revision <sha>]
 
 import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative, resolve, sep } from "node:path";
+import { basename, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { JSDOM } from "jsdom";
 
 import { inlineScripts, inlineStyles, scriptHash, scriptIntegrity, trustedTypePolicies } from "./csp.mjs";
+import { siteScriptFile } from "./minify-js.mjs";
 import { cardAlt, cardImage, cardText } from "./og-cards.mjs";
 import { publicAssets } from "./public-assets.mjs";
 import { revision as buildRevision } from "./revision.mjs";
@@ -50,8 +51,6 @@ const ATOM_NS = "http://www.w3.org/2005/Atom";
 const REQUIRED_FILES = [
   ...Object.values(publicAssets),
   "assets/img/og-card.png",
-  "assets/js/site.js",
-  "assets/js/site.js.map",
   "notes/feed.xml",
   "revision.txt",
   SECURITY_TXT,
@@ -123,6 +122,7 @@ export function runSiteChecks({
   }
 
   const pages = [...files].filter((file) => file.endsWith(".html")).sort();
+  let sharedScript = "";
   for (const page of pages) {
     expectedFiles.add(page);
     const html = read(page);
@@ -199,6 +199,10 @@ export function runSiteChecks({
     if (/'unsafe-|\*/.test(policy)) bad("csp", "policy must not use 'unsafe-*' or wildcards");
     const scriptSources = scriptSrc.split(/\s+/).slice(1);
     const expectedScriptSources = new Set(inlineScripts(html).map(scriptHash));
+    const siteScripts = doc.querySelectorAll("#site-script");
+    if (siteScripts.length !== 1 || !siteScripts[0]?.matches("script[src][defer]")) {
+      bad("csp", "expected one deferred site script");
+    }
     for (const script of doc.querySelectorAll("script[src]")) {
       const target = script.getAttribute("src") ?? "";
       const url = new URL(target, siteUrl + pagePath);
@@ -207,7 +211,21 @@ export function runSiteChecks({
         bad("csp", "external scripts must be served from this site's build");
         continue;
       }
-      const integrity = scriptIntegrity(readFileSync(join(siteDir, file)));
+      const code = read(file);
+      if (script.id === "site-script") {
+        if (target !== `/${file}` || !siteScriptFile.test(file) || (sharedScript && sharedScript !== file)) {
+          bad("artifact", "every page must use the same versioned site script");
+        } else if (!sharedScript) {
+          sharedScript = file;
+          const map = `${file}.map`;
+          expectedFiles.add(file);
+          expectedFiles.add(map);
+          if (!exists(map) || !code.endsWith(`\n//# sourceMappingURL=${basename(map)}\n`)) {
+            bad("artifact", "the site script must point to its published source map");
+          }
+        }
+      }
+      const integrity = scriptIntegrity(code);
       if (script.getAttribute("integrity") !== integrity) {
         bad("csp", `integrity for /${file} must match the built script`);
       }

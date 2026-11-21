@@ -7,12 +7,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { JSDOM, VirtualConsole } from "jsdom";
-import { builtSite, skipReason } from "./built-site.mjs";
+import { builtScriptUrl, builtSite, skipReason } from "./built-site.mjs";
 
 /** @param {string} outDir @param {string} path */
 function load(outDir, path) {
   const html = readFileSync(join(outDir, "404.html"), "utf8");
-  const script = readFileSync(join(outDir, "assets/js/site.js"), "utf8");
+  const script = readFileSync(join(outDir, builtScriptUrl(html)), "utf8");
   // jsdom cannot navigate; location.replace only reports that it tried.
   const virtualConsole = new VirtualConsole();
   const dom = new JSDOM(html, {

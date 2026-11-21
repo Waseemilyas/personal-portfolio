@@ -7,7 +7,7 @@ import { addShareCards } from "./scripts/og-cards.mjs";
 import { scriptIntegrity, withPolicy } from "./scripts/csp.mjs";
 import { STYLESHEET, inlineStylesheet, readStylesheet } from "./scripts/inline-css.mjs";
 import { pruneCss } from "./scripts/prune-css.mjs";
-import { minifyInlineScripts, minifySiteScript } from "./scripts/minify-js.mjs";
+import { minifyInlineScripts, minifySiteScript, siteScriptFile } from "./scripts/minify-js.mjs";
 import { publicAssets } from "./scripts/public-assets.mjs";
 import { articleSections } from "./scripts/article-sections.mjs";
 import { commitDate, expiresFor } from "./scripts/security-txt.mjs";
@@ -18,13 +18,14 @@ const INPUT = "src";
 const OUTPUT = "_site";
 const SITE_SCRIPT_URL = "/assets/js/site.js";
 const SITE_SCRIPT = `${INPUT}${SITE_SCRIPT_URL}`;
-const SITE_SCRIPT_MAP = "site.js.map";
 
 /**
  * Only the Eleventy boundary used here; page data comes from front matter.
  * @typedef {{data: {order?: number, draft?: boolean}, date: Date}} CollectionItem
  * @param {{
- * on(event: "eleventy.before", callback: () => void): void,
+ * on(event: "eleventy.before", callback: (build: {
+ *   directories: {output: string}, dryRun: boolean, outputMode: string
+ * }) => void): void,
  * on(event: "eleventy.after", callback: (build: {
  *   directories: {input: string, inputFile?: string, inputGlob?: string, output: string},
  *   dryRun: boolean, incremental: boolean, outputMode: string,
@@ -80,12 +81,18 @@ export default function (eleventyConfig) {
   let css = "";
   let siteScript = "";
   let siteScriptIntegrity = "";
-  let published = { code: "", map: "" };
-  eleventyConfig.on("eleventy.before", () => {
+  let published = { file: "", code: "", map: "" };
+  eleventyConfig.on("eleventy.before", ({ directories, dryRun, outputMode }) => {
     css = readStylesheet();
     siteScript = readFileSync(SITE_SCRIPT, "utf8");
-    published = minifySiteScript(siteScript, SITE_SCRIPT_MAP);
+    published = minifySiteScript(siteScript);
     siteScriptIntegrity = scriptIntegrity(published.code);
+    if (dryRun || outputMode !== "fs") return;
+    // Put both files in place before Eleventy writes any page that references them.
+    const file = join(directories.output, published.file);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, published.code);
+    writeFileSync(`${file}.map`, published.map);
   });
   eleventyConfig.addWatchTarget(STYLESHEET);
   eleventyConfig.addWatchTarget(SITE_SCRIPT);
@@ -103,20 +110,18 @@ export default function (eleventyConfig) {
     return minifyInlineScripts(content);
   });
 
-  // The digest in the URL keeps a new page from reusing a cached copy of an older script.
-  // An exact URL also allows the script on older browsers that support SRI but
-  // cannot use integrity metadata to match a CSP hash.
+  // An exact URL also allows the script on older browsers that cannot match a CSP hash via SRI.
   eleventyConfig.addTransform("content-security-policy", function (content) {
     const out = this.page.outputPath;
     if (typeof out !== "string" || !out.endsWith(".html")) return content;
     const html = content.replace(
       `<script src="${SITE_SCRIPT_URL}" defer></script>`,
-      `<script src="${SITE_SCRIPT_URL}?v=${encodeURIComponent(siteScriptIntegrity)}" integrity="${siteScriptIntegrity}" defer></script>`,
+      `<script id="site-script" src="/${published.file}" integrity="${siteScriptIntegrity}" defer></script>`,
     );
     return withPolicy(html, {
       connectOrigins: monitoring.cspConnectOrigins,
       externalScripts: [
-        { url: site.url + SITE_SCRIPT_URL, integrity: siteScriptIntegrity },
+        { url: `${site.url}/${published.file}`, integrity: siteScriptIntegrity },
         ...(monitoring.sentrySdkUrl
           ? [{ url: site.url + monitoring.sentrySdkUrl, integrity: monitoring.sentrySdkIntegrity }]
           : []),
@@ -134,15 +139,18 @@ export default function (eleventyConfig) {
       !process.argv.some((arg) => /^--formats(?:=|$)/.test(arg));
     await writeShareCards(directories.output, complete);
 
-    // Partial builds still need the script and map named by the pages they write.
-    const scriptDir = join(directories.output, dirname(SITE_SCRIPT_URL));
-    mkdirSync(scriptDir, { recursive: true });
-    writeFileSync(join(directories.output, SITE_SCRIPT_URL), published.code);
-    writeFileSync(join(scriptDir, SITE_SCRIPT_MAP), published.map);
-
-    // Eleventy reports every page in a complete build and leaves old HTML on disk.
     if (!complete || results.length === 0) return;
     const output = resolve(directories.output);
+    // Untouched pages may still need these files after a partial build.
+    const scriptDir = dirname(published.file);
+    for (const entry of readdirSync(join(output, scriptDir), { withFileTypes: true })) {
+      const file = `${scriptDir}/${entry.name.replace(/\.map$/, "")}`;
+      if (entry.isFile() && file !== published.file && (siteScriptFile.test(file) || `/${file}` === SITE_SCRIPT_URL)) {
+        unlinkSync(join(output, scriptDir, entry.name));
+      }
+    }
+
+    // Eleventy reports every page in a complete build and leaves old HTML on disk.
     if (output !== resolve(OUTPUT)) return;
     if (!lstatSync(output, { throwIfNoEntry: false })?.isDirectory()) return;
 

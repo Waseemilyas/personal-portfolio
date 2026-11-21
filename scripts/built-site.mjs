@@ -3,6 +3,7 @@
 // empty directory for the whole run: the first test that asks builds into it and
 // later test files read the same build. A test file run on its own builds into a
 // temporary directory of its own and removes it on exit.
+import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,6 +18,13 @@ export const TEST_DSN = "https://0123456789abcdef0123456789abcdef@o1.ingest.de.s
 
 /** False when the site can be built, or the reason a build test is skipped. */
 export const skipReason = existsSync(ELEVENTY) ? false : "eleventy not installed — run pnpm install";
+
+/** The version of the shared script this page loads. @param {string} html */
+export function builtScriptUrl(html) {
+  const url = /<script id="site-script" src="([^"]+)"/.exec(html)?.[1];
+  assert.ok(url, "the page references its site script");
+  return url;
+}
 
 /** @type {Promise<string> | undefined} */
 let pending;

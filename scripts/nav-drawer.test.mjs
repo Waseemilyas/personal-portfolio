@@ -18,14 +18,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { JSDOM } from "jsdom";
-import { builtSite, skipReason } from "./built-site.mjs";
+import { builtScriptUrl, builtSite, skipReason } from "./built-site.mjs";
 
 test("mobile nav drawer: click opens, Escape or leaving the drawer closes it", { skip: skipReason }, async () => {
   const outDir = await builtSite();
 
   // jsdom does not implement matchMedia; the stub reports a mobile-width
   // viewport so the drawer is active (and rm, so no IntersectionObserver
-  // is needed). The external /assets/js/site.js is root-relative, so
+  // is needed). The external script is root-relative, so
   // jsdom cannot fetch it — we eval the built file into the page instead.
   // jsdom applies the inlined stylesheet but evaluates no media query, so the
   // desktop rule would hide the toggle and block its focus. Real browsers are
@@ -49,7 +49,7 @@ test("mobile nav drawer: click opens, Escape or leaving the drawer closes it", {
       });
     },
   });
-  dom.window.eval(readFileSync(join(outDir, "assets/js/site.js"), "utf8"));
+  dom.window.eval(readFileSync(join(outDir, builtScriptUrl(html)), "utf8"));
 
   const { document } = dom.window;
   const toggle = document.querySelector(".nav-toggle");

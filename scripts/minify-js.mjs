@@ -10,10 +10,12 @@
 //
 // Content Security Policy hashes and the site.js integrity are computed from the
 // minified bytes, after this step (eleventy.config.js orders the transforms).
+import { createHash } from "node:crypto";
 import { transformSync } from "esbuild";
 import { inlineScripts } from "./csp.mjs";
 
 const TARGET = "es2020";
+export const siteScriptFile = /^assets\/js\/site-[a-f0-9]{20}\.js$/;
 
 /**
  * @param {string} source a classic (non-module) script
@@ -33,13 +35,14 @@ export function minifyScript(source, { sourcefile, sourcemap = false } = {}) {
 }
 
 /**
- * site.js as published: minified, ending in a link to its source map.
+ * Name the minified script and map together so a page always loads the pair it was built with.
  * @param {string} source
- * @param {string} mapName the map's file name, beside site.js
  */
-export function minifySiteScript(source, mapName) {
+export function minifySiteScript(source) {
   const { code, map } = minifyScript(source, { sourcefile: "site.js", sourcemap: true });
-  return { code: `${code}\n//# sourceMappingURL=${mapName}\n`, map };
+  const hash = createHash("sha256").update(code).update("\0").update(map).digest("hex").slice(0, 20);
+  const name = `site-${hash}.js`;
+  return { file: `assets/js/${name}`, code: `${code}\n//# sourceMappingURL=${name}.map\n`, map };
 }
 
 /**

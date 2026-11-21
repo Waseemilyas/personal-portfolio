@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { JSDOM } from "jsdom";
-import { builtSite, skipReason } from "./built-site.mjs";
+import { builtScriptUrl, builtSite, skipReason } from "./built-site.mjs";
 
 /** @param {string} outDir @param {string} route */
 const page = (outDir, route) =>
@@ -47,7 +47,7 @@ test("listing pages fetch every article they link to early", { skip: skipReason 
 test("the article prefetch fallback waits for a visible link and respects browser capabilities", { skip: skipReason }, async () => {
   const outDir = await builtSite();
   const html = readFileSync(join(outDir, "work/index.html"), "utf8");
-  const script = readFileSync(join(outDir, "assets/js/site.js"), "utf8");
+  const script = readFileSync(join(outDir, builtScriptUrl(html)), "utf8");
 
   for (const mode of ["fallback", "native speculation", "reduced data"]) {
     const dom = new JSDOM(html, { url: "https://waseemilyas.uk/work/", runScripts: "outside-only" });

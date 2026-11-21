@@ -90,7 +90,8 @@
         var url = new URL(filename);
         if (url.origin !== location.origin) return;
         if (url.pathname === location.pathname) return canonicalPage;
-        if (url.pathname === "/assets/js/site.js") return url.origin + url.pathname;
+        var siteScript = document.querySelector("script#site-script");
+        if (siteScript && url.pathname === new URL(siteScript.src).pathname) return url.origin + url.pathname;
       } catch (e) {
         // Native and anonymous frames need no URL.
       }
