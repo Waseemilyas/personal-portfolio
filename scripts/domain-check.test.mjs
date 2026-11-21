@@ -79,13 +79,15 @@ test("finds the DSN in the minified error loader", () => {
   assert.equal(findDsn('<script>fetch("https://example.test/")</script>'), null);
 });
 
-test("the ingest probe is an error event Sentry's web-crawler filter drops", () => {
-  // An empty client report got 200 from another origin while events were refused, so it
-  // reported a leak that was not there; an unfiltered event would be stored daily.
+test("the ingest probe is an ordinary browser error, not a crawler", () => {
+  // A crawler's user agent is filtered before the origin rule, so Sentry answers 200 to it
+  // from another website and the check reports a leak that is not there. An empty client
+  // report does the same. An ordinary error event is refused with 403.
   const [header, item, payload] = probeEnvelope("example.test").trimEnd().split("\n").map((l) => JSON.parse(l));
   assert.equal(item.type, "event");
   assert.equal(payload.event_id, header.event_id);
-  assert.match(payload.request.headers["User-Agent"], /Googlebot/);
+  assert.equal(payload.level, "error");
+  assert.doesNotMatch(payload.request.headers["User-Agent"], /bot|crawler|spider/i);
   assert.equal(payload.request.headers["User-Agent"], PROBE_USER_AGENT);
 });
 
