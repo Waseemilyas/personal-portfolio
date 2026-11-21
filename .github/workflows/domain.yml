@@ -1,7 +1,8 @@
 name: Domain check
 # Live checks on waseemilyas.uk that no build can see (scripts/domain-check.mjs): only
 # Let's Encrypt may issue its certificates, the served certificate comes from that CA
-# and is not near expiry, DNSSEC validates, http:// redirects to https://, and Sentry
+# and is not near expiry, DNSSEC validates, http:// redirects to https://, the apex's
+# signed HTTPS record sends browsers straight to https://, Sentry
 # accepts error events from the site's origin but refuses them from any other website,
 # and /.well-known/security.txt is published and not about to expire.
 # Runs after every release (deploy.yml) and daily, because a certificate renewal the
