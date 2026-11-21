@@ -188,7 +188,8 @@ error or blocked resource on a page downloads the pinned Sentry SDK
 (`vendor/sentry-<version>.min.js`, served as `/assets/js/`, checked by SHA-384 at
 build and by the browser's integrity check). Error reports retain the release,
 canonical page (including `/404.html` for missing pages), standard error category,
-and line and column numbers in the page or `site.js`. Exception messages, custom
+and line and column numbers in the page or `site.js`, which is minified and publishes
+a source map (`/assets/js/site.js.map`) that resolves them to the source. Exception messages, custom
 error names and stack labels are removed in the browser, including for linked
 causes and promise rejections. Reports also omit the visitor's raw page URL,
 referrer, browsing breadcrumbs and SDK-captured callback arguments. The SDK tells

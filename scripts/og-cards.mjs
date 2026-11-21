@@ -413,6 +413,7 @@ function pruneCache() {
  * on(event: "eleventy.before", callback: () => void): void,
  * on(event: "eleventy.after", callback: (event: {
  *   directories: {input: string, inputFile?: string, inputGlob?: string, output: string},
+ *   dryRun: boolean,
  *   incremental: boolean,
  *   outputMode: string,
  *   results: {outputPath: string | false}[]

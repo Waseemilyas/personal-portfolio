@@ -12,3 +12,7 @@
 # instead of silently dropping the policy it was meant to set.
 minimumReleaseAge: 1440
 minimumReleaseAgeStrict: true
+# esbuild's install script only checks its platform binary, which pnpm installs
+# from @esbuild/<platform> anyway; the minifier runs without it.
+allowBuilds:
+  esbuild: false
