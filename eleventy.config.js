@@ -10,6 +10,7 @@ import { pruneCss } from "./scripts/prune-css.mjs";
 import { minifyInlineScripts, minifySiteScript } from "./scripts/minify-js.mjs";
 import { publicAssets } from "./scripts/public-assets.mjs";
 import { articleSections } from "./scripts/article-sections.mjs";
+import { commitDate, expiresFor } from "./scripts/security-txt.mjs";
 import monitoring from "./src/_data/monitoring.js";
 import site from "./src/_data/site.json" with { type: "json" };
 
@@ -41,6 +42,7 @@ const SITE_SCRIPT_MAP = "site.js.map";
 export default function (eleventyConfig) {
   const writeShareCards = addShareCards(eleventyConfig);
   eleventyConfig.addGlobalData("siteRevision", revision());
+  eleventyConfig.addGlobalData("securityTxtExpires", expiresFor(commitDate()));
 
   eleventyConfig.addPassthroughCopy(publicAssets);
 

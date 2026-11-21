@@ -3,6 +3,8 @@
 //
 //   revision    revision.txt is exactly the build SHA plus a newline; every page's
 //               <meta name="waseemilyas-revision"> carries it
+//   security    .well-known/security.txt follows RFC 9116, names the site's email and
+//               expires within a year (scripts/security-txt.mjs)
 //   headings    one <h1> per page, no skipped levels
 //   metadata    one description, one canonical (= the page's own URL) and one of each
 //               og:title/description/url/type/image/image:width/height; og:url = canonical
@@ -38,6 +40,8 @@ import { inlineScripts, inlineStyles, scriptHash, scriptIntegrity, trustedTypePo
 import { cardAlt, cardImage, cardText } from "./og-cards.mjs";
 import { publicAssets } from "./public-assets.mjs";
 import { revision as buildRevision } from "./revision.mjs";
+import { PATH as SECURITY_TXT, securityTxtProblems } from "./security-txt.mjs";
+import site from "../src/_data/site.json" with { type: "json" };
 import monitoring from "../src/_data/monitoring.js";
 
 const OG_SIZE = { width: 1200, height: 630 };
@@ -50,6 +54,7 @@ const REQUIRED_FILES = [
   "assets/js/site.js.map",
   "notes/feed.xml",
   "revision.txt",
+  SECURITY_TXT,
   "sitemap.xml",
 ];
 
@@ -111,6 +116,10 @@ export function runSiteChecks({
 
   if (!exists("revision.txt") || read("revision.txt") !== `${revision}\n`) {
     fail("revision", "revision.txt", `must be exactly ${revision} plus one newline`);
+  }
+  if (exists(SECURITY_TXT)) {
+    const problems = securityTxtProblems(read(SECURITY_TXT), { url: `${siteUrl}/${SECURITY_TXT}`, email: site.email, now: new Date() });
+    for (const problem of problems) fail("security", SECURITY_TXT, problem);
   }
 
   const pages = [...files].filter((file) => file.endsWith(".html")).sort();

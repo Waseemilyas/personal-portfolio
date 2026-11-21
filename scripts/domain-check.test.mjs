@@ -3,10 +3,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { evaluate, findDsn, parseCaa } from "./domain-check.mjs";
+import { PROBE_USER_AGENT, evaluate, findDsn, parseCaa, probeEnvelope } from "./domain-check.mjs";
+import { expiresFor } from "./security-txt.mjs";
 
 const now = new Date("2026-11-20T00:00:00Z");
 const STRICT = ['0 issue "letsencrypt.org"', '0 issuewild ";"'];
+const TXT_URL = "https://example.test/.well-known/security.txt";
+const securityTxt = (expires = expiresFor(now), extra = "") => ({
+  url: TXT_URL,
+  status: 200,
+  text: `# x\nContact: mailto:a@example.test\nExpires: ${expires}\nCanonical: ${TXT_URL}\n${extra}`,
+});
 /** @param {Partial<import("./domain-check.mjs").Facts>} change */
 const facts = (change = {}) => ({
   domain: "example.test",
@@ -15,6 +22,7 @@ const facts = (change = {}) => ({
   certs: [{ host: "example.test", issuer: "Let's Encrypt", validTo: new Date("2027-01-20T00:00:00Z") }],
   redirects: [{ url: "http://example.test/", status: 301, location: "https://example.test/" }],
   ingest: { page: "https://example.test/", dsn: true, own: 200, foreign: 403 },
+  securityTxt: securityTxt(),
   ...change,
 });
 const dnsWith = (/** @type {Partial<import("./domain-check.mjs").DnsFacts>} */ change) =>
@@ -69,4 +77,22 @@ test("finds the DSN in the minified error loader", () => {
   assert.equal(dsn?.username, key);
   assert.equal(dsn?.pathname, "/42");
   assert.equal(findDsn('<script>fetch("https://example.test/")</script>'), null);
+});
+
+test("the ingest probe is an error event Sentry's web-crawler filter drops", () => {
+  // An empty client report got 200 from another origin while events were refused, so it
+  // reported a leak that was not there; an unfiltered event would be stored daily.
+  const [header, item, payload] = probeEnvelope("example.test").trimEnd().split("\n").map((l) => JSON.parse(l));
+  assert.equal(item.type, "event");
+  assert.equal(payload.event_id, header.event_id);
+  assert.match(payload.request.headers["User-Agent"], /Googlebot/);
+  assert.equal(payload.request.headers["User-Agent"], PROBE_USER_AGENT);
+});
+
+test("security.txt rules", () => {
+  fails(facts({ securityTxt: { url: TXT_URL, status: 404, text: "" } }), /answered 404, so there is no published way/);
+  fails(facts({ securityTxt: securityTxt("2026-12-01T00:00:00Z") }), /Expires in 11 days; release the site/);
+  fails(facts({ securityTxt: securityTxt("2028-01-01T00:00:00Z") }), /less than a year/);
+  fails(facts({ securityTxt: { ...securityTxt(), text: securityTxt().text.replace(/Contact.*\n/, "") } }), /no Contact/);
+  fails(facts({ securityTxt: securityTxt(undefined, "Expires: 2027-01-01T00:00:00Z\n") }), /exactly one Expires/);
 });

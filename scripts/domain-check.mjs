@@ -15,26 +15,38 @@
 //           authenticated (AD), so a forged DNS answer cannot redirect the site.
 //   https   plain http:// on the apex and www answers with a permanent redirect to https://.
 //   ingest  the error-reporting DSN on the live home page belongs to a Sentry project that
-//           accepts reports sent from the site's own origin and refuses them from any other
-//           website. The DSN is public in every page, and the Sentry organisation's quota is
-//           shared with other projects, so a project that allows every origin lets any site
-//           flood it. The probe is an empty client report, which records nothing in Sentry.
+//           accepts error events sent from the site's own origin and refuses them from any
+//           other website. The DSN is public in every page, and the Sentry organisation's
+//           quota is shared with other projects, so a project that allows every origin lets
+//           any site flood it. The probe is a real error event, since that is what costs
+//           quota, sent from the site first and then from another origin. It carries a web
+//           crawler's user agent, so the project's web-crawler inbound filter drops the
+//           site's copy: Sentry counts it as filtered, stores nothing and charges no quota.
+//           (An empty client report is not a fair probe: on 21 Nov 2026 Sentry answered 200
+//           to 5 of 154 from another origin while refusing 114 of 114 events from it.)
 //           A visit that sends no Origin (a script, not a browser) is still accepted; Sentry's
 //           organisation-wide spike protection is the backstop for that.
+//   security-txt  /.well-known/security.txt follows RFC 9116 and does not expire within
+//           MIN_DAYS. Each release renews it (scripts/security-txt.mjs).
 //
 // The www name is a CNAME to GitHub, so GitHub's own CAA records govern it; its
 // certificate is the apex's (one certificate covers both names).
 //
 // Usage: node scripts/domain-check.mjs [--domain waseemilyas.uk]
 
+import { randomUUID } from "node:crypto";
 import { connect } from "node:tls";
 import { parseArgs } from "node:util";
+
+import { PATH as SECURITY_TXT, securityTxtProblems } from "./security-txt.mjs";
 
 /** CAA issuer domain → the certificate issuer organisation it signs as. */
 export const ALLOWED_CAS = { "letsencrypt.org": "Let's Encrypt" };
 export const MIN_DAYS = 21;
 /** An origin that no page can be served from (RFC 6761), for the refused-report probe. */
 export const FOREIGN_ORIGIN = "https://origin-probe.invalid";
+/** A user agent Sentry's web-crawler inbound filter drops, so an accepted probe is not stored. */
+export const PROBE_USER_AGENT = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
 const RESOLVERS = {
   cloudflare: "https://cloudflare-dns.com/dns-query",
   google: "https://dns.google/resolve",
@@ -46,7 +58,8 @@ const RESOLVERS = {
  * @typedef {{ host: string, issuer: string, validTo: Date }} CertFacts
  * @typedef {{ url: string, status: number, location: string }} RedirectFacts
  * @typedef {{ page: string, dsn: boolean, own?: number, foreign?: number }} IngestFacts
- * @typedef {{ domain: string, now: Date, dns: DnsFacts[], certs: CertFacts[], redirects: RedirectFacts[], ingest: IngestFacts }} Facts
+ * @typedef {{ url: string, status: number, text: string }} SecurityTxtFacts
+ * @typedef {{ domain: string, now: Date, dns: DnsFacts[], certs: CertFacts[], redirects: RedirectFacts[], ingest: IngestFacts, securityTxt: SecurityTxtFacts }} Facts
  */
 
 /** Parses one CAA answer as resolvers print it: `0 issue "letsencrypt.org"`. */
@@ -113,6 +126,12 @@ export function evaluate(/** @type {Facts} */ facts) {
       failures.push(`ingest: Sentry answered ${foreign} to a report from another website, not 403; set the project's Allowed Domains to ${facts.domain} only`);
     }
   }
+  const { url, status, text } = facts.securityTxt;
+  if (status !== 200) {
+    failures.push(`security-txt: ${url} answered ${status}, so there is no published way to report a security problem`);
+  } else {
+    for (const problem of securityTxtProblems(text, { url, now: facts.now, minDays: MIN_DAYS })) failures.push(`security-txt: ${url} ${problem}`);
+  }
   return failures;
 }
 
@@ -166,17 +185,31 @@ function redirect(/** @type {string} */ url) {
 }
 
 /**
- * Posts an empty client report (no discarded events, so nothing is recorded) to the
- * DSN's envelope endpoint as a browser on `origin` would, and returns the status.
+ * The probe envelope: one debug-level error event as the site's error loader would send
+ * it, from a web crawler's user agent so the project's inbound filter drops it.
  */
-function report(/** @type {URL} */ dsn, /** @type {string} */ origin) {
+export function probeEnvelope(/** @type {string} */ domain, /** @type {Date} */ now = new Date()) {
+  const eventId = randomUUID().replaceAll("-", "");
+  const event = {
+    event_id: eventId,
+    timestamp: now.getTime() / 1000,
+    platform: "javascript",
+    level: "debug",
+    environment: "domain-check",
+    message: { formatted: "domain-check origin probe (dropped by the web-crawler filter)" },
+    request: { url: `https://${domain}/`, headers: { "User-Agent": PROBE_USER_AGENT } },
+  };
+  return `${JSON.stringify({ event_id: eventId, sent_at: now.toISOString() })}\n{"type":"event"}\n${JSON.stringify(event)}\n`;
+}
+
+/** Posts the probe event to the DSN's envelope endpoint as a browser on `origin` would. */
+function report(/** @type {URL} */ dsn, /** @type {string} */ domain, /** @type {string} */ origin) {
   const url = `${dsn.origin}/api${dsn.pathname}/envelope/?sentry_key=${dsn.username}&sentry_version=7`;
-  const body = `{}\n{"type":"client_report"}\n${JSON.stringify({ timestamp: Date.now() / 1000, discarded_events: [] })}\n`;
   return twice(async () => {
     const res = await fetch(url, {
       method: "POST",
-      headers: { origin, "content-type": "text/plain;charset=UTF-8" },
-      body,
+      headers: { origin, "user-agent": PROBE_USER_AGENT, "content-type": "text/plain;charset=UTF-8" },
+      body: probeEnvelope(domain),
       signal: AbortSignal.timeout(10_000),
     });
     await res.body?.cancel();
@@ -195,8 +228,19 @@ async function ingest(/** @type {string} */ domain) {
   });
   const dsn = findDsn(html);
   if (!dsn) return { page, dsn: false };
-  const [own, foreign] = await Promise.all([report(dsn, `https://${domain}`), report(dsn, FOREIGN_ORIGIN)]);
+  // The site's own report first, so the relay has loaded the project before the foreign one.
+  const own = await report(dsn, domain, `https://${domain}`);
+  const foreign = await report(dsn, domain, FOREIGN_ORIGIN);
   return { page, dsn: true, own, foreign };
+}
+
+/** @returns {Promise<SecurityTxtFacts>} */
+function securityTxt(/** @type {string} */ domain) {
+  const url = `https://${domain}/${SECURITY_TXT}`;
+  return twice(async () => {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    return { url, status: res.status, text: await res.text() };
+  });
 }
 
 /** Reads the live facts for `domain`. */
@@ -215,6 +259,7 @@ export async function gather(/** @type {string} */ domain) {
     certs: await Promise.all(hosts.map(certificate)),
     redirects: await Promise.all(hosts.map((host) => redirect(`http://${host}/`))),
     ingest: await ingest(domain),
+    securityTxt: await securityTxt(domain),
   };
 }
 
@@ -230,5 +275,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     for (const failure of failures) console.error(`✗ ${failure}`);
     process.exit(1);
   }
-  console.log(`[domain] ${values.domain}: CAA, certificates, DNSSEC, HTTPS redirects and error-report origins all pass`);
+  console.log(`[domain] ${values.domain}: CAA, certificates, DNSSEC, HTTPS redirects, error-report origins and security.txt all pass`);
 }
