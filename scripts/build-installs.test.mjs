@@ -16,11 +16,9 @@ test("workflows install Python packages only from the hash-locked requirements",
       .filter((line) => /\bpip3?\s+install\b|\buv\s+pip\s+install\b|\bpipx?\s+run\b/.test(line))
       .map((line) => ({ file, line: line.trim() })));
   assert.ok(installs.length >= 2, "expected the CI and Pages share-card installs");
-  for (const { file, line } of installs) {
-    const args = line.replace(/^run:\s*/, "").split(/\s+/);
-    assert.deepEqual(args, ["python3", "-m", "pip", "install", "--require-hashes", "--only-binary=:all:", "-r", REQUIREMENTS],
-      `${file}: install Python packages with --require-hashes --only-binary=:all: -r ${REQUIREMENTS}: ${line}`);
-  }
+  // Quoted: unquoted, YAML reads ":all: -r" as a mapping and GitHub rejects the workflow.
+  const expected = `run: 'python3 -m pip install --require-hashes --only-binary=:all: -r ${REQUIREMENTS}'`;
+  for (const { file, line } of installs) assert.equal(line, expected, `${file}: install Python packages only as ${expected}`);
 });
 
 test("every Python requirement pins one version and its file hashes", () => {

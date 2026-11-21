@@ -32,7 +32,7 @@ jobs:
       # Hash-locked: pip refuses any file not listed in scripts/requirements.txt, so a file
       # swapped or added on PyPI never runs in the job that builds the published site.
       - name: Install preview-card compression
-        run: python3 -m pip install --require-hashes --only-binary=:all: -r scripts/requirements.txt
+        run: 'python3 -m pip install --require-hashes --only-binary=:all: -r scripts/requirements.txt'
       - run: pnpm install --frozen-lockfile
       # Share cards kept from earlier main builds, keyed by everything that decides their
       # pixels (scripts/og-cards.mjs). A release with unchanged cards then never starts
