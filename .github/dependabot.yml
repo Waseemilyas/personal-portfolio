@@ -24,3 +24,13 @@ updates:
       actions:
         patterns:
           - "*"
+  # Share-card compression (scripts/requirements.txt) is hash-locked; Dependabot
+  # rewrites the version and every hash together.
+  - package-ecosystem: pip
+    directory: /scripts
+    schedule:
+      interval: monthly
+    groups:
+      pip:
+        patterns:
+          - "*"

@@ -194,6 +194,14 @@ parity, draft absence and revision bytes. OG checks inspect image headers, not
 pixel decoding. GitHub Pages serves the artifact built by the main workflow and
 its post-deploy verifier compares the live revision body exactly.
 
+The packages the Pages build job runs before it uploads the site are held by hashes
+in the repository: actions by commit SHA, npm packages by the lockfile's integrity
+values, Chrome for Testing by SHA-256, and Pillow by `scripts/requirements.txt`, which
+lists the SHA-256 of every file of the pinned release. pip runs with
+`--require-hashes --only-binary=:all:`, so a file swapped or added on PyPI is refused
+and the build stops instead of publishing. Node, Python and pnpm themselves come from
+the pinned `setup-node`, `setup-python` and `pnpm/action-setup` actions.
+
 Every page carries a Content Security Policy as the first element after
 `<meta charset>`, written at build time by `scripts/csp.mjs` (GitHub Pages cannot
 send headers). Inline scripts are allowed by hash, and external scripts are limited
