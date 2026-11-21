@@ -15,5 +15,8 @@
 - **Capability content/events/fallback:** start at [`capabilities.md`](capabilities.md#capability-map-fast-source-trace): JSON authors content → `src/index.njk` renders every description and related link → `setupCapabilityMap` adds selection → CSS presents it.
 
 The helper discovers built HTML files from `_site/` and checks each at both widths.
+At 1024×768, 768×1024 and 667×375 it also checks that Home and Lab leave no Lab card
+alone on a row and that the Home status values share one line (`.lab-grid` and
+`.panel .readout` in `styles.css`).
 This avoids maintaining a second route inventory. New interactions need an actual
 Drive step and resulting-state proof here; a page screenshot alone does not exercise them.
