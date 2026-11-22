@@ -221,13 +221,13 @@ the pinned `setup-node`, `setup-python` and `pnpm/action-setup` actions.
 
 Every page carries a Content Security Policy as the first element after
 `<meta charset>`, written at build time by `scripts/csp.mjs` (GitHub Pages cannot
-send headers). Inline scripts are allowed by hash, and external scripts are limited
-to the site's JavaScript and optional Sentry SDK. Their subresource integrity values
-match both the policy and the served bytes. The policy also lists their exact URLs
-on the public site for older browsers with subresource integrity support. The site's script URL
-includes its digest so a new page fetches the right version. The inlined stylesheet is
-also hashed. The only outside origin is Sentry's ingest, in `connect-src`, when the
-production build has a DSN.
+send headers). It authorises scripts and styles by hash. The site's JavaScript and
+the optional Sentry SDK carry subresource integrity values that must match both the
+policy and the served bytes. The site script URL includes its digest so a new page
+fetches the right version. The stylesheet is inlined and hashed. Workers are blocked.
+The only outside origin is Sentry's ingest, in `connect-src`, when the production
+build has a DSN. Browsers that predate Content Security Policy support for external
+integrity hashes can still read the static pages and follow ordinary links.
 It has no `'unsafe-inline'`, `'unsafe-eval'` or wildcard, and blocks forms, `<base>`
 and plugins. It enforces Trusted Types: no script may pass a plain string to an HTML
 or script sink (`innerHTML`, `insertAdjacentHTML`, `document.write`, a script's `src`

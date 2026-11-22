@@ -12,7 +12,6 @@ import { publicAssets } from "./scripts/public-assets.mjs";
 import { articleSections } from "./scripts/article-sections.mjs";
 import { commitDate, expiresFor } from "./scripts/security-txt.mjs";
 import monitoring from "./src/_data/monitoring.js";
-import site from "./src/_data/site.json" with { type: "json" };
 
 const INPUT = "src";
 const OUTPUT = "_site";
@@ -110,7 +109,6 @@ export default function (eleventyConfig) {
     return minifyInlineScripts(content);
   });
 
-  // An exact URL also allows the script on older browsers that cannot match a CSP hash via SRI.
   eleventyConfig.addTransform("content-security-policy", function (content) {
     const out = this.page.outputPath;
     if (typeof out !== "string" || !out.endsWith(".html")) return content;
@@ -120,11 +118,9 @@ export default function (eleventyConfig) {
     );
     return withPolicy(html, {
       connectOrigins: monitoring.cspConnectOrigins,
-      externalScripts: [
-        { url: `${site.url}/${published.file}`, integrity: siteScriptIntegrity },
-        ...(monitoring.sentrySdkUrl
-          ? [{ url: site.url + monitoring.sentrySdkUrl, integrity: monitoring.sentrySdkIntegrity }]
-          : []),
+      externalScriptIntegrities: [
+        siteScriptIntegrity,
+        ...(monitoring.sentrySdkIntegrity ? [monitoring.sentrySdkIntegrity] : []),
       ],
     });
   });
