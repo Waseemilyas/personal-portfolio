@@ -745,6 +745,15 @@ p, li { text-wrap: pretty; }
 .proof { max-width: calc(60 * var(--ch)); margin: 1rem 0 0 0; padding: 1rem 1.2rem; border: 1px solid var(--line-dark); border-radius: var(--rounded-md); background: var(--graphite-800); list-style: none; }
 .proof li { display: flex; gap: .6rem; padding: .35rem 0; color: var(--bone); font-size: var(--step--1); }
 .proof li::before { content: "→"; color: var(--signal); font-family: var(--mono); }
+/* Wide screens: a milestone's proof sits in the right-hand column, on the same
+   edge and width as the section head's description above it, so the arc uses the
+   whole row. The arc's 2rem inset (margin, spine and padding) is added back to the
+   40% so both columns resolve against the same width. */
+@media screen and (width >= 68rem) {
+  .milestone.key { display: grid; grid-template-columns: minmax(0, 1fr) min(calc(40% + .8rem + .4px), calc(42 * var(--ch))); grid-template-rows: auto auto 1fr; column-gap: var(--space-head-gap); align-items: start; }
+  .milestone.key > :not(.proof) { grid-column: 1; }
+  .milestone.key > .proof { grid-column: 2; grid-row: 1 / span 3; margin-top: 0; max-width: none; }
+}
 
 /* ---------- automancer panel (console) ---------- */
 .amancer { display: grid; grid-template-columns: 1.2fr 1fr; gap: clamp(1.6rem, 4vw, 3rem); align-items: center; }
