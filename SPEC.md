@@ -18,8 +18,8 @@ datasheet, so the work can be compared before any of it is opened. A click or ta
 anywhere on the row opens the case; the link's accessible name is the title. On a page
 shorter than the window, the footer sits on the window's bottom edge.
 
-On case studies below 861px, the datasheet follows the article text and shows
-its labels and values side by side. Wider screens show it beside the narrative,
+On case studies below 861px, the datasheet sits between “On this page” and the
+article text, with its labels and values side by side. Wider screens show it beside the narrative,
 under the “On this page” list. With JavaScript, the list and datasheet follow
 the article together from 861px wide and 400px high, using the height of the
 window below the header. There the datasheet sets each label beside its value
@@ -161,7 +161,7 @@ Next note link show the same date and reading time. On the index the whole row o
 the note: the title link stretches over it, so its accessible name stays the title.
 
 Case studies and notes with two or more body headings show an “On this page” list
-under the introduction. Case studies also link to their datasheet from that list.
+under the introduction. Case studies list their datasheet first.
 Below 861px the list opens from a native disclosure. With JavaScript, the control
 stays below the site header as the reader scrolls through the article and names
 the current section. The list opens over the article without moving the text.

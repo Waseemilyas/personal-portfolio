@@ -242,7 +242,10 @@
       const placeDatasheet = () => {
         const focused = document.activeElement;
         const destination = wide.matches ? rail : caseGrid;
-        if (datasheet.parentElement !== destination) destination.append(datasheet);
+        if (datasheet.parentElement !== destination) {
+          if (wide.matches) rail.append(datasheet);
+          else rail.after(datasheet);
+        }
         if (focused instanceof HTMLElement && datasheet.contains(focused)) focused.focus({ preventScroll: true });
         measure();
       };

@@ -24,7 +24,9 @@ test("published articles link to their own focusable section headings without sc
       if (index === "work") {
         const datasheet = doc.querySelector(".datasheet h2");
         assert.ok(datasheet, `${route}: the datasheet has a heading readers can jump to`);
-        expected.push(datasheet);
+        assert.ok(datasheet.compareDocumentPosition(doc.querySelector(".prose")) & doc.defaultView.Node.DOCUMENT_POSITION_FOLLOWING,
+          `${route}: the datasheet precedes the narrative in reading order`);
+        expected.unshift(datasheet);
       }
       const requiredLink = requiredLinks.get(route);
       if (requiredLink) {

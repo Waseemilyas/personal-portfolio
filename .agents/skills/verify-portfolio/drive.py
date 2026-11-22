@@ -259,7 +259,7 @@ try:
                 checks["datasheet placement"] = """(() => {
                     const sheet = document.querySelector('.casegrid .datasheet').getBoundingClientRect();
                     const prose = document.querySelector('.casegrid .prose').getBoundingClientRect();
-                    return innerWidth < 861 ? prose.bottom <= sheet.top : prose.right <= sheet.left;
+                    return innerWidth < 861 ? sheet.bottom <= prose.top && sheet.bottom <= innerHeight : prose.right <= sheet.left;
                 })()"""
             capture(label + "-page-" + str(i), checks, before=[("open", base + route)])
         receipts.append(label + ": all " + str(len(pages)) + " generated pages loaded without horizontal overflow")
@@ -442,6 +442,9 @@ try:
     require("document.activeElement.id === 'case-datasheet'")
     receipts.append("laptop case study: Outcome keeps the contents and every Datasheet row in view, a second keyboard jump reaches Role, and Datasheet is focusable from the rail")
     run("set", "viewport", "390", "844")
+    run("wait", "--fn", """document.activeElement.id === 'case-datasheet' &&
+        document.querySelector('.case-rail').nextElementSibling.matches('.datasheet')""")
+    receipts.append("case study resize from laptop to phone: the Datasheet returns ahead of the text and keeps keyboard focus")
     run("open", base + "/work/cs-care/")
     run("click", ".article-contents summary")
     run("click", '.article-contents a[href="#section-outcome"]')
@@ -488,13 +491,13 @@ try:
     run("scroll", "down", "300", "--selector", ".article-contents nav")
     run("wait", "--fn", """(() => {
         const panel = document.querySelector('.article-contents nav');
-        const lastLink = panel.querySelector('a[href="#case-datasheet"]');
+        const lastLink = panel.querySelector('li:last-child a');
         return lastLink.getBoundingClientRect().bottom <= panel.getBoundingClientRect().bottom;
     })()""")
     assert state("scrollY") == landscape_scroll
-    run("click", '.article-contents a[href="#case-datasheet"]')
-    run("wait", "--fn", "document.activeElement.id === 'case-datasheet' && !document.querySelector('.article-contents').open")
-    receipts.append("landscape case study: the list opens above a low control and scrolls to its last link, which jumps to the Datasheet")
+    run("click", ".article-contents li:last-child a")
+    run("wait", "--fn", "document.activeElement.id === 'section-outcome' && !document.querySelector('.article-contents').open")
+    receipts.append("landscape case study: the list opens above a low control and scrolls to its last link, which jumps to Outcome")
     run("set", "viewport", "390", "844")
     run("open", base + "/notes/unglamorous-half-of-automation/")
     run("focus", ".reading-contact .email-big")
