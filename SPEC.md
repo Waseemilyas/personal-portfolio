@@ -163,8 +163,8 @@ under the introduction. Case studies also link to their datasheet from that list
 Below 861px the list opens from a native disclosure. With JavaScript, the control
 stays below the site header as the reader scrolls through the article and names
 the current section. The list opens over the article without moving the text.
-It opens above the control when more room is available there and scrolls when
-the links exceed the available space. Choosing a section closes the list and
+It opens above the control when the links cannot fit below and there is more
+room above. The list scrolls when needed. Choosing a section closes the list and
 focuses its heading. Escape closes the list and returns keyboard focus to the
 control. Without JavaScript the disclosure and fragment links still work in the
 flow of the page.

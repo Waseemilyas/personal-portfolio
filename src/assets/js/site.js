@@ -86,8 +86,7 @@
       requestAnimationFrame(() => {
         if (document.activeElement !== target) return;
         const bounds = target.getBoundingClientRect();
-        // The sticky article summary draws its focus outline inside the control.
-        const outlineClearance = target.matches(".article-contents[data-follow] summary") ? 0 : 5;
+        const outlineClearance = 5;
         if (bounds.bottom > 0 && bounds.top < topbar.getBoundingClientRect().bottom + outlineClearance) {
           target.scrollIntoView({ block: "start", inline: "nearest", behavior: "instant" });
         }

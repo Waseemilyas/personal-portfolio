@@ -257,6 +257,7 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --maxw: 78rem;
   --topbar-height: 3.5rem;
+  --topbar-clearance: calc(var(--topbar-height) + .5rem);
 
   /* Text measures. One ch of Geist (its "0") at each weight a measure is set in, as em.
      A ch measure follows whichever font is showing, so while a fallback font shows,
@@ -275,7 +276,7 @@ html {
   -webkit-text-size-adjust: 103.85%;
   scroll-behavior: smooth;
   /* Leave room for the sticky bar, its border and the focus outline. */
-  scroll-padding-block-start: calc(var(--topbar-height) + 0.5rem);
+  scroll-padding-block-start: var(--topbar-clearance);
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
@@ -667,8 +668,13 @@ p, li { text-wrap: pretty; }
   .casegrid .article-contents { margin-block-end: .25rem; }
   :is(.casegrid, .notegrid) { --contents-height: 44px; }
   .article-contents[data-follow] {
-    position: sticky; inset-block-start: calc(var(--topbar-height) + 1px); z-index: 2;
+    position: sticky; inset-block-start: var(--topbar-clearance); z-index: 2;
     background: var(--paper); border-block-end: 1px solid var(--line-light);
+  }
+  /* Cover the text in the focus clearance between the two sticky controls. */
+  .article-contents[data-follow]::before {
+    content: ""; position: absolute; inset-inline: 0; inset-block-end: 100%;
+    block-size: calc(.5rem - 1px); background: inherit;
   }
   .article-contents[data-follow] summary {
     display: flex; align-items: center; gap: .75rem;

@@ -471,6 +471,14 @@ try:
             bounds.bottom <= contents.querySelector('summary').getBoundingClientRect().top + 1 &&
             panel.scrollHeight > panel.clientHeight;
     })()""")
+    landscape_scroll = state("scrollY")
+    run("scroll", "down", "300", "--selector", ".article-contents nav")
+    run("wait", "--fn", """(() => {
+        const panel = document.querySelector('.article-contents nav');
+        const lastLink = panel.querySelector('a[href="#case-datasheet"]');
+        return lastLink.getBoundingClientRect().bottom <= panel.getBoundingClientRect().bottom;
+    })()""")
+    assert state("scrollY") == landscape_scroll
     run("click", '.article-contents a[href="#case-datasheet"]')
     run("wait", "--fn", "document.activeElement.id === 'case-datasheet' && !document.querySelector('.article-contents').open")
     receipts.append("landscape case study: the list opens above a low control and scrolls to its last link, which jumps to the Datasheet")
