@@ -257,6 +257,7 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --maxw: 78rem;
   --topbar-height: 3.5rem;
+  --topbar-clearance: calc(var(--topbar-height) + .5rem);
 
   /* Text measures. One ch of Geist (its "0") at each weight a measure is set in, as em.
      A ch measure follows whichever font is showing, so while a fallback font shows,
@@ -275,7 +276,7 @@ html {
   -webkit-text-size-adjust: 103.85%;
   scroll-behavior: smooth;
   /* Leave room for the sticky bar, its border and the focus outline. */
-  scroll-padding-block-start: calc(var(--topbar-height) + 0.5rem);
+  scroll-padding-block-start: var(--topbar-clearance);
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
@@ -667,21 +668,31 @@ p, li { text-wrap: pretty; }
   .casegrid .article-contents { margin-block-end: .25rem; }
   :is(.casegrid, .notegrid) { --contents-height: 44px; }
   .article-contents[data-follow] {
-    position: sticky; inset-block-start: calc(var(--topbar-height) + 1px); z-index: 2;
+    position: sticky; inset-block-start: var(--topbar-clearance); z-index: 2;
     background: var(--paper); border-block-end: 1px solid var(--line-light);
+  }
+  /* Cover the text in the focus clearance between the two sticky controls. */
+  .article-contents[data-follow]::before {
+    content: ""; position: absolute; inset-inline: 0; inset-block-end: 100%;
+    block-size: calc(.5rem - 1px); background: inherit;
   }
   .article-contents[data-follow] summary {
     display: flex; align-items: center; gap: .75rem;
-    min-block-size: var(--contents-height); color: var(--ink); white-space: nowrap;
+    min-block-size: var(--contents-height); padding-inline: .375rem; color: var(--ink); white-space: nowrap;
   }
   .article-contents[data-follow] summary::-webkit-details-marker { display: none; }
   .article-contents[data-follow] summary::after { content: "+" / ""; margin-inline-start: auto; }
   .article-contents[data-follow][open] summary::after { content: "−" / ""; }
+  .article-contents[data-follow] summary:focus-visible { outline-offset: -2px; }
   .article-contents[data-follow] summary span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-mute); }
-  .article-contents[data-follow] ul {
-    display: grid; overflow: auto; overscroll-behavior: contain;
-    max-block-size: calc(100dvh - var(--topbar-height) - var(--contents-height) - 1rem);
+  .article-contents[data-follow] nav {
+    position: absolute; inset-inline: 0; inset-block-start: 100%;
+    overflow: auto; overscroll-behavior: contain;
+    max-block-size: var(--contents-panel-height, calc(100dvh - var(--topbar-height) - var(--contents-height) - 1rem));
+    padding: .25rem .625rem; border: 1px solid var(--line-light); background: var(--paper);
   }
+  .article-contents[data-follow] nav[data-above] { inset-block: auto 100%; }
+  .article-contents[data-follow] ul { display: grid; }
   .article-contents[data-follow] a { display: flex; min-inline-size: 0; }
   .article-contents[data-follow] a[aria-current] { color: var(--ink); font-weight: 600; }
   :is(.casegrid, .notegrid):has(.article-contents[data-follow]) > :is(.prose, .datasheet) :is([id], a) {

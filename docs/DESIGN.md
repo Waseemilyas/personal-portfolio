@@ -492,7 +492,9 @@ Case studies and notes add `.article-contents` as the first block of the body
 sections. On case studies it also links to the datasheet heading. Below 861px it
 is a native disclosure with 44px targets. With JavaScript it follows the article
 beneath the header on the paper surface and names the current section beside its
-label. Opening it reveals the section links in a scrollable list.
+label. The links open in an opaque paper panel over the article, keeping the text
+in place. The panel opens above the control if the links need more space than
+there is below and more room is available above. The panel scrolls when needed.
 From 861px it is a rail in the right column: a `--line-light` hairline with
 `--ink-mute` links in `--step--1`, still 44px tall for touch and 32px with a fine
 pointer. The section being read

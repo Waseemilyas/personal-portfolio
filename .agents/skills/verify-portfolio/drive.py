@@ -443,16 +443,46 @@ try:
     })()""")
     capture("phone-article-position")
     run("focus", ".article-contents summary")
+    reading_position = state("[scrollY, document.querySelector('.prose').getBoundingClientRect().top]")
     run("press", "Enter")
     capture("phone-article-contents")
+    assert state("[scrollY, document.querySelector('.prose').getBoundingClientRect().top]") == reading_position
     run("press", "Tab")
     require("document.activeElement.matches('.article-contents a')")
     run("press", "Escape")
     require("document.activeElement.matches('.article-contents:not([open]) summary')")
+    assert state("[scrollY, document.querySelector('.prose').getBoundingClientRect().top]") == reading_position
     run("press", "Enter")
     run("click", '.article-contents a[href="#section-role"]')
     run("wait", "--fn", "document.activeElement.id === 'section-role' && !document.querySelector('.article-contents').open")
-    receipts.append("phone case study: On this page stays visible after a jump, indicates the current section and lets readers jump again; Escape returns focus to the control")
+    receipts.append("phone case study: On this page keeps the text and scroll position steady when opened and dismissed, marks the current section, and supports another jump")
+    run("set", "viewport", "780", "320")
+    run("open", base + "/work/cs-care/")
+    run("eval", """(() => {
+        const summary = document.querySelector('.article-contents summary');
+        window.scrollTo({top: scrollY + summary.getBoundingClientRect().top - (innerHeight - 65), behavior: 'instant'});
+    })()""")
+    run("click", ".article-contents summary")
+    run("wait", "--fn", """(() => {
+        const contents = document.querySelector('.article-contents');
+        const panel = contents.querySelector('nav');
+        const bounds = panel.getBoundingClientRect();
+        return contents.open && bounds.top >= document.querySelector('.topbar').getBoundingClientRect().bottom &&
+            bounds.bottom <= contents.querySelector('summary').getBoundingClientRect().top + 1 &&
+            panel.scrollHeight > panel.clientHeight;
+    })()""")
+    landscape_scroll = state("scrollY")
+    run("scroll", "down", "300", "--selector", ".article-contents nav")
+    run("wait", "--fn", """(() => {
+        const panel = document.querySelector('.article-contents nav');
+        const lastLink = panel.querySelector('a[href="#case-datasheet"]');
+        return lastLink.getBoundingClientRect().bottom <= panel.getBoundingClientRect().bottom;
+    })()""")
+    assert state("scrollY") == landscape_scroll
+    run("click", '.article-contents a[href="#case-datasheet"]')
+    run("wait", "--fn", "document.activeElement.id === 'case-datasheet' && !document.querySelector('.article-contents').open")
+    receipts.append("landscape case study: the list opens above a low control and scrolls to its last link, which jumps to the Datasheet")
+    run("set", "viewport", "390", "844")
     run("open", base + "/notes/unglamorous-half-of-automation/")
     run("focus", ".reading-contact .email-big")
     run("press", "Tab")
