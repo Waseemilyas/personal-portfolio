@@ -460,27 +460,39 @@
         .catch(() => { /* A missed prefetch leaves the link to load normally. */ });
     }
 
-    // Touch has no hover lead time. On other devices, wait for link intent
-    // so just reading a listing does not download its articles.
-    const visibleLinks = window.matchMedia("(any-pointer: coarse)").matches && "IntersectionObserver" in window
-      ? new IntersectionObserver((entries, observer) => {
-        for (const { isIntersecting, target } of entries) {
-          if (!isIntersecting || !(target instanceof HTMLAnchorElement)) continue;
-          observer.unobserve(target);
-          prefetch(target);
-        }
-      })
-      : null;
-    for (const link of document.querySelectorAll('a[data-prefetch-article][href$="/"]')) {
-      if (!(link instanceof HTMLAnchorElement) || link.origin !== location.origin) continue;
-      if (visibleLinks) {
-        visibleLinks.observe(link);
-      } else {
+    const links = [...document.querySelectorAll('a[data-prefetch-article][href$="/"]')]
+      .filter(/** @returns {link is HTMLAnchorElement} */ (link) =>
+        link instanceof HTMLAnchorElement && link.origin === location.origin);
+    if (!window.matchMedia("(any-pointer: coarse)").matches || !("IntersectionObserver" in window)) {
+      for (const link of links) {
         const onIntent = () => prefetch(link);
         link.addEventListener("pointerenter", onIntent, { once: true });
         link.addEventListener("focus", onIntent, { once: true });
       }
+      return;
     }
+
+    // On touch, warm the first article in view after a short pause. A link
+    // swept past while scrolling should never compete with the next tap.
+    const threshold = 0.5;
+    const visible = new Set();
+    /** @type {HTMLAnchorElement | undefined} */
+    let candidate;
+    let timer = 0;
+    const observer = new IntersectionObserver((entries) => {
+      for (const { isIntersecting, intersectionRatio, target } of entries) {
+        if (isIntersecting && intersectionRatio >= threshold) visible.add(target);
+        else visible.delete(target);
+      }
+      const first = links.find((link) => visible.has(link));
+      if (first === candidate) return;
+      candidate = first;
+      window.clearTimeout(timer);
+      if (first && !requested.has(first.href)) {
+        timer = window.setTimeout(() => prefetch(first), 200);
+      }
+    }, { threshold });
+    for (const link of links) observer.observe(link);
   }
 
   /* GitHub Pages serves the 404 page at whatever address was asked for. Links reach
