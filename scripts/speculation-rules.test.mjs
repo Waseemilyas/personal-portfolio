@@ -44,7 +44,7 @@ test("listing pages fetch every article they link to early", { skip: skipReason 
   assert.ok(next && eagerSelectors(cs).some((s) => next.matches(s)), "an article's Next link is fetched early");
 });
 
-test("the article prefetch fallback uses touch visibility or desktop intent", { skip: skipReason }, async () => {
+test("the article prefetch fallback waits for a settled touch link or desktop intent", { skip: skipReason }, async () => {
   const outDir = await builtSite();
   const html = readFileSync(join(outDir, "work/index.html"), "utf8");
   const script = readFileSync(join(outDir, builtScriptUrl(html)), "utf8");
@@ -72,7 +72,19 @@ test("the article prefetch fallback uses touch visibility or desktop intent", { 
       window.IntersectionObserver = class {
         constructor(callback) { notify = (entries) => callback(entries, this); }
         observe(link) { observed.add(link); }
-        unobserve(link) { observed.delete(link); }
+      };
+      const pending = new Map();
+      let timerID = 0;
+      window.setTimeout = (callback) => {
+        pending.set(++timerID, callback);
+        return timerID;
+      };
+      window.clearTimeout = (id) => pending.delete(id);
+      const runPending = () => {
+        for (const [id, callback] of pending) {
+          pending.delete(id);
+          callback();
+        }
       };
       window.fetch = async (url) => {
         requested.push(url);
@@ -101,11 +113,25 @@ test("the article prefetch fallback uses touch visibility or desktop intent", { 
       }
       assert.ok(observed.has(article));
       assert.ok([...observed].every((link) => link.matches(".workcard h2 a")));
-      notify([{ isIntersecting: false, target: article }]);
+      const entry = (target, intersectionRatio) => ({ target, intersectionRatio, isIntersecting: intersectionRatio > 0 });
+      notify([entry(article, 0.1)]);
+      runPending();
+      assert.deepEqual(requested, [], "a sliver of a link does not start a download");
+      notify([entry(article, 1)]);
+      assert.deepEqual(requested, [], "a link passing through the viewport does not fetch immediately");
+      notify([entry(article, 0)]);
+      runPending();
+      assert.deepEqual(requested, [], "leaving the viewport cancels the pending download");
+      notify([entry(another, 1), entry(article, 1)]);
       assert.deepEqual(requested, []);
-      notify([{ isIntersecting: true, target: article }]);
-      assert.deepEqual(requested, [article.href]);
-      assert.equal(observed.has(article), false, "a link is prefetched only once");
+      runPending();
+      assert.deepEqual(requested, [article.href], "only the first visible link fetches during the pause");
+      notify([entry(article, 0)]);
+      runPending();
+      assert.deepEqual(requested, [article.href, another.href], "the next link fetches once the first leaves");
+      notify([entry(article, 1)]);
+      runPending();
+      assert.deepEqual(requested, [article.href, another.href], "scrolling back never fetches a link twice");
     } finally {
       window.close();
     }

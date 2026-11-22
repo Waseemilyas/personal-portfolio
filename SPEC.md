@@ -76,10 +76,12 @@ listing page whose articles the reader does not open. Both rules are limited to
 same-origin links ending in `/` and hashed by the Content Security Policy.
 In Firefox, once the current page has loaded, `site.js` starts a low-priority
 same-origin request when the pointer enters an article link or it receives
-keyboard focus. On devices with a coarse pointer, the request starts when the
-link enters the viewport. Firefox can then serve the next page from its HTTP
-cache. The script skips this request in browsers with native speculation rules
-and when the browser reports a preference for reduced data. All links still
+keyboard focus. On devices with a coarse pointer, the fallback waits until the
+first article link that is at least half visible has stayed in view for 200 ms.
+When that link leaves view, the next visible link can qualify. A single pause
+can warm the first article in the HTTP cache without downloading every article
+on the screen. The script skips this request in browsers with native speculation
+rules and when the browser reports a preference for reduced data. All links still
 navigate normally.
 
 Every page carries the site stylesheet inline in its `<head>`, comments and spare
