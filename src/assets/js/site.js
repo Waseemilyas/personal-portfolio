@@ -86,7 +86,8 @@
       requestAnimationFrame(() => {
         if (document.activeElement !== target) return;
         const bounds = target.getBoundingClientRect();
-        const outlineClearance = 5;
+        // The sticky article summary draws its focus outline inside the control.
+        const outlineClearance = target.matches(".article-contents[data-follow] summary") ? 0 : 5;
         if (bounds.bottom > 0 && bounds.top < topbar.getBoundingClientRect().bottom + outlineClearance) {
           target.scrollIntoView({ block: "start", inline: "nearest", behavior: "instant" });
         }
@@ -184,18 +185,42 @@
     figure.removeAttribute("hidden");
   }
 
-  /* The native disclosure works before this script. On narrow screens it follows
-     the text and closes before the browser jumps to the chosen heading. */
+  /* The native disclosure works before this script. On narrow screens its list
+     opens over the text and closes before the browser jumps to the chosen heading. */
   function setupArticleContents() {
     const details = document.querySelector(".article-contents");
     if (!(details instanceof HTMLDetailsElement)) return;
     const summary = details.querySelector("summary");
     const title = summary?.querySelector("span");
-    if (!summary || !title) return;
+    const panel = details.querySelector("nav");
+    if (!summary || !title || !panel) return;
     details.setAttribute("data-follow", "");
     const desktop = window.matchMedia("(min-width: 861px)");
+    const topbar = document.querySelector(".topbar");
     if (desktop.matches) details.open = true;
     desktop.addEventListener("change", (event) => { details.open = event.matches; });
+
+    const placePanel = () => {
+      const control = summary.getBoundingClientRect();
+      const above = control.top - (topbar?.getBoundingClientRect().bottom ?? 0) - 8;
+      const below = window.innerHeight - control.bottom - 8;
+      const opensAbove = panel.scrollHeight > below && above > below;
+      panel.toggleAttribute("data-above", opensAbove);
+      panel.style.setProperty("--contents-panel-height", Math.max(0, opensAbove ? above : below) + "px");
+    };
+    details.addEventListener("toggle", () => {
+      if (desktop.matches || !details.open) return;
+      placePanel();
+      const active = panel.querySelector('[aria-current="location"]');
+      if (!active) {
+        panel.scrollTop = 0;
+        return;
+      }
+      const bounds = active.getBoundingClientRect();
+      const panelBounds = panel.getBoundingClientRect();
+      if (bounds.bottom > panelBounds.bottom) panel.scrollTop += bounds.bottom - panelBounds.bottom + 8;
+      else if (bounds.top < panelBounds.top) panel.scrollTop -= panelBounds.top - bounds.top + 8;
+    });
     const rail = details.closest(".case-rail");
     const caseGrid = rail?.parentElement;
     const datasheet = caseGrid?.querySelector(".datasheet");
@@ -233,7 +258,7 @@
     });
     details.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && details.open && summary.offsetHeight) {
-        summary.focus();
+        summary.focus({ preventScroll: true });
         details.open = false;
       }
     });
@@ -251,7 +276,6 @@
       if (heading) sections.push({ link: link, heading: heading });
     });
     if (sections.length < 2) return;
-    const topbar = document.querySelector(".topbar");
     /** @type {Element | null} */
     let current = null;
     let queued = false;
@@ -262,6 +286,7 @@
       // any heading on screen counts.
       const atEnd = window.scrollY + window.innerHeight >= root.scrollHeight - 2;
       const compact = summary.offsetHeight;
+      if (compact && details.open) placePanel();
       const line = atEnd ? window.innerHeight :
         (topbar?.getBoundingClientRect().bottom ?? 0) + compact + window.innerHeight * 0.1;
       /** @type {Element | null} */

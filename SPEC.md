@@ -162,9 +162,12 @@ Case studies and notes with two or more body headings show an “On this page”
 under the introduction. Case studies also link to their datasheet from that list.
 Below 861px the list opens from a native disclosure. With JavaScript, the control
 stays below the site header as the reader scrolls through the article and names
-the current section. Choosing a section closes the list and focuses its heading.
-Escape closes the list and returns keyboard focus to the control. Without
-JavaScript the disclosure and fragment links still work in the flow of the page.
+the current section. The list opens over the article without moving the text.
+It opens above the control when more room is available there and scrolls when
+the links exceed the available space. Choosing a section closes the list and
+focuses its heading. Escape closes the list and returns keyboard focus to the
+control. Without JavaScript the disclosure and fragment links still work in the
+flow of the page.
 From 861px the list is a column beside the text. JavaScript opens the native
 disclosure so browsers expose its links to assistive technology. Without scripts
 the reader can open it directly. On notes it stays in view while the note is
