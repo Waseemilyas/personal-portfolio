@@ -2,9 +2,9 @@
 //
 // GitHub Pages cannot send response headers, so the policy is a <meta http-equiv>
 // placed straight after <meta charset>, before any script, style or font loads.
-// Inline script hashes come from the rendered page. External scripts carry matching
-// subresource integrity metadata and have exact URL sources for older browsers. The
-// inlined stylesheet (scripts/inline-css.mjs) is hashed as well. The
+// Inline script hashes come from the rendered page. External scripts must carry
+// subresource integrity metadata matching a policy hash. The inlined stylesheet
+// (scripts/inline-css.mjs) is allowed by hash, and workers are blocked. The
 // meta form cannot carry frame-ancestors or report-uri; violations are reported to
 // Sentry from the page instead.
 //
@@ -64,25 +64,25 @@ export const scriptIntegrity = (source, algorithm = "sha256") =>
 /** @param {string} source */
 export const scriptHash = (source) => `'${scriptIntegrity(source)}'`;
 
-/** @typedef {{ connectOrigins?: string[], externalScripts?: { url: string, integrity: string }[] }} PolicyOptions */
+/** @typedef {{ connectOrigins?: string[], externalScriptIntegrities?: string[] }} PolicyOptions */
 
 /**
  * @param {string} html a rendered page
  * @param {PolicyOptions} [allow]
  * @returns {string} the policy for this page
  */
-export function policyFor(html, { connectOrigins = [], externalScripts = [] } = {}) {
-  const scriptSources = new Set(inlineScripts(html).map(scriptHash));
-  for (const { url, integrity } of externalScripts) {
-    scriptSources.add(`'${integrity}'`);
-    scriptSources.add(url);
-  }
+export function policyFor(html, { connectOrigins = [], externalScriptIntegrities = [] } = {}) {
+  const scriptHashes = new Set([
+    ...inlineScripts(html).map(scriptHash),
+    ...externalScriptIntegrities.map((integrity) => `'${integrity}'`),
+  ]);
   const styleHashes = [...new Set(inlineStyles(html).map(scriptHash))];
   const policies = trustedTypePolicies(html);
   return [
     "default-src 'none'",
-    ["script-src", ...scriptSources].join(" "),
-    ["style-src 'self'", ...styleHashes].join(" "),
+    ["script-src", ...(scriptHashes.size ? scriptHashes : ["'none'"])].join(" "),
+    ["style-src", ...(styleHashes.length ? styleHashes : ["'none'"])].join(" "),
+    "worker-src 'none'",
     "img-src 'self'",
     "font-src 'self'",
     "media-src 'self'",

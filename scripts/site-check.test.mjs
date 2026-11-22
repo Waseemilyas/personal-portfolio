@@ -40,7 +40,7 @@ const page = (path, body = "<h1>Title</h1><p>Text</p>", head = "") => withPolicy
 <script type="application/ld+json">{"@context":"https://schema.org"}</script>${head || `<meta property="og:type" content="website">
 <meta property="og:image" content="${SITE}/assets/img/og-card.png"><meta property="og:image:alt" content="Default card.">`}</head>
 <body>${body}<script id="site-script" src="/${SITE_SCRIPT_FILE}" integrity="${SITE_SCRIPT_INTEGRITY}" defer></script></body></html>`,
-{ externalScripts: [{ url: `${SITE}/${SITE_SCRIPT_FILE}`, integrity: SITE_SCRIPT_INTEGRITY }] });
+{ externalScriptIntegrities: [SITE_SCRIPT_INTEGRITY] });
 
 // A note shares its own card, whose alt text repeats the note's label and title.
 const NOTE_BODY = '<div class="casehead"><h1>A note</h1><p class="note-meta"><time datetime="2026-08-08T00:00:00.000Z">8 August 2026</time> · 1 min read</p></div>';
@@ -138,13 +138,16 @@ const bad = {
   "inline event handler": [(f) => (f["about/index.html"] = page("/about/", '<h1 onclick="x()">A</h1>')), "csp"],
   "outside script origin allowed": [(f) => (f["about/index.html"] = page("/about/").replace("script-src ", "script-src https://cdn.example ")), "csp"],
   "all same-origin scripts allowed": [(f) => (f["about/index.html"] = page("/about/").replace("script-src ", "script-src 'self' ")), "csp"],
-  "a directory of same-origin scripts allowed": [(f) => (f["about/index.html"] = page("/about/").replace(`${SITE}/${SITE_SCRIPT_FILE}`, `${SITE}/`)), "csp"],
+  "an exact script URL allowed alongside its hash": [(f) => (f["about/index.html"] = page("/about/").replace("script-src ", `script-src ${SITE}/${SITE_SCRIPT_FILE} `)), "csp"],
   "script element policy overrides the hashes": [(f) => (f["about/index.html"] = page("/about/").replace("script-src ", "script-src-elem 'self'; script-src ")), "csp"],
   "source map missing": [(f) => { delete f[`${SITE_SCRIPT_FILE}.map`]; }, "artifact"],
   "external script missing integrity": [(f) => (f["about/index.html"] = page("/about/").replace(` integrity="${SITE_SCRIPT_INTEGRITY}"`, "")), "csp"],
   "external script bytes changed after the policy": [(f) => (f[SITE_SCRIPT_FILE] = "void 1;"), "csp"],
   "inline style edited after the policy": [(f) => (f["index.html"] = page("/").replace("<style>", "<style>h1{color:red}")), "csp"],
-  "outside style origin allowed": [(f) => (f["about/index.html"] = page("/about/").replace("style-src 'self'", "style-src 'self' https://cdn.example")), "csp"],
+  "all same-origin styles allowed": [(f) => (f["about/index.html"] = page("/about/").replace("style-src ", "style-src 'self' ")), "csp"],
+  "style element policy overrides the hashes": [(f) => (f["about/index.html"] = page("/about/").replace("style-src ", "style-src-elem 'self'; style-src ")), "csp"],
+  "style attribute policy overrides the hashes": [(f) => (f["about/index.html"] = page("/about/").replace("style-src ", "style-src-attr 'self'; style-src ")), "csp"],
+  "worker policy is missing": [(f) => (f["about/index.html"] = page("/about/").replace("; worker-src 'none'", "")), "csp"],
   "render-blocking stylesheet link": [(f) => (f["about/index.html"] = page("/about/").replace("</head>", '<link rel="stylesheet" href="/x.css"></head>')), "csp"],
   "Trusted Types not enforced": [(f) => (f["about/index.html"] = page("/about/").replace("; require-trusted-types-for 'script'", "")), "csp"],
   "Trusted Types policy the page never creates": [(f) => (f["about/index.html"] = page("/about/").replace("trusted-types 'none'", "trusted-types injected")), "csp"],

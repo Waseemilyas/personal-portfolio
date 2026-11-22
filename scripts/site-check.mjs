@@ -23,8 +23,8 @@
 //   privacy     every built text file passes AGENTS.md §1 content guardrails (no internal
 //               paths, IPs, private hosts, commercial figures, non-allowlisted emails or keys)
 //   csp         one Content Security Policy meta, first after <meta charset>, default-src 'none',
-//               no 'unsafe-*', allowing the page's script hashes and exact external script URLs,
-//               each external script's integrity matching its bytes, and each inline style hash;
+//               no 'unsafe-*', allowing only this page's script and style hashes,
+//               each external script's integrity matching its bytes, and no workers;
 //               no inline handlers or style attributes (the policy would block them); a
 //               Referrer-Policy meta; the stylesheet inlined, never a render-blocking link;
 //               Trusted Types required for scripts, allowing exactly the policies the page's
@@ -201,7 +201,7 @@ export function runSiteChecks({
     if (!policy.startsWith("default-src 'none';")) bad("csp", "policy must start with default-src 'none'");
     if (/'unsafe-|\*/.test(policy)) bad("csp", "policy must not use 'unsafe-*' or wildcards");
     const scriptSources = scriptSrc.split(/\s+/).slice(1);
-    const expectedScriptSources = new Set(inlineScripts(html).map(scriptHash));
+    const expectedScriptHashes = new Set(inlineScripts(html).map(scriptHash));
     const siteScripts = doc.querySelectorAll("#site-script");
     if (siteScripts.length !== 1 || !siteScripts[0]?.matches("script[src][defer]")) {
       bad("csp", "expected one deferred site script");
@@ -232,30 +232,28 @@ export function runSiteChecks({
       if (script.getAttribute("integrity") !== integrity) {
         bad("csp", `integrity for /${file} must match the built script`);
       }
-      expectedScriptSources.add(`'${integrity}'`);
-      expectedScriptSources.add(origin + url.pathname);
+      expectedScriptHashes.add(`'${integrity}'`);
     }
     const created = trustedTypePolicies(html);
     if (created.includes("sdk-loader")) {
       const sdkFile = `assets/js/${monitoring.sdkFile}`;
       if (!exists(sdkFile)) bad("csp", "error reporting needs its pinned SDK in the build");
-      else {
-        expectedScriptSources.add(`'${scriptIntegrity(readFileSync(join(siteDir, sdkFile)), "sha384")}'`);
-        expectedScriptSources.add(`${origin}/${sdkFile}`);
-      }
+      else expectedScriptHashes.add(`'${scriptIntegrity(readFileSync(join(siteDir, sdkFile)), "sha384")}'`);
     }
-    if (scriptSources.length !== expectedScriptSources.size || [...expectedScriptSources].some((source) => !scriptSources.includes(source))) {
-      bad("csp", "script-src must contain exactly this page's script hashes and external script URLs");
+    if (scriptSources.length !== expectedScriptHashes.size || [...expectedScriptHashes].some((hash) => !scriptSources.includes(hash))) {
+      bad("csp", "script-src must contain exactly this page's script hashes");
     }
-    if (["script-src-elem", "script-src-attr", "worker-src"].some(directive)) {
-      bad("csp", "script and worker loads must use the script-src policy");
+    if (["script-src-elem", "script-src-attr", "style-src-elem", "style-src-attr"].some(directive)) {
+      bad("csp", "script and style elements and attributes must use the hash-only policy");
     }
-    for (const source of styleSrc.split(" ").slice(1)) {
-      if (source !== "'self'" && !/^'sha256-[A-Za-z0-9+/]+=*'$/.test(source)) bad("csp", `style-src allows ${source}`);
+    if (directive("worker-src") !== "worker-src 'none'") {
+      bad("csp", "worker-src must block all workers");
     }
-    // An unlisted inline style is dropped by the browser: the page would ship unstyled.
-    for (const source of inlineStyles(html)) {
-      if (!styleSrc.split(" ").includes(scriptHash(source))) bad("csp", `inline style "${source.trim().slice(0, 40)}" is not in style-src`);
+    const styleSources = styleSrc.split(/\s+/).slice(1);
+    const expectedStyleHashes = new Set(inlineStyles(html).map(scriptHash));
+    if (!expectedStyleHashes.size || styleSources.length !== expectedStyleHashes.size ||
+        [...expectedStyleHashes].some((hash) => !styleSources.includes(hash))) {
+      bad("csp", "style-src must contain exactly the hashes of this page's inlined styles");
     }
     // Without Trusted Types any script on the page could turn a string into markup or code.
     if (directive("require-trusted-types-for") !== "require-trusted-types-for 'script'") {
