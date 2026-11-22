@@ -329,6 +329,25 @@ try:
     check_capability(next(node for node in nodes if node["key"] == "web"))
     receipts.append("capability graph keeps full labels and 44px targets on small and tablet frames; clicking a node at 1024 × 768 opens its readout")
 
+    # SVG labels scale with the viewBox. These widths are each drawing's smallest:
+    # the map just above its switch to buttons, the workflow in its laptop column,
+    # and a case-study figure just above its switch to HTML labels.
+    smallest_label = """(() => {
+        const sizes = [];
+        for (const svg of document.querySelectorAll('.capfig svg, .diagram-panel svg, .figure svg')) {
+            if (!svg.getClientRects().length) continue;
+            const m = svg.getScreenCTM(), scale = Math.hypot(m.a, m.b);
+            for (const t of svg.querySelectorAll('text')) sizes.push(parseFloat(getComputedStyle(t).fontSize) * scale);
+        }
+        return sizes.length ? Math.min(...sizes) : 0;
+    })()"""
+    for path, widths in [("/", (560, 1180)), ("/automancer/", (1180,)), ("/work/cs-care/", (1060,))]:
+        steps = [("open", base + path)]
+        for width in widths: steps += [("set", "viewport", str(width), "900"), ("eval", "JSON.stringify(" + smallest_label + ")")]
+        sizes = [json.loads(result) for result in batch(*steps, ("errors",))[2::2]]
+        assert all(size >= 12 for size in sizes), f"{path} diagram labels below 12px at {widths}: {sizes}"
+    receipts.append("diagram labels render at 12px or more on the map, the workflow and a case-study figure at each drawing's smallest width")
+
     run("set", "viewport", "390", "844")
     run("open", base + "/")
     for node in nodes:

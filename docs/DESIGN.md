@@ -342,14 +342,21 @@ Two families, one fluid scale, six steps.
 Sizes outside the scale are all **inside SVG**, plus one display element.
 `.email-big` has its own clamp because the address is a display element.
 The capability map uses Geist at 18 SVG units for each full strand title
-and mono at 10 units for the hub. Its 64-unit circles render at least 44px
+and mono at the same 18 units for the hub label, inside a 56-unit hub circle, so
+the hub never reads smaller than a strand title. Its 64-unit circles render at least 44px
 wide when the frame has 31rem of drawing space. With 55rem of room inside
 the section, the map and readout sit side by side. Otherwise, the readout follows the map
 and their shared width is capped at 42rem. When the drawing space drops
 below 31rem, the map uses its HTML buttons at `--step-0`.
 
-The workflow and case-study SVG labels are 12 units. They scale with the
-viewBox. Below 36rem for the case-study figures and 28rem for the workflow
+SVG labels scale with their viewBox, so a label's size is set against the
+narrowest frame that still shows the drawing. No diagram label renders below
+12px at any width. The workflow partial is drawn on a 452-unit viewBox, about
+1:1 with its narrowest panel, with 14-unit labels; `.diagram-panel svg` stops
+growing at 34rem, so they stay between 13px and about 17px. The case-study figures
+keep their 640-unit drawings, and `.figure svg text` sets their labels to 14 units
+(the CSS rule outranks the partials' `font-size` attribute), 12.5px to 17px.
+Below 36rem for the case-study figures and 28rem for the workflow
 panel, HTML labels take their place at `--step-0`.
 See `.diagram-phone` and `.cap-phone` in `styles.css`. Outside SVG, use a step —
 if a value is not in the scale, the answer is almost always the nearest step
