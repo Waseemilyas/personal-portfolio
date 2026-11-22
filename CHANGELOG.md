@@ -1,5 +1,16 @@
 # Release notes
 
+## v2026.11.22.5 — 22 November 2026
+
+Shared links are easier to open, and portfolio pages are easier to read on phones and larger screens.
+
+### Improvements
+
+- Links with extra punctuation, different capitalisation, an `.html` ending or doubled slashes now open the matching page sooner.
+- Workflow diagrams, capability maps and case study figures have larger labels that are easier to read.
+- On phones, case study datasheets appear before the story.
+
+
 ## v2026.11.22.4 — 22 November 2026
 
 The site now puts clearer limits on what loads as you browse.
