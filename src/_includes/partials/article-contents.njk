@@ -4,12 +4,12 @@
   <nav aria-label="On this page">
     <p aria-hidden="true">On this page</p>
     <ul role="list">
-      {%- for section in article.sections %}
-      <li><a href="{{ section.href | escape }}">{{ section.title | escape }}</a></li>
-      {%- endfor %}
       {%- if datasheet %}
       <li><a href="#case-datasheet">Datasheet</a></li>
       {%- endif %}
+      {%- for section in article.sections %}
+      <li><a href="{{ section.href | escape }}">{{ section.title | escape }}</a></li>
+      {%- endfor %}
     </ul>
   </nav>
 </details>
