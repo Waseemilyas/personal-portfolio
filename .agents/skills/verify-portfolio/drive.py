@@ -27,6 +27,7 @@ env = {**os.environ, "AGENT_BROWSER_DEFAULT_TIMEOUT": "15000", "AGENT_BROWSER_AR
 # A page cannot be hit while a view transition between pages runs (about 0.3 s),
 # so wait for any to finish before acting, as a visitor's next click would.
 TRANSITION_DONE = "document.getAnimations().every(a => !String(a.effect && a.effect.pseudoElement || '').startsWith('::view-transition'))"
+ACTIONS = ("click", "press", "back", "hover", "focus")
 # Each agent-browser process costs about 50 ms before it does anything, so steps
 # that always go together share one `batch` process.
 def batch(*commands):
@@ -36,18 +37,25 @@ def batch(*commands):
                             cwd=root, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=40 * len(commands))
     try: steps = json.loads(result.stdout)
     except ValueError: steps = []
-    log.write(json.dumps({"batch": [list(c) for c in commands], "exit": result.returncode, "ms": round((time.monotonic() - begun) * 1000),
-                          "errors": [step.get("error") for step in steps], "output": result.stderr if steps else result.stdout + result.stderr}) + "\n"); log.flush()
+    page_errors = [error for step in steps if step.get("command") == ["errors"] and step["success"]
+                   for error in step["result"]["errors"]]
+    log.write(json.dumps({"session": session, "batch": [list(c) for c in commands], "exit": result.returncode, "ms": round((time.monotonic() - begun) * 1000),
+                          "errors": [step.get("error") for step in steps], "page_errors": page_errors,
+                          "output": result.stderr if steps else result.stdout + result.stderr}) + "\n"); log.flush()
     assert result.returncode == 0 and len(steps) == len(commands) and all(step["success"] for step in steps), result.stdout + result.stderr
+    assert not page_errors, f"{commands}: {page_errors}"
     return [(step["result"] or {}).get("result") for step in steps]
 def run(*words):
-    if words[0] in ("click", "press", "back", "hover", "focus"):
+    if words[0] in ACTIONS:
         batch(("wait", "--fn", TRANSITION_DONE), words)
+        return ""
+    if words[0] in ("open", "reload"):
+        batch(words, ("errors",))
         return ""
     command = ["agent-browser", "--session", session, *words]
     begun = time.monotonic()
     result = subprocess.run(command, cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=40)
-    log.write(json.dumps({"command": list(words), "exit": result.returncode, "ms": round((time.monotonic() - begun) * 1000), "output": result.stdout}) + "\n"); log.flush()
+    log.write(json.dumps({"session": session, "command": list(words), "exit": result.returncode, "ms": round((time.monotonic() - begun) * 1000), "output": result.stdout}) + "\n"); log.flush()
     assert result.returncode == 0, result.stdout
     return result.stdout.strip()
 def state(expression):
@@ -56,6 +64,11 @@ def require(expression):
     if state(expression) is not True:
         run("eval", "JSON.stringify({path:location.pathname,width:innerWidth,ready:document.readyState,nav:document.getElementById('primary-nav')?.outerHTML})")
         raise AssertionError(expression)
+
+def navigate(destination, *action):
+    before = (("wait", "--fn", TRANSITION_DONE),) if action[0] in ACTIONS else ()
+    committed = "location.origin === new URL(" + json.dumps(base) + ").origin && location.pathname === " + json.dumps(destination)
+    batch(*before, action, ("wait", "--fn", committed + " && document.readyState !== 'loading'"), ("errors",))
 
 def check_entry_heading():
     require("""(() => {
@@ -82,20 +95,22 @@ def check_home_to_work():
     run("press", "Tab")
     require("document.activeElement === document.querySelector('.worklist .workcard')")
     destination = state("document.activeElement.pathname")
-    run("press", "Enter")
-    run("wait", "--fn", "location.pathname === " + json.dumps(destination))
+    navigate(destination, "press", "Enter")
 
 def check_capability(node):
     panel = '.capread[id="cap-' + node["key"] + '"]'
-    require("document.querySelectorAll('.capread:not([hidden])').length === 1")
-    require("document.querySelector(" + json.dumps(panel + ":not([hidden]) h3") + ").textContent === " + json.dumps(node["title"]))
-    require("document.querySelector(" + json.dumps(panel + ":not([hidden]) p") + ").textContent === " + json.dumps(node["body"]))
-    require("(document.querySelector(" + json.dumps(panel + " a") + ")?.getAttribute('href') ?? null) === " + json.dumps(node.get("reading")))
-    require("document.querySelector('.trace.on').getAttribute('data-for') === " + json.dumps(node["key"]))
+    checks = {
+        "one visible panel": "document.querySelectorAll('.capread:not([hidden])').length === 1",
+        "title": "document.querySelector(" + json.dumps(panel + ":not([hidden]) h3") + ")?.textContent === " + json.dumps(node["title"]),
+        "body": "document.querySelector(" + json.dumps(panel + ":not([hidden]) p") + ")?.textContent === " + json.dumps(node["body"]),
+        "reading link": "(document.querySelector(" + json.dumps(panel + " a") + ")?.getAttribute('href') ?? null) === " + json.dumps(node.get("reading")),
+        "trace": "document.querySelector('.trace.on')?.getAttribute('data-for') === " + json.dumps(node["key"]),
+    }
     for selector in [".capfig svg", ".cap-phone"]:
-        tabs = selector + " .node[aria-selected=true]"
-        require("document.querySelectorAll(" + json.dumps(tabs) + ").length === 1 && document.querySelector(" +
-                json.dumps(tabs) + ").getAttribute('data-key') === " + json.dumps(node["key"]))
+        tabs = json.dumps(selector + " .node[aria-selected=true]")
+        checks[selector] = "document.querySelectorAll(" + tabs + ").length === 1 && document.querySelector(" + tabs + ").getAttribute('data-key') === " + json.dumps(node["key"])
+    failures = state(failed_checks(checks))
+    assert not failures, f"Capability {node['key']}: {failures}"
 def processes():
     """(pid, start identity) of every process this run's browser session owns."""
     if Path("/proc").is_dir():
@@ -125,13 +140,17 @@ def remember():
 SETTLED = ("document.fonts.status === 'loaded' && Array.from(document.images).every(i => i.complete) && "
            "Array.from(document.querySelectorAll('[data-cal]')).filter(e => {const r=e.getBoundingClientRect();return r.top<innerHeight&&r.bottom>0}).every(e=>getComputedStyle(e).opacity==='1') && "
            "document.getAnimations().every(a => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity)")
+
+def failed_checks(checks):
+    return "[" + ", ".join("(" + expression + ") === true ? null : " + json.dumps(label) for label, expression in checks.items()) + "].filter(Boolean)"
+
 def capture(name, checks=None, before=()):
     """Run `before`, wait for the page to settle, check it and take a screenshot, in one process.
     `checks` names further expressions that must be true; no horizontal overflow is always one."""
     checks = {"no horizontal overflow": "document.documentElement.scrollWidth <= innerWidth + 1", **(checks or {})}
-    failed = "JSON.stringify([" + ", ".join("(" + expression + ") === true ? null : " + json.dumps(label) for label, expression in checks.items()) + "].filter(Boolean))"
-    results = batch(*before, ("wait", "--fn", SETTLED), ("eval", failed), ("screenshot", str(args.out / (name + ".png"))))
-    assert json.loads(results[-2]) == [], name + " failed: " + results[-2]
+    results = batch(*before, ("wait", "--fn", SETTLED), ("eval", "JSON.stringify(" + failed_checks(checks) + ")"),
+                    ("screenshot", str(args.out / (name + ".png"))), ("errors",))
+    assert json.loads(results[-3]) == [], name + " failed: " + results[-3]
 
 def abort(_sig, _frame): raise TimeoutError("browser path exceeded 300 seconds")
 signal.signal(signal.SIGALRM, abort); signal.alarm(300)
@@ -197,13 +216,11 @@ try:
     require("document.activeElement.matches('.capread:not([hidden])')")
     run("press", "Tab")
     require("document.activeElement.matches('.capread:not([hidden]) a')")
-    run("press", "Enter")
-    require("location.pathname === " + json.dumps(nodes[1]["reading"]))
+    navigate(nodes[1]["reading"], "press", "Enter")
     receipts.append("desktop capability map selects with pointer and keyboard; Tab reaches the selected reading link")
     nav = json.loads((root / "src/_data/site.json").read_text())["nav"]
     for item in nav:
-        run("click", '#primary-nav a[href="' + item["url"] + '"]')
-        require("location.pathname === " + json.dumps(item["url"]))
+        navigate(item["url"], "click", '#primary-nav a[href="' + item["url"] + '"]')
     receipts.append("all authored primary-navigation routes reached by click")
     for listing, prefix in [("/work/", "/work/cs-"), ("/notes/", "/notes/")]:
         run("open", base + listing)
@@ -211,11 +228,10 @@ try:
         routes = state("Array.from(new Set(Array.from(document.querySelectorAll('main a[href]')).map(a=>a.getAttribute('href')).filter(h=>h.startsWith(" + json.dumps(prefix) + ") && h!==" + json.dumps(listing) + ")))")
         assert routes, "Expected published entries in " + listing
         for route in routes:
-            run("click", 'main a[href="' + route + '"]')
-            require("location.pathname === " + json.dumps(route))
+            navigate(route, "click", 'main a[href="' + route + '"]')
             # A click within the site shows the article at once: no replayed entry rise.
             require("document.documentElement.classList.contains('onsite') && (document.querySelector('main h1').closest('[data-cal]')?.getAnimations() || []).every(a => a.animationName !== 'rise')")
-            run("back")
+            navigate(listing, "back")
         receipts.append(listing + ": clicked every listed entry and returned; each opened without replaying the entry motion")
     receipts.append("Home, Work and Notes show their main headings from first paint on direct visits")
     # Every generated HTML page is visited at desktop and phone dimensions, including 404.
@@ -328,8 +344,7 @@ try:
     check_capability(next(node for node in nodes if node["key"] == "web"))
     # Resizing wraps the tabs and moves the reading link below the viewport.
     run("eval", "document.querySelector('#cap-web a').scrollIntoView({block:'center', behavior:'instant'})")
-    run("click", '#cap-web a')
-    require("location.pathname === " + json.dumps(next(node["reading"] for node in nodes if node["key"] == "web")))
+    navigate(next(node["reading"] for node in nodes if node["key"] == "web"), "click", '#cap-web a')
     receipts.append("phone capability tabs select all strands and follow a case study; selection survives the layout change")
     # The closed phone popover is out of the tab order and accessibility tree.
     run("open", base + "/")
@@ -348,8 +363,8 @@ try:
     require("document.activeElement.matches('main a.btn-primary')")
     run("click", ".nav-toggle")
     run("wait", "--fn", NAV_SETTLED)
-    run("click", '#primary-nav a[href="/about/"]')
-    run("wait", "--fn", "location.pathname === '/about/' && " + NAV_CLOSED)
+    navigate("/about/", "click", '#primary-nav a[href="/about/"]')
+    run("wait", "--fn", NAV_CLOSED)
     run("set", "viewport", "1440", "900")
     require("getComputedStyle(document.getElementById('primary-nav')).visibility === 'visible' && !document.getElementById('primary-nav').inert && !document.getElementById('primary-nav').hasAttribute('aria-hidden')")
     receipts.append("mobile drawer open/Escape focus/Tab into main/link close/desktop breakpoint state")
@@ -384,13 +399,11 @@ try:
     })
     receipts.append("clipboard refusal on Contact reveals manual instructions, focuses the read-only address and selects its full value")
     # A link mangled by a chat app opens its page; a misspelt one is offered the closest page.
-    run("open", base + "/Work/CS-Care)")
-    run("wait", "--fn", "location.pathname === '/work/cs-care/'")
+    navigate("/work/cs-care/", "open", base + "/Work/CS-Care)")
     run("open", base + "/notes/unglamorus-half-of-automation/")
     require("document.querySelector('h1').textContent.includes('slipped') && !document.querySelector('[data-not-found-match]').hidden && document.querySelector('[data-not-found-match] a').getAttribute('href') === '/notes/unglamorous-half-of-automation/'")
     capture("desktop-not-found-closest")
-    run("click", "[data-not-found-match] a")
-    require("location.pathname === '/notes/unglamorous-half-of-automation/'")
+    navigate("/notes/unglamorous-half-of-automation/", "click", "[data-not-found-match] a")
     receipts.append("not-found page opened /Work/CS-Care) as /work/cs-care/ and offered and followed the closest note for a misspelt address")
     run("set", "viewport", "1440", "900")
     require("""(() => {
@@ -506,8 +519,7 @@ try:
     require("document.activeElement.matches('.email-big') && document.activeElement.getBoundingClientRect().top >= document.querySelector('.topbar').getBoundingClientRect().bottom")
     capture("phone-short-contact-focus")
     receipts.append("skip link focuses main; Tab and reverse Tab reach the visible contact link at 390×320")
-    errors = run("errors")
-    assert errors in ("", "No errors", "No page errors", "[]"), errors
+    batch(("errors",))
     remember(); run("close")
 
     session += "-forced"; sessions.append(session)
@@ -563,6 +575,7 @@ try:
                 [...diagram.querySelectorAll('g[marker-end] path')].every(path => getComputedStyle(path).stroke === foreground);
         })()""")
     receipts.append("forced colors: labels and arrows are visible in all three case-study diagrams")
+    batch(("errors",))
     remember(); run("close")
     env["AGENT_BROWSER_ARGS"] = browser_args
 
@@ -605,9 +618,8 @@ try:
     run("wait", "--fn", NAV_CLOSED)
     run("click", ".nav-toggle")
     run("wait", "--fn", NAV_SETTLED)
-    run("click", '#primary-nav a[href="/notes/"]')
-    require("location.pathname === '/notes/'")
-    run("back")
+    navigate("/notes/", "click", '#primary-nav a[href="/notes/"]')
+    navigate("/", "back")
     # With no script to close it on the link, Back restores the page as it was left:
     # menu open. Escape (or a tap elsewhere) closes it.
     run("press", "Escape")
@@ -618,9 +630,8 @@ try:
     require("Array.from(document.querySelectorAll('.capread h3')).map(h => h.textContent).join('|') === " + json.dumps("|".join(node["title"] for node in nodes)))
     require("Array.from(document.querySelectorAll('.capread p')).map(p => p.textContent).join('|') === " + json.dumps("|".join(node["body"] for node in nodes)))
     require("Array.from(document.querySelectorAll('.capread a')).map(a => a.getAttribute('href')).join('|') === " + json.dumps("|".join(node["reading"] for node in nodes if "reading" in node)))
-    run("click", '.capread a')
-    require("location.pathname === " + json.dumps(nodes[0]["reading"]))
-    run("back")
+    navigate(nodes[0]["reading"], "click", ".capread a")
+    navigate("/", "back")
     # Smooth scrolling runs at that one frame a second too, and a click mid-scroll
     # lands on whatever is passing under the pointer: jump straight to the target.
     run("eval", "document.querySelector('.foot .fnav a[href=\"/about/\"]').scrollIntoView({block: 'center', behavior: 'instant'})")
@@ -629,19 +640,16 @@ try:
     # Page.captureScreenshot never returns, so this step checks the DOM only.
     require("document.documentElement.scrollWidth <= innerWidth + 1")
     receipts.append("phone-nojs-footer: no screenshot (Chrome cannot capture with scripts disabled); footer in view without overflow")
-    run("click", '.foot .fnav a[href="/about/"]')
-    require("location.pathname === '/about/'")
+    navigate("/about/", "click", '.foot .fnav a[href="/about/"]')
     receipts.append("JavaScript-disabled phone page: all capability text and links visible, a note and footer navigation open")
     run("open", base + "/notes/unglamorus-half-of-automation/?nojs=" + session)
     require("document.querySelector('[data-not-found-match]').hidden && document.querySelectorAll('[data-page-index] a').length === " + json.dumps(len([p for p in (root / "_site").rglob("index.html")])))
     listed = '[data-page-index] a[href="/notes/unglamorous-half-of-automation/"]'
     run("eval", "document.querySelector(" + json.dumps(listed) + ").scrollIntoView({block: 'center', behavior: 'instant'})")
     run("wait", "--fn", "(()=>{const r=document.querySelector(" + json.dumps(listed) + ").getBoundingClientRect();return r.top>=document.querySelector('.topbar').getBoundingClientRect().bottom&&r.bottom<=innerHeight})()")
-    run("click", listed)
-    run("wait", "--fn", "location.pathname === '/notes/unglamorous-half-of-automation/'")
+    navigate("/notes/unglamorous-half-of-automation/", "click", listed)
     receipts.append("JavaScript-disabled not-found page lists every page and follows one")
-    errors = run("errors")
-    assert errors in ("", "No errors", "No page errors", "[]"), errors
+    batch(("errors",))
     receipts.append("feed/sitemap/audio HTTP bodies present; contact links inspected without sending")
     success = True
 finally:

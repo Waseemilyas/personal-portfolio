@@ -37,6 +37,12 @@ every finite animation or transition to finish, so screenshots show the settled
 page. `commands.log` records each process's `ms`: read it before adding a step that
 waits.
 
+Use `navigate(destination, action, ...)` when a click, key press or Back opens
+another page. It waits for the current view transition before acting, then waits
+for the expected pathname and a parsed document before checking browser errors.
+The command log records the session and any page errors with their command.
+Direct opens, captures and each session's last step also check for page errors.
+
 ## Doctor
 
 `agent-browser doctor` must find a usable browser. The helper checks exact
