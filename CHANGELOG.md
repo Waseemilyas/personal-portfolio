@@ -1,5 +1,10 @@
 # Release notes
 
+## v2026.11.22.1 — 22 November 2026
+
+Articles open sooner when you select a link on a desktop using Firefox.
+
+
 ## v2026.11.21.7 — 21 November 2026
 
 The site keeps section headings with their introductions on narrower screens.
