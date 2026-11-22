@@ -194,9 +194,14 @@ or preview rebuild, Eleventy’s rendered page list determines which HTML files
 remain in `_site/`. This removes obsolete HTML and empty route directories from
 reused output when a page is drafted, deleted or moved.
 
-Source privacy scanning cannot decide whether apparently anonymised copy identifies
-a client. `AGENTS.md` owns that judgement and the grandfathered-content exception.
-The rendered checker owns headings, metadata, links, feed/sitemap structure and
+Repository and rendered-output privacy scanning (`scripts/content-guard.mjs` across
+tracked repository text files, and `scripts/site-check.mjs` across built `_site/`
+text files) blocks internal filesystem paths, IPv4/IPv6 addresses, private domains,
+unqualified internal host URLs, commercial figures, non-allowlisted emails and
+credentials, while narrowing the grandfathered `timeline.json` carve-out to its
+single approved sentence. Automated scanning cannot decide whether apparently
+anonymised copy identifies a client; `AGENTS.md` owns that judgement.
+The rendered checker also owns headings, metadata, links, feed/sitemap structure and
 parity, draft absence and revision bytes. OG checks inspect image headers, not
 pixel decoding. GitHub Pages serves the artifact built by the main workflow and
 its post-deploy verifier compares the live revision body exactly.

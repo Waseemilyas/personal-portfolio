@@ -60,9 +60,10 @@ test("clean fixture passes with zero violations", () => {
   assert.equal(stats.files, 3);
 });
 
-test("repository src/ tree passes content guard with zero violations", () => {
-  const { violations } = runContentGuard({ dir: "src" });
+test("repository tree passes content guard across docs, skills, workflows and src/", () => {
+  const { violations, stats } = runContentGuard();
   assert.deepEqual(violations, []);
+  assert.ok(stats.files >= 80, `expected whole-repo coverage, scanned ${stats.files}`);
 });
 
 // ---------------------------------------------------------------------------
@@ -86,7 +87,12 @@ test("planted filesystem paths fail guard/filesystem-paths", () => {
     "/opt/internal-tool/cache",
     "/home/synthetic-user/repo",
     "/Users/synthetic-dev/secrets",
+    "/Volumes/SyntheticDisk/work",
+    "/private/var/synthetic-sock",
     "/etc/synthetic-config.conf",
+    "~/.agents/skills/synthetic-helper/run.sh",
+    "~/.local/share/synthetic-runner/state",
+    "~/.ssh/id_ed25519",
     "C:\\Users\\synthetic\\data",
   ]) {
     const violations = checkContent("test.njk", `<p>Located at ${path}</p>`);
@@ -100,24 +106,34 @@ test("planted filesystem paths fail guard/filesystem-paths", () => {
   }
 });
 
-test("planted IPv4 address fails guard/network-ip", () => {
-  const violations = checkContent("test.njk", "<p>Server at 192.168.1.105</p>");
-  assert.equal(violations.length, 1);
-  assert.equal(violations[0].check, "guard/network-ip");
-  assert.match(violations[0].message, /IP address found: "192\.168\.1\.105"/);
+test("planted IPv4 and IPv6 addresses fail guard/network-ip while browser versions pass", () => {
+  for (const ip of ["192.168.1.105", "fd7a:115c:a1e0::1", "fe80::1ff:fe23:4567:890a", "2001:db8:85a3::1"]) {
+    const violations = checkContent("test.njk", `<p>Server at ${ip}</p>`);
+    assert.equal(violations.length, 1, `expected violation for ${ip}`);
+    assert.equal(violations[0].check, "guard/network-ip");
+  }
+  assert.deepEqual(checkContent("scripts/probe.mjs", 'const ua = "Chrome/131.0.0.0 Safari/537.36";'), []);
 });
 
-test("planted internal mesh/VPN domains fail guard/network-domain", () => {
-  for (const domain of ["server.ts.net", "database.internal", "gateway.local", "router.lan"]) {
-    const violations = checkContent("test.njk", `<a href="http://${domain}">Link</a>`);
+test("planted internal mesh/VPN domains and unqualified host URLs fail guard/network-domain", () => {
+  for (const target of [
+    "http://server.ts.net",
+    "http://database.internal",
+    "http://gateway.local",
+    "http://router.lan",
+    "http://synthetic-router:8100/status/data",
+    "ssh://synthetic-host",
+    "http://localhost:4790/mcp",
+  ]) {
+    const violations = checkContent("SKILL.md", `Check ${target} first`);
     assert.equal(
       violations.length,
       1,
-      `expected 1 violation for "${domain}", got: ${JSON.stringify(violations)}`
+      `expected 1 violation for "${target}", got: ${JSON.stringify(violations)}`
     );
     assert.equal(violations[0].check, "guard/network-domain");
-    assert.match(violations[0].message, /internal network domain found/);
   }
+  assert.deepEqual(checkContent("SKILL.md", "Visit https://waseemilyas.uk and http://localhost/"), []);
 });
 
 test("planted non-allowlisted email fails guard/email-allowlist", () => {
@@ -130,8 +146,9 @@ test("planted non-allowlisted email fails guard/email-allowlist", () => {
   assert.match(violations[0].message, /non-allowlisted email found: "person@synthetic-enterprise\.example"/);
 });
 
-test("allowlisted emails pass guard/email-allowlist", () => {
-  const content = "<p>waseem@automancer.uk and contact@waseemilyas.uk</p>";
+test("allowlisted emails and public Sentry DSN URLs pass guard/email-allowlist", () => {
+  const content =
+    '<p>waseem@automancer.uk and contact@waseemilyas.uk</p><script>const dsn = "https://0123456789abcdef0123456789abcdef@o1.ingest.de.sentry.io/1";</script>';
   const violations = checkContent("contact.njk", content);
   assert.deepEqual(violations, []);
 });
@@ -144,12 +161,16 @@ test("planted private key marker fails guard/credentials", () => {
   assert.match(violations[0].message, /private key block detected/);
 });
 
-test("planted secret tokens fail guard/credentials", () => {
+test("planted secret tokens and URL passwords fail guard/credentials", () => {
   const fakePat = "ghp_" + "Zq8kL2mNpQ7rStUvWxYz0AbCdEfGhIjKlMnOp";
-  const violations = checkContent("setup.sh", `export TOKEN=${fakePat}`);
-  assert.equal(violations.length, 1);
-  assert.equal(violations[0].check, "guard/credentials");
-  assert.match(violations[0].message, /secret token marker detected/);
+  const fakeFinePat = "github_pat_" + "11ABCDEFG0123456789abcdef_GHIJKLMN";
+  const fakeSk = "sk-ant-" + "synthetic0123456789abcdefghij";
+  const fakeUrlCred = "https://synthetic-user:" + "synthetic-pass@example.test/api";
+  for (const secret of [fakePat, fakeFinePat, fakeSk, fakeUrlCred]) {
+    const violations = checkContent("setup.sh", `export TARGET="${secret}"`);
+    assert.equal(violations.length, 1, `expected credential violation for ${secret.slice(0, 8)}`);
+    assert.equal(violations[0].check, "guard/credentials");
+  }
 });
 
 test("planted credential assignment fails guard/credentials", () => {
@@ -235,6 +256,31 @@ test("non-exempted violations in grandfathered timeline.json STILL fail", () => 
   assert.equal(violations[0].check, "guard/filesystem-paths");
 });
 
+test("new commercial revenue statements in grandfathered timeline.json STILL fail", () => {
+  const text = JSON.stringify({
+    milestones: [
+      { body: "Grew it to approximately 25% of business revenue." },
+      { body: "Annual revenue reached new highs." },
+    ],
+  });
+  const violations = checkContent("src/_data/timeline.json", text);
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].check, "guard/commercial-revenue");
+});
+
+test("missing directory, empty file and unclosed comment are handled cleanly", (t) => {
+  const missing = runContentGuard({ dir: join(os.tmpdir(), "content-guard-missing-dir-does-not-exist") });
+  assert.equal(missing.violations.length, 1);
+  assert.equal(missing.violations[0].check, "guard/source");
+  assert.equal(missing.stats.files, 0);
+
+  const emptyDir = mkdtempSync(join(os.tmpdir(), "content-guard-empty-"));
+  t.after(() => rmSync(emptyDir, { recursive: true, force: true }));
+  assert.deepEqual(runContentGuard({ dir: emptyDir }), { violations: [], stats: { files: 0 } });
+  assert.deepEqual(checkContent("empty.njk", ""), []);
+  assert.deepEqual(checkContent("malformed.njk", "<!-- unclosed comment"), []);
+});
+
 // ---------------------------------------------------------------------------
 // CLI behaviour
 
@@ -245,7 +291,7 @@ test("CLI exits 0 on valid directory", () => {
   });
   assert.equal(r.status, 0, r.stderr || r.stdout);
   assert.match(r.stdout, /content-guard: OK/);
-  assert.match(r.stdout, /3 source files scanned/);
+  assert.match(r.stdout, /3 repository files scanned/);
 });
 
 test("CLI exits 1 and names violation on dirty directory", () => {
