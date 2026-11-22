@@ -1,5 +1,17 @@
 # Release notes
 
+## v2026.11.22.2 — 22 November 2026
+
+The project timeline is easier to scan on wide screens, and article controls feel steadier on mobile.
+
+### Improvements
+
+- On wide screens, each milestone’s highlights sit beside it, making the timeline shorter and easier to scan.
+- On mobile, article text stays steady when you open the contents.
+- Article controls line up with the focused content as you move through an article.
+- Pages are checked for private details before they appear on the site.
+
+
 ## v2026.11.22.1 — 22 November 2026
 
 Articles open sooner when you select a link on a desktop using Firefox.
