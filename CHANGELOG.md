@@ -1,5 +1,15 @@
 # Release notes
 
+## v2026.11.22.4 — 22 November 2026
+
+The site now puts clearer limits on what loads as you browse.
+
+### Browsing improvements
+
+- Portfolio scripts and styles load only when their integrity hashes match.
+- On touch Firefox, fewer articles download in the background as you browse.
+
+
 ## v2026.11.22.2 — 22 November 2026
 
 The project timeline is easier to scan on wide screens, and article controls feel steadier on mobile.
