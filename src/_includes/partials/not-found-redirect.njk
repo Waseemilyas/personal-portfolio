@@ -1,0 +1,28 @@
+{#- On the 404 page only. GitHub Pages serves it at whatever address was asked for.
+    An address that differs from a published page only by letter case, trailing
+    punctuation or quotes, a trailing ellipsis, spaces, doubled slashes or an
+    .html/index.html ending opens that page from the first bytes of the response,
+    before the not-found page downloads its fonts and script or paints. The list is
+    the same collections as the page index and the sitemap. The normalised address is
+    left on <html data-asked> for setupNotFound in site.js, which offers the closest
+    page when nothing matches exactly. #}
+<script>
+  (function (pages) {
+    var p = location.pathname;
+    try {
+      p = decodeURIComponent(p);
+    } catch (e) {
+      // A malformed escape stays as it was typed.
+    }
+    var junk = /[\s)\]}>.,;:!?'"`*…‘’“”»]+$/;
+    p = p.toLowerCase().replace(/\s+/g, "").replace(junk, "");
+    p = p.replace(/\/{2,}/g, "/").replace(/\/index\.html?$/, "/").replace(/\.html?$/, "").replace(junk, "");
+    if (p.charAt(p.length - 1) !== "/") p += "/";
+    document.documentElement.setAttribute("data-asked", p);
+    if (p !== location.pathname && pages.indexOf(p) !== -1) location.replace(p + location.search + location.hash);
+  })([
+    {%- for item in site.nav %}"{{ item.url }}", {% endfor -%}
+    {%- for cs in collections.casestudies %}"{{ cs.url }}", {% endfor -%}
+    {%- for note in collections.notes %}"{{ note.url }}", {% endfor -%}
+  ]);
+</script>

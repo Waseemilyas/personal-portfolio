@@ -503,7 +503,9 @@
      a word, a link is cut short or misspelt, or it names a section by another word.
      The page lists every published page (that list works without this script); this
      reads the address against it. One that differs only by case, punctuation, spaces,
-     doubled slashes or an .html ending opens its page at once. Otherwise the closest
+     doubled slashes or an .html ending is already opening: the 404 page's head script
+     (partials/not-found-redirect.njk) normalised it into <html data-asked> and called
+     location.replace from the first bytes of the response. Otherwise the closest
      page, or failing that the page or section the address sits under, is offered. */
   function setupNotFound() {
     var match = document.querySelector("[data-not-found-match]");
@@ -515,7 +517,8 @@
       if (!(a instanceof HTMLAnchorElement) || a.origin !== location.origin) return;
       pages.push({ path: a.pathname, title: (a.firstChild && a.firstChild.textContent || "").trim(), slug: lastSegment(a.pathname) });
     });
-    var asked = normalPath(location.pathname);
+    var asked = document.documentElement.getAttribute("data-asked");
+    if (!asked) return;
     var found = closestPage(asked, pages);
     if (!found) return;
     var exact = found.path === asked && asked !== location.pathname;
@@ -529,21 +532,6 @@
     path.textContent = found.path;
     ref.textContent = exact ? "OPENING" : "CLOSEST";
     match.hidden = false;
-    if (exact) location.replace(found.path + location.search + location.hash);
-  }
-
-  /** @param {string} raw @returns {string} */
-  function normalPath(raw) {
-    var p = raw;
-    try {
-      p = decodeURIComponent(p);
-    } catch {
-      // A malformed escape stays as it was typed.
-    }
-    var junk = /[\s)\]}>.,;:!?'"`*…‘’“”»]+$/;
-    p = p.toLowerCase().replace(/\s+/g, "").replace(junk, "");
-    p = p.replace(/\/{2,}/g, "/").replace(/\/index\.html?$/, "/").replace(/\.html?$/, "").replace(junk, "");
-    return p.charAt(p.length - 1) === "/" ? p : p + "/";
   }
 
   /** @param {string} path @returns {string} */

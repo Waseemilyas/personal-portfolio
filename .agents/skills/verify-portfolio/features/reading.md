@@ -11,6 +11,7 @@ The not-found page recovers a broken link. The local helper answers a missing
 address with `404.html`, as GitHub Pages does. Open `/Work/CS-Care)`: the page opens
 `/work/cs-care/` by itself. Open a misspelt note address: the "CLOSEST" card offers
 the right note and following it opens that note. With scripts disabled the card stays
-hidden and the page lists every built page; following one opens it. `setupNotFound`
-owns the matching (covered in jsdom by `scripts/not-found.test.mjs`), `src/404.njk`
-the list.
+hidden and the page lists every built page; following one opens it. The 404 head
+script (`src/_includes/partials/not-found-redirect.njk`) opens exact matches before the
+page paints; `setupNotFound` owns the closest-page offer (both covered by
+`scripts/not-found.test.mjs`), `src/404.njk` the list.

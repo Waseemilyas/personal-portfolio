@@ -6,8 +6,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { runInNewContext } from "node:vm";
 import { JSDOM, VirtualConsole } from "jsdom";
 import { builtScriptUrl, builtSite, skipReason } from "./built-site.mjs";
+import { inlineScripts } from "./csp.mjs";
 
 /** @param {string} outDir @param {string} path */
 function load(outDir, path) {
@@ -79,5 +81,55 @@ test("404 page offers the closest page and opens nothing by guesswork", { skip: 
   }
   for (const path of ["/wp-admin/", "/404.html", "/x"]) {
     assert.equal(load(outDir, path).offered, null, path);
+  }
+});
+
+/**
+ * Run the 404 page's head redirect against an address, the way a browser would before
+ * anything else on the page loads. Returns where it sent the visitor, if anywhere.
+ * @param {string} source @param {string} address
+ */
+function headRedirect(source, address) {
+  const url = new URL(address, "https://waseemilyas.uk");
+  /** @type {string[]} */
+  const replaced = [];
+  /** @type {Record<string, string>} */
+  const attributes = {};
+  const location = { pathname: url.pathname, search: url.search, hash: url.hash, replace: (/** @type {string} */ to) => replaced.push(to) };
+  const document = { documentElement: { setAttribute: (/** @type {string} */ name, /** @type {string} */ value) => { attributes[name] = value; } } };
+  runInNewContext(source, { location, document });
+  assert.ok(replaced.length <= 1, address);
+  return { to: replaced[0] ?? null, asked: attributes["data-asked"] };
+}
+
+test("404 page opens a mangled address from its head, before it loads anything else", { skip: skipReason }, async () => {
+  const outDir = await builtSite();
+  const html = readFileSync(join(outDir, "404.html"), "utf8");
+  const source = inlineScripts(html).find((body) => body.includes("data-asked"));
+  assert.ok(source, "the 404 page has a head redirect");
+  const at = html.indexOf(source);
+  for (const later of ["<link", "<style", "<title", "<script src"]) {
+    assert.ok(html.indexOf(later) === -1 || at < html.indexOf(later), `the redirect runs before the first ${later}`);
+  }
+  for (const page of ["about/", "work/cs-care/", "notes/unglamorous-half-of-automation/"]) {
+    assert.ok(!readFileSync(join(outDir, page, "index.html"), "utf8").includes("data-asked"), `${page} carries no redirect`);
+  }
+
+  for (const [path, want] of [
+    ["/work/cs-care)", "/work/cs-care/"],
+    ["/Work/", "/work/"],
+    ["/about.html", "/about/"],
+    ["/Contact/index.html", "/contact/"],
+    ["/notes/unglamorous-half-of-automation.", "/notes/unglamorous-half-of-automation/"],
+    ["/notes/what-an-operations-platform-is-made-of/%E2%80%A6", "/notes/what-an-operations-platform-is-made-of/"],
+    ["/work//cs-auto", "/work/cs-auto/"],
+  ]) {
+    assert.equal(headRedirect(source, path).to, want, path);
+    assert.equal(headRedirect(source, `${path}?ref=chat#outcome`).to, `${want}?ref=chat#outcome`, path);
+  }
+  for (const path of ["/notes/unglamorus-half-of-automation/", "/blog/", "/wp-admin/", "/404.html", "/x", "/%E0%A4%A"]) {
+    const { to, asked } = headRedirect(source, path);
+    assert.equal(to, null, path);
+    assert.ok(asked?.endsWith("/"), `${path} leaves its normalised address for site.js`);
   }
 });
