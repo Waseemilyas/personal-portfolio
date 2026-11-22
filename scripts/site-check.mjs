@@ -20,6 +20,8 @@
 //   drafts      a `draft: true` post has no built page and no sitemap/feed reference
 //   artifact    the upload contains only public assets, checked pages and their share cards;
 //               symbolic links, hard links and other special files are rejected
+//   privacy     every built text file passes AGENTS.md §1 content guardrails (no internal
+//               paths, IPs, private hosts, commercial figures, non-allowlisted emails or keys)
 //   csp         one Content Security Policy meta, first after <meta charset>, default-src 'none',
 //               no 'unsafe-*', allowing the page's script hashes and exact external script URLs,
 //               each external script's integrity matching its bytes, and each inline style hash;
@@ -32,10 +34,11 @@
 //        [--site-url https://waseemilyas.uk] [--revision <sha>]
 
 import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
-import { basename, join, relative, resolve, sep } from "node:path";
+import { basename, extname, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { JSDOM } from "jsdom";
 
+import { BINARY_EXTENSIONS, checkContent } from "./content-guard.mjs";
 import { inlineScripts, inlineStyles, scriptHash, scriptIntegrity, trustedTypePolicies } from "./csp.mjs";
 import { siteScriptFile } from "./minify-js.mjs";
 import { cardAlt, cardImage, cardText } from "./og-cards.mjs";
@@ -305,8 +308,14 @@ export function runSiteChecks({
     }
   }
 
+  const pinnedSdk = `assets/js/${monitoring.sdkFile}`;
   for (const file of [...files].sort()) {
     if (!expectedFiles.has(file)) fail("artifact", file, "file is outside the public site inventory");
+    if (!BINARY_EXTENSIONS.has(extname(file).toLowerCase()) && file !== pinnedSdk) {
+      for (const v of checkContent(file, read(file))) {
+        fail("privacy", file, `[${v.check}] ${v.message}`);
+      }
+    }
   }
 
   /** @type {Record<string, string[]>} */

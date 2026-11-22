@@ -62,7 +62,7 @@ function check(mutate = () => {}, mutateTree = () => {}) {
   /** @type {Record<string, string | Buffer>} */
   const files = {
     ...Object.fromEntries(Object.values(publicAssets).map((file) => [file, "Public asset fixture"])),
-    "index.html": page("/", '<h1>Home</h1><a href="/about/">About</a><a href="mailto:me@example.test?subject=Hello">me</a>'),
+    "index.html": page("/", '<h1>Home</h1><a href="/about/">About</a><a href="mailto:waseem@automancer.uk?subject=Hello">me</a>'),
     "about/index.html": page("/about/"),
     "notes/n/index.html": notePage(),
     "assets/img/og/notes-n.png": png(1200, 630),
@@ -155,7 +155,9 @@ const bad = {
   "note sharing the default card": [(f) => (f["notes/n/index.html"] = notePage().replace("/assets/img/og/notes-n.png", "/assets/img/og-card.png")), "social"],
   "note not marked as an article": [(f) => (f["notes/n/index.html"] = notePage({ type: "website" })), "social"],
   "note without a BlogPosting": [(f) => (f["notes/n/index.html"] = notePage({ headline: "Something else" })), "social"],
-  "email link without a subject": [(f) => (f["about/index.html"] = page("/about/", '<h1>A</h1><a href="mailto:me@example.test">me</a>')), "contact"],
+  "email link without a subject": [(f) => (f["about/index.html"] = page("/about/", '<h1>A</h1><a href="mailto:waseem@automancer.uk">me</a>')), "contact"],
+  "internal host URL in rendered page": [(f) => (f["about/index.html"] = page("/about/", "<h1>A</h1><p>http://internal-router:8100/status</p>")), "privacy"],
+  "non-allowlisted email in rendered page": [(f) => (f["about/index.html"] = page("/about/", "<h1>A</h1><p>person@synthetic-enterprise.example</p>")), "privacy"],
   "stale revision.txt": [(f) => (f["revision.txt"] = `${"b".repeat(40)}\n`), "revision"],
   "expired security.txt": [(f) => (f[".well-known/security.txt"] = securityTxt("2026-01-01T00:00:00Z")), "security"],
 };

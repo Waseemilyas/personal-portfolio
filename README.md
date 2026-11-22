@@ -25,16 +25,18 @@ pnpm run build     # static build → _site/
 ### Check a change
 
 ```bash
-pnpm check                                 # type-aware lint, strict JS types, source privacy guard
+pnpm check                                 # type-aware lint, strict JS types, repository privacy guard
 pnpm check scripts/nav-drawer.test.mjs      # plus only this named owner test
 ```
 
 CI runs `pnpm test`, a production build and `node scripts/site-check.mjs` once on
 the pull request. The rendered checker covers page headings, metadata, links,
-JSON-LD, draft exclusion, sitemap/feed parity, revision bytes, OG image headers
-and the public file inventory.
-Image pixels are not decoded. The privacy scanner complements the judgement rules
-in [AGENTS.md](AGENTS.md); it cannot decide whether anonymised copy identifies a client.
+JSON-LD, draft exclusion, sitemap/feed parity, revision bytes, OG image headers,
+rendered-output privacy guardrails and the public file inventory.
+Image pixels are not decoded. `scripts/content-guard.mjs` scans tracked repository
+text files (prose, docs, changelog, skills, workflows, scripts and `src/`), and
+`site-check` checks rendered text files in `_site/`; both complement the judgement
+rules in [AGENTS.md](AGENTS.md), which own whether anonymised copy identifies a client.
 
 Tests that read the built site call `builtSite()` from `scripts/built-site.mjs` rather
 than building their own copy. Under `pnpm test` and `pnpm check <tests>` the first such
