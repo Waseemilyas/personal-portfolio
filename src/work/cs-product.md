@@ -22,7 +22,7 @@ A digital product built and shipped to a public homepage for a professional-serv
   <svg viewBox="0 0 640 210" role="img" aria-label="Abstract product composition: interface, logic, and data layers composing a shipped product. Generated, no private data.">
     <defs><marker id="ar-ic" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="oklch(0.56 0.17 40)"/></marker></defs>
     <g fill="none" stroke="oklch(0.22 0.01 60 / .35)" stroke-width="1.4" marker-end="url(#ar-ic)">
-      <path d="M150,105 L250,105"/><path d="M390,105 L490,105"/>
+      <path d="M150,105 L250,105"/><path d="M370,105 L490,105"/>
     </g>
     <g font-family="Geist Mono, monospace" font-size="12" fill="oklch(0.30 0.01 60)">
       <g><rect x="30" y="87" width="120" height="36" rx="7" fill="oklch(0.955 0.003 70)" stroke="oklch(0.22 0.01 60 / .3)"/><text x="90" y="109" text-anchor="middle">INTERFACE</text></g>

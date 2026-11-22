@@ -497,7 +497,8 @@ p, li { text-wrap: pretty; }
 .node:hover text, .node:focus-visible text, .node[aria-selected="true"] text { fill: var(--bone); }
 .trace.on { stroke: var(--trace); stroke-width: 2.5; }
 .hub circle { fill: var(--graphite-700); stroke: var(--signal); stroke-width: 1.5; }
-.hub text { font-family: var(--mono); font-size: 10px; fill: var(--signal); letter-spacing: .08em; }
+/* The hub label matches the strand titles' 18 units, so it never renders smaller. */
+.hub text { font-family: var(--mono); font-size: 18px; fill: var(--signal); letter-spacing: .05em; }
 .capread { border: 1px solid var(--line-dark); border-radius: var(--rounded-lg); padding: 1.2rem 1.3rem; background: var(--graphite-800); min-height: 9.5rem; }
 .capread .k { font-family: var(--mono); font-size: var(--step--1); color: var(--signal); letter-spacing: .06em; }
 .capread h3 { font-size: var(--step-1); margin: .5rem 0 .55rem; letter-spacing: -0.02em; }
@@ -635,6 +636,9 @@ p, li { text-wrap: pretty; }
 .prose p.flag, .flag { border: 1px dashed var(--signal-deep); background: oklch(0.66 0.185 42 / .06); padding: .8rem .95rem; border-radius: var(--rounded-sm); color: var(--ink-mute); font-size: var(--step--1); }
 .figure { margin: 1.6rem 0; border: 1px solid var(--line-light); border-radius: var(--rounded-lg); background: var(--paper-sink); padding: .4rem; container-type: inline-size; min-inline-size: 0; }
 .figure svg { display: block; width: 100%; height: auto; }
+/* 14 units keep the labels at 12.5px or more down to the 36rem switch to HTML labels.
+   CSS outranks the partials' font-size presentation attribute. */
+.figure svg text { font-size: 14px; }
 .figure figcaption { font-family: var(--mono); font-size: var(--step--1); color: var(--ink-mute); padding: .6rem .8rem 0; letter-spacing: .02em; }
 .datasheet { border: 1px solid var(--line-light); border-radius: var(--rounded-lg); background: var(--paper-sink); position: sticky; top: 4.5rem; }
 @media (max-width: 860px) { .datasheet { position: static; } }
@@ -762,7 +766,9 @@ p, li { text-wrap: pretty; }
 .amancer .body p.note-line { color: var(--bone); border-left: 2px solid var(--signal); padding-left: 1rem; }
 .amancer .actions { margin-top: 1.6rem; display: flex; gap: .9rem; flex-wrap: wrap; }
 .diagram-panel { border: 1px solid var(--line-dark); border-radius: var(--rounded-xl); background: radial-gradient(120% 120% at 20% 10%, var(--graphite-800), var(--graphite-900)); padding: .6rem; container-type: inline-size; min-inline-size: 0; }
-.diagram-panel svg { display: block; width: 100%; height: auto; }
+/* The workflow is drawn near 1:1 with its narrowest panel (28rem), so its 14-unit
+   labels render at 13px or more; the cap stops them growing past about 17px. */
+.diagram-panel svg { display: block; width: 100%; height: auto; max-inline-size: 34rem; margin-inline: auto; }
 /* var() does not resolve in SVG presentation attributes — style the diagram here.
    Two values stay literal in the partial: the node hairline (white at 18%, no token
    matches — --line-dark is 12%) and the live node's label (oklch(0.80 0.13 50)). */
