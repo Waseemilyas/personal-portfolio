@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <script>(function(d,r){d.className+=' js';if(location.hash.length>1)d.className+=' deeplink';try{if(r&&new URL(r).origin===location.origin)d.className+=' onsite';}catch(e){}})(document.documentElement,document.referrer);</script>
+{%- if page.url == "/404.html" %}
+{% include "partials/not-found-redirect.njk" %}
+{%- endif %}
 
 {% set pageTitle = title if title else site.shortTitle %}
 {% set fullTitle = pageTitle + " — " + site.shortTitle if title and page.url != "/" else site.title %}

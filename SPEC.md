@@ -35,10 +35,15 @@ GitHub Pages serves `/404.html` at whatever address was asked for. Below its her
 the page lists every published page (main pages, case studies, notes) from the same
 collections as the sitemap, so a visitor with no script can still find the page their
 link meant; `scripts/not-found.test.mjs` holds the list equal to the sitemap.
-`setupNotFound` in `site.js` reads the address against that list. An address that
-differs from a page only by letter case, trailing punctuation or quotes, a trailing
-ellipsis, spaces, doubled slashes or an `.html`/`index.html` ending opens that page
-at once (`location.replace`, keeping the fragment), showing "OPENING" meanwhile. Otherwise it offers one
+An address that differs from a page only by letter case, trailing punctuation or
+quotes, a trailing ellipsis, spaces, doubled slashes or an `.html`/`index.html` ending
+opens that page at once (`location.replace`, keeping the query and fragment). A small
+inline script at the top of the 404 page's `<head>` (`partials/not-found-redirect.njk`,
+built from the same collections) does this from the first bytes of the response, so the
+not-found page never paints and never fetches its fonts or script; a mangled link costs
+one extra round trip and nothing else. It leaves the normalised address on
+`<html data-asked>`. `setupNotFound` in `site.js` reads that address against the
+page index and shows "OPENING" if the page has not yet been replaced. Otherwise it offers one
 "CLOSEST" card above the actions: the most similar address (a typo, a link cut short,
 or a page under the wrong section), else the deepest page the address sits under,
 else a section named by its own name or a common other word (blog → Notes, projects →
