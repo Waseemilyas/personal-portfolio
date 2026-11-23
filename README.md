@@ -57,8 +57,11 @@ throwing non-Errors (`.oxlintrc.json`). Test files are outside `tsconfig.json`, 
 are linted in an inferred program; `test()` from `node:test` is listed as a safe call.
 Type-aware lint does not replace `tsrs --noEmit`, which still runs in `pnpm check`.
 
-Installs point git at `.githooks/` through `prepare`. Keep the gitleaks rules and
-sensitive-path guards enabled.
+Installs point Git at `.githooks/` through `prepare`. Before uploading commits,
+the pre-push hook checks every outgoing version of changed text files for
+privacy violations, even if a later commit removed the offending text. Findings
+identify the file, line and rule without quoting the matched text. Keep this
+hook, the gitleaks rules and the sensitive-path guards enabled.
 
 ## Structure
 

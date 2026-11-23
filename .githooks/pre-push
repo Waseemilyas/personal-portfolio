@@ -42,10 +42,7 @@ if (( ! has_commits )); then
   echo -e "${green}✓ pre-push secret scan passed${nc}"
   exit 0
 fi
-# No gitleaks blocks the push: a branch pushed without a pull request may be
-# scanned nowhere else. To push unscanned
-# on purpose, give a reason in ESTATE_PRE_PUSH_UNSCANNED; the hook records it in
-# the clone's estate-unscanned-pushes.log beside its git config.
+skip_gitleaks=0
 if ! command -v gitleaks >/dev/null 2>&1; then
   reason="${ESTATE_PRE_PUSH_UNSCANNED:-}"
   if [[ -z "${reason//[[:space:]]/}" ]]; then
@@ -54,21 +51,7 @@ if ! command -v gitleaks >/dev/null 2>&1; then
     echo "  To push unscanned anyway, say why: ESTATE_PRE_PUSH_UNSCANNED='<reason>' git push ..."
     exit 1
   fi
-  log="$(git rev-parse --git-common-dir)/estate-unscanned-pushes.log"
-  # Never record a credential: drop userinfo up to the last '@' of the
-  # authority (even with an unencoded '@') and any '?query' or '#fragment',
-  # leaving only scheme+host+path. A URL pasted into the reason gets the same
-  # treatment, word by word, so the rest of the reason survives.
-  dest_shown=$(sed -E -e 's#(://)[^/?#]*@#\1#' -e 's#[?#].*##' <<<"$DEST")
-  reason=$(sed -E -e 's#(://)[^/?#[:space:]]*@#\1#g' -e 's#(://[^?#[:space:]]*)[?#][^[:space:]]*#\1#g' <<<"$reason")
-  while read -r _ local_sha remote_ref _; do
-    [[ -n "${local_sha:-}" && "$local_sha" != "$zero" ]] || continue
-    printf '%s\t%s@%s\t%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${USER:-${USERNAME:-?}}" \
-      "$(hostname 2>/dev/null || echo ?)" "$dest_shown" "$remote_ref" "$local_sha" "${reason//[$'\t\n']/ }" >>"$log"
-  done <<<"$REFS"
-  echo -e "${red}!${nc} gitleaks is NOT installed: pushing UNSCANNED because ESTATE_PRE_PUSH_UNSCANNED says: ${reason}"
-  echo "  Recorded in ${log}"
-  exit 0
+  skip_gitleaks=1
 fi
 # What the destination already holds, asked of the destination itself. Local
 # remote-tracking refs are not used: they describe the fetch URL, which can
@@ -123,6 +106,11 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   # build on. gitleaks gets only commit hashes, never a remote name or path.
   walk=$({ echo "$local_sha"; awk 'NF {print "^" $1}' <<<"$held"; } | git rev-list --boundary --stdin) || blocked "could not list the commits pushed to ${remote_ref}, so nothing was scanned."
   grep -q '^[0-9a-f]' <<<"$walk" || continue  # the destination already has them all
+  # Scan the committed versions before they can appear in the public repository.
+  if ! awk '/^[0-9a-f]+$/' <<<"$walk" | node scripts/content-guard.mjs --commits; then
+    blocked "the content guard failed for ${remote_ref}."
+  fi
+  (( skip_gitleaks == 0 )) || continue
   opts="-m ${local_sha}"
   boundary=$(grep '^-' <<<"$walk" | cut -c2- | paste -sd' ' -) || true
   [[ -z "$boundary" ]] || opts+=" --not ${boundary}"
@@ -138,4 +126,21 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     exit 1
   fi
 done <<<"$REFS"
+if (( skip_gitleaks )); then
+  log="$(git rev-parse --git-common-dir)/estate-unscanned-pushes.log"
+  # Never record a credential: drop userinfo up to the last '@' of the
+  # authority (even with an unencoded '@') and any '?query' or '#fragment',
+  # leaving only scheme+host+path. A URL pasted into the reason gets the same
+  # treatment, word by word, so the rest of the reason survives.
+  dest_shown=$(sed -E -e 's#(://)[^/?#]*@#\1#' -e 's#[?#].*##' <<<"$DEST")
+  reason=$(sed -E -e 's#(://)[^/?#[:space:]]*@#\1#g' -e 's#(://[^?#[:space:]]*)[?#][^[:space:]]*#\1#g' <<<"$reason")
+  while read -r _ local_sha remote_ref _; do
+    [[ -n "${local_sha:-}" && "$local_sha" != "$zero" ]] || continue
+    printf '%s\t%s@%s\t%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${USER:-${USERNAME:-?}}" \
+      "$(hostname 2>/dev/null || echo ?)" "$dest_shown" "$remote_ref" "$local_sha" "${reason//[$'\t\n']/ }" >>"$log"
+  done <<<"$REFS"
+  echo -e "${red}!${nc} gitleaks is NOT installed: pushing without the gitleaks scan because ESTATE_PRE_PUSH_UNSCANNED says: ${reason}"
+  echo "  Recorded in ${log}"
+  exit 0
+fi
 echo -e "${green}✓ pre-push secret scan passed${nc}"
