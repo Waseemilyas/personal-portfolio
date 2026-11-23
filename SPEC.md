@@ -143,6 +143,16 @@ agree. At desktop width the links are a row in the bar; a menu opened on a phone
 that is then turned wide with no script stays pinned in the row's place until a tap
 elsewhere closes it.
 
+The first time the drawer opens on a page, `setupNavigation` starts one low-priority
+same-origin request for each menu page other than the current one, so the page the
+reader then taps opens from the HTTP cache with no network round trip. Before this,
+nothing fetched a menu page ahead of the tap on a phone: Chromium's `moderate`
+prerender starts on touch, a round trip too late. A page already in the cache costs
+nothing; the others are about 9 KB of compressed HTML each (Home about 17 KB), at
+most about 72 KB when the menu opens on an article none of them was visited from. The request is skipped in browsers without a link prefetch hint
+(WebKit, which was not shown to reuse it), when the browser reports a preference for
+reduced data or Save-Data, and when the window is wider than the drawer breakpoint.
+
 `src/index.njk` renders all capability descriptions from `src/_data/capabilities.json`
 with related links resolved from published notes and case studies. Without
 JavaScript all five descriptions and their links are available as a list.

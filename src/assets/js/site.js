@@ -36,9 +36,32 @@
         nav.inert = false;
       }
     };
+    /* A reader who opens the phone menu is about to leave for one of its pages, and
+       on a phone nothing fetches that page before the tap: Chromium starts on touch,
+       a round trip too late. Warm each menu page in the HTTP cache once, the first
+       time the menu opens, so the tap opens it from there. A page already in the
+       cache costs nothing; the rest are about 9 KB each. Only browsers with a link
+       prefetch hint (Chromium and Firefox reuse the response on navigation), and
+       never when the reader asks to save data. */
+    var warmed = false;
+    var warmMenu = function () {
+      var connection = /** @type {{ connection?: { saveData?: boolean } }} */ (/** @type {unknown} */ (navigator)).connection;
+      if (warmed || !drawerQ.matches || (connection && connection.saveData) ||
+          !document.createElement("link").relList.supports?.("prefetch") ||
+          window.matchMedia("(prefers-reduced-data: reduce)").matches) return;
+      warmed = true;
+      nav.querySelectorAll("a[href]").forEach(function (link) {
+        if (!(link instanceof HTMLAnchorElement) || link.origin !== location.origin ||
+            link.pathname === location.pathname || link.hasAttribute("aria-current")) return;
+        void fetch(link.href, { mode: "same-origin", redirect: "error", priority: "low" })
+          .then(function (response) { return response.arrayBuffer(); })
+          .catch(function () { /* A missed warm-up leaves the link to load normally. */ });
+      });
+    };
     if (native) {
       nav.addEventListener("toggle", function (e) {
         toggle.setAttribute("aria-expanded", String(e.newState === "open"));
+        if (e.newState === "open") warmMenu();
       });
     } else {
       /* Without popover support the attribute does nothing; the script owns the drawer. */
@@ -46,6 +69,7 @@
       nav.removeAttribute("popover");
       toggle.addEventListener("click", function () {
         setDrawer(!isOpen());
+        if (isOpen()) warmMenu();
       });
       document.addEventListener("keydown", function (e) {
         if (e.key === "Escape" && isOpen()) {

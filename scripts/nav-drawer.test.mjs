@@ -85,3 +85,49 @@ test("mobile nav drawer: click opens, Escape or leaving the drawer closes it", {
   assert.equal(nav.getAttribute("aria-hidden"), "true");
   assert.equal(document.activeElement, firstLink);
 });
+
+// On a phone nothing fetched a menu page before its tap, so every menu tap waited a
+// network round trip. Opening the menu warms its pages in the HTTP cache, once.
+test("opening the phone menu warms its pages once, unless the reader saves data", { skip: skipReason }, async () => {
+  const outDir = await builtSite();
+  const html = readFileSync(join(outDir, "about/index.html"), "utf8").replace(/<style>[\s\S]*?<\/style>/g, "");
+  for (const saveData of [false, true]) {
+    const requested = [];
+    const dom = new JSDOM(html, {
+      runScripts: "dangerously",
+      pretendToBeVisual: true,
+      url: "https://waseemilyas.uk/about/",
+      beforeParse(window) {
+        window.matchMedia = (media) => ({
+          matches: media === "(max-width: 720px)" || media === "(prefers-reduced-motion: reduce)",
+          media,
+          addEventListener() {},
+          removeEventListener() {},
+        });
+        window.DOMTokenList.prototype.supports = () => true;
+        Object.defineProperty(window.navigator, "connection", { value: { saveData } });
+        window.fetch = async (/** @type {string} */ url) => {
+          requested.push(url);
+          return new window.Response("");
+        };
+      },
+    });
+    try {
+      dom.window.eval(readFileSync(join(outDir, builtScriptUrl(html)), "utf8"));
+      const toggle = dom.window.document.querySelector(".nav-toggle");
+      assert.deepEqual(requested, [], "nothing is fetched before the menu opens");
+      toggle.click();
+      toggle.click();
+      toggle.click();
+      if (saveData) {
+        assert.deepEqual(requested, [], "a reader saving data downloads nothing extra");
+        continue;
+      }
+      const origin = "https://waseemilyas.uk";
+      assert.deepEqual(requested, ["/", "/work/", "/automancer/", "/lab/", "/notes/", "/contact/"].map((p) => origin + p),
+        "each other menu page is fetched once; the current page and the email link are not");
+    } finally {
+      dom.window.close();
+    }
+  }
+});
