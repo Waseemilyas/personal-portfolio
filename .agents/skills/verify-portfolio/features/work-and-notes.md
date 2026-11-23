@@ -12,6 +12,13 @@ its subject on both viewport widths, use the copy button by keyboard, and confir
 the manual copy control opens and the address is keyboard-accessible on a case
 study with JavaScript disabled.
 
+After the email, every note and case study has "Share this note" or "Share this
+case study" with its canonical address. On a phone, Tab from "Copy address" to
+"Copy link" and press Enter: Chromium on Linux has no share sheet, so the control
+copies the address and announces "Link copied." (`phone-note-share.png`). The share
+sheet, a closed sheet and a refused share are covered by `scripts/share-link.test.mjs`.
+Notes also link the Atom feed, in the share section and under the Notes heading.
+
 ## Draft publication: fast source trace
 
 **Rule:** `draft: true` must suppress the post page and remove the post from Notes, feed and sitemap. Draft source stays in the repository; public copy and design are unchanged.

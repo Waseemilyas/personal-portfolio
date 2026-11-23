@@ -20,6 +20,9 @@ layout: base.njk
     </div>
     {% set emailSubject = 'About your note: ' + title %}
     {% include "partials/reading-contact.njk" %}
+    {% set shareHeading = "Share this note" %}
+    {% set shareFeed = true %}
+    {% include "partials/share-link.njk" %}
     {%- set next = collections.notes | getNextCollectionItem(page) or collections.notes | first %}
     {%- if next and next.url != page.url %}
     <a class="nextread" href="{{ next.url }}" data-cal data-prefetch-article>

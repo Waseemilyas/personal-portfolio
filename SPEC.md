@@ -68,6 +68,16 @@ button had focus, the field gets focus and selects the address. Without
 JavaScript or clipboard access, the visitor can open the manual copy control
 directly. Both controls show "Copy address" and have the same width, so the row
 and the content below it stay put when the script swaps them.
+Below the email on every note and case study, "Share this note" or "Share this case
+study" shows the page's canonical address (`partials/share-link.njk`), never the
+query or fragment the visitor arrived with. Where the browser has a share sheet,
+`setupShareLink` shows "Share link", which opens it with the article's title and
+that address; closing the sheet changes nothing, and a refused share opens the manual
+copy. Where the browser can only copy, the button reads "Copy link", copies the address
+and announces "Link copied." With no script or neither API, a "Copy link" disclosure
+holds the address in a read-only field, as the email row does. Nothing is sent
+anywhere and no outside service is involved. Notes end that section with a link to the
+Atom feed, and the Notes index shows "Follow new notes by Atom feed" under its heading.
 External links are destinations, not services this repository operates.
 
 Supporting browsers prerender internal pages on link intent using native speculation

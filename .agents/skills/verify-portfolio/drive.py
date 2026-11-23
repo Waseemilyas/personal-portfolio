@@ -525,6 +525,20 @@ try:
     run("press", "Enter")
     run("wait", "--fn", "document.querySelector('.reading-contact [role=status]').textContent !== ''")
     receipts.append("Tab and Enter reached Copy address on a note: " + run("eval", "document.querySelector('.reading-contact [role=status]').textContent"))
+    # Share this note: the next Tab reaches the share control. Chromium on Linux has no
+    # share sheet, so the control copies the note's canonical address, or shows the manual
+    # copy if the clipboard refuses.
+    run("press", "Tab")
+    require("document.activeElement.matches('.reading-share button.share-link') && document.activeElement.textContent === 'Copy link'")
+    run("press", "Enter")
+    run("wait", "--fn", "document.querySelector('.share-row [role=status]').textContent !== ''")
+    require("document.querySelector('.share-row [role=status]').textContent === 'Link copied.' || document.querySelector('.reading-share .copy-email-manual').open")
+    capture("phone-note-share", {
+        "share row below the header": "document.querySelector('.share-row').getBoundingClientRect().top >= document.querySelector('.topbar').getBoundingClientRect().bottom",
+        "canonical address": "document.querySelector('.reading-share input').value === 'https://waseemilyas.uk/notes/unglamorous-half-of-automation/' && document.querySelector('.share-url').textContent === 'waseemilyas.uk/notes/unglamorous-half-of-automation/'",
+        "feed link": "!!document.querySelector('.share-feed a[href=\"/notes/feed.xml\"]')",
+    })
+    receipts.append("Tab and Enter reached Copy link on a note: " + run("eval", "document.querySelector('.share-row [role=status]').textContent || 'manual copy opened'"))
     # At short viewport height, reverse Tab must scroll the address clear of the sticky bar.
     run("set", "viewport", "390", "320")
     run("open", base + "/contact/?verify-keyboard=" + session)

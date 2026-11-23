@@ -457,8 +457,10 @@ signal elements — the hero eyebrow dot and key timeline milestones, both
 `0 0 0 4px color-mix(in oklch, var(--signal) 18–22%, transparent)`. Do not introduce
 drop shadows for cards or modals.
 
-The one true overlay is `.topbar`: sticky, `color-mix` to 88% opacity over the page
-background, `backdrop-filter: saturate(1.2) blur(6px)`, hairline bottom border.
+The one true overlay is `.topbar`: sticky, `color-mix` to 94% opacity over the page
+background, `backdrop-filter: saturate(1.2) blur(6px)`, hairline bottom border. Over the
+paper surface, 88% lifted the bar to `#2e2b28` and left the current page's signal-colour
+link at 4.2:1; 94% keeps it at 5.0:1, above WCAG AA's 4.5:1 for its size.
 
 Radii ladder, with a representative use for each rung (not an exhaustive list of
 consumers): `2px` focus ring · `8px` buttons, small flags, the nav toggle · `10px`
@@ -485,6 +487,7 @@ extend rather than fork.
 | `.lab-card` in `.lab-grid` | console | home, `/lab/` | Never one card alone on a row: three cards (home) sit one across, then three from 45rem; four (`/lab/`) sit one, two from 37.5rem, then four from 70rem. Any other count falls back to `auto-fit minmax(15rem, 1fr)`. Hover lifts 2px and borders in `--signal`. |
 | `.amancer` + `.diagram-panel` | console | home, `/automancer/` | Two-column copy + diagram block. The diagram is the shared partial `partials/diagram-workflow.njk`. |
 | `.email-row` | both | home, `/contact/`, notes and case studies | The primary email CTA. `.email-big` is mono and underlined in the surface's signal colour, display-scale on console. The shared `partials/email-cta.njk` renders a native manual copy disclosure with a read-only address field. Both controls read "Copy address" on screen (the disclosure's name adds a visually hidden "manually"), so they are the same width and the row does not reflow when `site.js` swaps them. Where one-click copy is available, `site.js` swaps in a mono ghost button and restores the disclosure open if the write fails. `[data-copied]` turns the button the signal colour while it reads "Copied ✓". |
+| `.reading-share` | essay | case-study and note detail pages | Directly after `.reading-contact`, with no rule of its own: an `h2` at the same `--step-1`, then `.share-row` (the `.email-row` layout) holding the canonical address in mono `--ink-mute` (`.share-url`, wraps anywhere) and the same `.copy-email` ghost control and manual disclosure, labelled "Copy link" ("Share link" where `site.js` finds a share sheet). On notes, `.share-feed` links the Atom feed in `--step--1`. Hidden in print. |
 | `.milestone` in `.arc-line` | console | home, `/about/` | Timeline. `.key` milestones get a signal dot with glow. |
 | `.proof` | console | home, `/about/` | Bordered `→` list on `--graphite-800`; the 10px radius rung. Below `68rem` it follows its milestone's text. From `68rem` (when the section head goes to three columns) a `.key` milestone becomes a grid and its proof moves into the right-hand column, on the same edges as the section head's description: `min(40% + .8rem + .4px, 42ch)` puts the arc's 2rem-and-1px inset back so both columns resolve against the shell width. The era, title and paragraph stay in the left column and take only their own height (`auto auto 1fr` rows). Screen only; print keeps the stacked list. |
 | `.datasheet` | essay | case studies, `/about/` | Sticky `top: 4.5rem` sidebar `dl` (under the contents rail on case studies, label beside value from a 20rem column). On `/about/` it is the labelled "At a glance" `section`. On narrow screens, case studies show a compact label/value grid between the contents control and the article text. |

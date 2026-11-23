@@ -30,6 +30,8 @@ layout: base.njk
 
     {% set emailSubject = 'About your case study: ' + title %}
     {% include "partials/reading-contact.njk" %}
+    {% set shareHeading = "Share this case study" %}
+    {% include "partials/share-link.njk" %}
     {%- set next = collections.casestudies | getNextCollectionItem(page) or collections.casestudies | first %}
     {%- if next and next.url != page.url %}
     <a class="nextread" href="{{ next.url }}" data-cal data-prefetch-article>
