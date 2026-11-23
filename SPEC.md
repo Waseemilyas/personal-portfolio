@@ -13,6 +13,10 @@ On Home, Selected work follows the introduction. “Read the work” jumps to it
 heading and gives it focus, so the next Tab reaches the first case study even
 with scripts disabled. Case-study cards have an inset focus outline.
 
+Home also lists the three newest notes, between Lab and Get in touch, with each
+note's date, reading time and summary, and an "All notes" link to the Notes index.
+Drafts never appear, and the section is left out while no note is published.
+
 On Work, each case-study row also shows the role, craft and outcome from that case's
 datasheet, so the work can be compared before any of it is opened. A click or tap
 anywhere on the row opens the case; the link's accessible name is the title. On a page
@@ -108,7 +112,7 @@ then fit in about 12 KB compressed, inside a new connection's first round trip.
 `/assets/css/styles.css` is still published whole, so a page cached from before
 inlining keeps its styles.
 
-Home's six sections below the hero, and the 404 page's index, use
+Home's seven sections below the hero, and the 404 page's index, use
 `content-visibility: auto`: the browser skips their style, layout and paint until
 they near the viewport, so the first paint lays out the first screen only. A
 skipped section stays in the accessibility tree and find in page, and keeps its

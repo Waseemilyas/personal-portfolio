@@ -541,6 +541,18 @@ p, li { text-wrap: pretty; }
    part of the card: a full-width affordance on the next line, already in the
    signal colour. Compact padding keeps three cards inside one screen. */
 @media (max-width: 620px) { .workcard { grid-template-columns: 1fr; gap: .5rem; padding: 1rem var(--space-card-inline); } .workcard .go { grid-column: 1; justify-self: start; color: var(--signal); } }
+/* Home's note rows: the date is the reference, with the reading time under it
+   (beside it on a phone, where the reference shares the card's one column). */
+.notecard .ref { display: flex; flex-direction: column; gap: .3rem; min-width: 12.5ch; }
+.notecard .read-time { color: var(--bone-mute); }
+.notecard .kick { max-inline-size: calc(64 * var(--ch)); }
+@media (max-width: 620px) { .notecard .ref { flex-direction: row; gap: 1ch; } .notecard .read-time::before { content: "· "; } }
+.section-more { margin-top: .9rem; }
+.section-more a { display: inline-flex; align-items: center; gap: .6rem; min-block-size: 44px; color: var(--bone); font-family: var(--mono); font-size: var(--step--1); letter-spacing: .04em; text-decoration: none; }
+.section-more a span:first-child { text-decoration: underline; text-decoration-color: var(--signal); text-underline-offset: .3em; transition: text-decoration-thickness .2s var(--ease); }
+.section-more a:hover span:first-child { text-decoration-thickness: 2px; }
+.section-more a span[aria-hidden] { color: var(--signal); transition: transform .2s var(--ease); }
+.section-more a:hover span[aria-hidden] { transform: translateX(3px); }
 /* Work page rows also carry the case's role, craft and outcome (its datasheet's
    own words), so the work can be compared before any of it is opened. The title
    link stretches over the row, as on Notes; the Read cue follows the title row. */
