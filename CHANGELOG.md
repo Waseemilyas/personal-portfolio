@@ -1,5 +1,20 @@
 # Release notes
 
+## v2026.11.23.1 — 23 November 2026
+
+The home page brings your latest writing into view, while small touches make it easier to browse and share.
+
+### New ways to browse and share
+
+- The home page shows the three newest notes, with dates, reading times and summaries, plus a link to all notes.
+- On phones, opening the menu loads its other pages into the cache, so they open without waiting for a network request after you tap.
+- Notes and case studies now offer a share option: use your browser’s share sheet, copy the page link, or copy it manually. Notes also link to the Atom feed, where you can follow new writing.
+
+### Easier reading
+
+- The current page link in the header is easier to read against the page background.
+
+
 ## v2026.11.22.5 — 22 November 2026
 
 Shared links are easier to open, and portfolio pages are easier to read on phones and larger screens.
