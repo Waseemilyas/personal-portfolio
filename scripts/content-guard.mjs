@@ -20,7 +20,7 @@
 // a closed carve-out) carries an exact-phrase exemption for the single approved
 // sentence in `src/_data/timeline.json` (and the two built pages that render it).
 //
-// Usage: node scripts/content-guard.mjs [--dir .]
+// Usage: node scripts/content-guard.mjs [--dir . | --commits < commit-ids]
 // Exits 0 on clean scan; exits 1 listing every violation with file and line.
 
 import { execFileSync } from "node:child_process";
@@ -164,7 +164,7 @@ export function checkContent(relPath, content) {
     /(?:^|[\s"'`<(])(\/(?:opt|home|Users|Volumes|private|root|srv|etc|var)\/[a-zA-Z0-9_.-]+|~\/(?:\.(?:agents|local|ssh|aws|gnupg|openclaw|config|kube|docker|npmrc|netrc)\b[a-zA-Z0-9_./-]*|\.[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_./-]+)|[A-Za-z]:\\[a-zA-Z0-9_.\\]+)/g;
   for (const m of content.matchAll(pathRe)) {
     const hit = m[1] ?? m[0];
-    report("guard/filesystem-paths", `internal filesystem path found: "${hit}"`, m.index + m[0].indexOf(hit));
+    report("guard/filesystem-paths", "internal filesystem path found", m.index + m[0].indexOf(hit));
   }
 
   // 2. IP addresses (IPv4 and IPv6)
@@ -173,18 +173,18 @@ export function checkContent(relPath, content) {
   for (const m of content.matchAll(ipv4Re)) {
     const after = content.slice(m.index + m[0].length, m.index + m[0].length + 6);
     if (m[0] === "127.0.0.1" && isCodeFile && !/^:[1-9]/.test(after)) continue;
-    report("guard/network-ip", `IP address found: "${m[0]}"`, m.index);
+    report("guard/network-ip", "IP address found", m.index);
   }
   const ipv6Re = /\b(?:f[cd][0-9a-f]{2}|fe80|2[0-9a-f]{3}):(?:[0-9a-f]{0,4}:){1,6}[0-9a-f]{1,4}\b/gi;
   for (const m of content.matchAll(ipv6Re)) {
-    report("guard/network-ip", `IPv6 address found: "${m[0]}"`, m.index);
+    report("guard/network-ip", "IPv6 address found", m.index);
   }
 
   // 3. Internal network domains and unqualified internal host URLs
   const domainRe =
     /\b[a-zA-Z0-9.-]+\.(?:ts\.net|tailscale\.net|internal|local|lan|home\.arpa|corp|localdomain)\b/gi;
   for (const m of content.matchAll(domainRe)) {
-    report("guard/network-domain", `internal network domain found: "${m[0]}"`, m.index);
+    report("guard/network-domain", "internal network domain found", m.index);
   }
   const internalUrlRe =
     /\b(?:https?|wss?|ssh):\/\/(?:[^\s/:@"'`<>]+@)?([a-zA-Z][a-zA-Z0-9-]*)(:\d+)?(?=[/?#"'`\s<>)]|$)/gi;
@@ -192,7 +192,7 @@ export function checkContent(relPath, content) {
     const host = (m[1] ?? "").toLowerCase();
     const port = m[2] ?? "";
     if (host === "localhost" && !port) continue;
-    report("guard/network-domain", `internal network host or endpoint found: "${m[0]}"`, m.index);
+    report("guard/network-domain", "internal network host or endpoint found", m.index);
   }
 
   // 4. Currency amounts / pricing
@@ -200,21 +200,21 @@ export function checkContent(relPath, content) {
     /(?:£|\$|€)\s*\d+(?:,\d{3})*(?:\.\d{1,2}|,\d{2})?(?:\s*[kKmMbB]\b|\b)|\b\d+(?:,\d{3})*(?:\.\d{1,2}|,\d{2})?\s*(?:GBP|USD|EUR)\b/gi;
   for (const m of content.matchAll(currencyRe)) {
     if (isCodeFile && /^\$[0-9]$/.test(m[0])) continue;
-    report("guard/currency", `currency amount found: "${m[0]}"`, m.index);
+    report("guard/currency", "currency amount found", m.index);
   }
 
   // 5. Commercial rate/fee/margin/headcount terms
   const commTermsRe =
     /\b(?:day[- ]rates?|hourly[- ]rates?|daily[- ]rates?|retainer[- ]fees?|contract[- ]values?|profit[- ]margins?|headcounts?)\b/gi;
   for (const m of content.matchAll(commTermsRe)) {
-    report("guard/commercial-terms", `commercial rate/fee/margin term found: "${m[0]}"`, m.index);
+    report("guard/commercial-terms", "commercial rate/fee/margin term found", m.index);
   }
 
   // 6. Commercial revenue statement
   const revRe =
     /\b(?:annual|business|client|company|quarterly|recurring|total)\s+revenue\b|\brevenue\s*(?:of|was|is|reached|target|growth)\b/gi;
   for (const m of content.matchAll(revRe)) {
-    report("guard/commercial-revenue", `commercial revenue disclosure found: "${m[0]}"`, m.index);
+    report("guard/commercial-revenue", "commercial revenue disclosure found", m.index);
   }
 
   // 7. Non-allowlisted email addresses (ignoring https://dsn@host URL userinfo)
@@ -228,7 +228,7 @@ export function checkContent(relPath, content) {
       (d) => lower.endsWith(`@${d}`) || lower.endsWith(`.${d}`),
     );
     if (!isAllowed) {
-      report("guard/email-allowlist", `non-allowlisted email found: "${email}"`, m.index);
+      report("guard/email-allowlist", "non-allowlisted email found", m.index);
     }
   }
 
@@ -240,7 +240,7 @@ export function checkContent(relPath, content) {
   const tokenRe =
     /\b(?:AKIA[0-9A-Z]{16}|gh[pousr]_[0-9a-zA-Z]{20,}|github_pat_[0-9a-zA-Z_]{20,}|glpat-[0-9a-zA-Z_-]{20,}|sk-(?:ant-|proj-|live-|test-)?[0-9a-zA-Z_-]{20,}|sntry[su]_[0-9a-zA-Z+/=_.-]{20,}|xox[baprs]-[0-9a-zA-Z-]{20,})\b/g;
   for (const m of content.matchAll(tokenRe)) {
-    report("guard/credentials", `secret token marker detected: "${m[0].slice(0, 4)}…"`, m.index);
+    report("guard/credentials", "secret token marker detected", m.index);
   }
   const urlCredRe = /\bhttps?:\/\/[^\s/:@"'`<>]+:[^\s/@"'`<>]+@[a-zA-Z0-9.-]+/gi;
   for (const m of content.matchAll(urlCredRe)) {
@@ -249,7 +249,7 @@ export function checkContent(relPath, content) {
   const credAssignRe =
     /(?:password|passwd|api[-_]?key|secret[-_]?key|client[-_]?secret|access[-_]?token|auth[-_]?token|bearer\s+[a-zA-Z0-9_.-]+)\s*[:=]/gi;
   for (const m of content.matchAll(credAssignRe)) {
-    report("guard/credentials", `credential assignment pattern detected: "${m[0]}"`, m.index);
+    report("guard/credentials", "credential assignment pattern detected", m.index);
   }
 
   // 9. Comments containing credential or client markers
@@ -260,7 +260,7 @@ export function checkContent(relPath, content) {
       /\b(?:password|passwd|api[-_]?key|secret[-_]?key|client[-_]?secret|auth[-_]?token|access[-_]?token|internal[-_]?only)\b|\bclient\s*[:=]/i,
     );
     if (hit) {
-      report("guard/comment-secrets", `credential or client marker found in comment: "${hit[0]}"`, m.index);
+      report("guard/comment-secrets", "credential or client marker found in comment", m.index);
     }
   }
 
@@ -360,6 +360,34 @@ export function runContentGuard({ dir = "." } = {}) {
   };
 }
 
+/** @param {string[]} commits IDs from the pre-push hook's outgoing revision list */
+function scanCommits(commits) {
+  /** @param {string[]} args */
+  const git = (args) => execFileSync("git", args, {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    maxBuffer: 32 * 1024 * 1024,
+  });
+  const violations = [];
+  let files = 0;
+  for (const commit of commits) {
+    if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(commit)) throw new Error("Expected a Git commit ID");
+    // Compare merges with each parent so changes made during a merge are checked too.
+    const paths = git(["diff-tree", "--root", "-m", "-r", "--no-commit-id", "--name-only",
+      "--no-renames", "--diff-filter=AMT", "-z", commit]).split("\0");
+    for (const file of new Set(paths)) {
+      if (!file || BINARY_EXTENSIONS.has(extname(file).toLowerCase()) || isExcludedRepoFile(file)) continue;
+      const content = git(["cat-file", "blob", `${commit}:${file}`]);
+      violations.push(...checkContent(file, content).map((violation) => ({
+        ...violation,
+        message: `${violation.message} in commit ${commit.slice(0, 12)}`,
+      })));
+      files++;
+    }
+  }
+  return { violations, stats: { files } };
+}
+
 // ---------------------------------------------------------------------------
 // CLI
 
@@ -371,8 +399,18 @@ function main() {
     return i >= 0 ? args[i + 1] : undefined;
   };
 
-  const targetDir = flag("--dir") ?? ".";
-  const { violations, stats } = runContentGuard({ dir: targetDir });
+  const outgoing = args.includes("--commits");
+  let result;
+  try {
+    result = outgoing
+      ? scanCommits(readFileSync(0, "utf8").split(/\s+/).filter(Boolean))
+      : runContentGuard({ dir: flag("--dir") ?? "." });
+  } catch (error) {
+    if (!outgoing) throw error;
+    console.error("content-guard: could not read outgoing commits or their files");
+    process.exit(1);
+  }
+  const { violations, stats } = result;
 
   if (violations.length > 0) {
     console.error(
@@ -385,7 +423,7 @@ function main() {
   }
 
   console.log(
-    `content-guard: OK — ${stats.files} repository files scanned; standing content guardrails pass (AGENTS.md §1)`,
+    `content-guard: OK — ${stats.files} ${outgoing ? "outgoing file versions" : "repository files"} scanned; standing content guardrails pass (AGENTS.md §1)`,
   );
 }
 

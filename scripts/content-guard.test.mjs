@@ -9,8 +9,9 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
+  copyFileSync,
   mkdirSync,
   mkdtempSync,
   rmSync,
@@ -26,6 +27,7 @@ import {
 } from "./content-guard.mjs";
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "content-guard.mjs");
+const HOOK = new URL("../.githooks/pre-push", import.meta.url);
 
 function makeFixture(t) {
   const root = mkdtempSync(join(os.tmpdir(), "content-guard-fixture-"));
@@ -143,7 +145,8 @@ test("planted non-allowlisted email fails guard/email-allowlist", () => {
   );
   assert.equal(violations.length, 1);
   assert.equal(violations[0].check, "guard/email-allowlist");
-  assert.match(violations[0].message, /non-allowlisted email found: "person@synthetic-enterprise\.example"/);
+  assert.match(violations[0].message, /non-allowlisted email found/);
+  assert.ok(!violations[0].message.includes("person@synthetic-enterprise.example"));
 });
 
 test("allowlisted emails and public Sentry DSN URLs pass guard/email-allowlist", () => {
@@ -304,4 +307,50 @@ test("CLI exits 1 and names violation on dirty directory", () => {
   const out = `${r.stderr}${r.stdout}`;
   assert.match(out, /content-guard: FAILED/);
   assert.match(out, /\[guard\/currency\]/);
+  assert.ok(!out.includes("£450"));
+});
+
+test("pre-push refuses a private detail even if a later commit removes it", (t) => {
+  const root = mkdtempSync(join(os.tmpdir(), "content-guard-push-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const remote = join(root, "remote.git");
+  const options = { cwd: root, encoding: "utf8" };
+  const git = (...args) => execFileSync("git", args, { ...options, stdio: "pipe" }).trim();
+  git("init", "--quiet", "--initial-branch=main");
+  git("init", "--quiet", "--bare", remote);
+  git("config", "user.name", "Test");
+  git("config", "user.email", "test@example.test");
+  git("config", "commit.gpgsign", "false");
+  git("config", "core.hooksPath", "hooks");
+  git("remote", "add", "origin", remote);
+  for (const dir of ["bin", "hooks", "scripts"]) mkdirSync(join(root, dir));
+  copyFileSync(HOOK, join(root, "hooks", "pre-push"));
+  copyFileSync(SCRIPT, join(root, "scripts", "content-guard.mjs"));
+  // The test exercises the privacy hook independently of the secret scanner.
+  writeFileSync(join(root, "bin", "gitleaks"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  const push = (branch) => spawnSync("git", ["push", "origin", `HEAD:refs/heads/${branch}`], {
+    ...options,
+    env: { ...process.env, PATH: `${join(root, "bin")}:${process.env.PATH}` },
+  });
+  const commit = (message, body) => {
+    writeFileSync(join(root, "case study.md"), body);
+    git("add", "case study.md");
+    git("commit", "--quiet", "-m", message);
+  };
+
+  commit("Publish the case study", "A public case study.\n");
+  const clean = git("rev-parse", "HEAD");
+  const initial = push("main");
+  assert.equal(initial.status, 0, initial.stderr);
+  const privateDetail = "person@synthetic-enterprise.example";
+  commit("Edit the case study", `A public case study.\n${privateDetail}\n`);
+  commit("Remove the detail", "An updated public case study.\n");
+
+  for (const branch of ["main", "preview"]) {
+    const rejected = push(branch);
+    assert.equal(rejected.status, 1, "both updates and new branches must be checked");
+    assert.match(rejected.stderr, /\[guard\/email-allowlist\] case study\.md:2:/);
+    assert.ok(!rejected.stderr.includes(privateDetail), "diagnostics must omit the protected text");
+  }
+  assert.equal(git("ls-remote", "--heads", "origin"), `${clean}\trefs/heads/main`);
 });

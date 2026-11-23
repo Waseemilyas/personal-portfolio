@@ -211,6 +211,10 @@ unqualified internal host URLs, commercial figures, non-allowlisted emails and
 credentials, while narrowing the grandfathered `timeline.json` carve-out to its
 single approved sentence. Automated scanning cannot decide whether apparently
 anonymised copy identifies a client; `AGENTS.md` owns that judgement.
+With the repository's Git hooks installed, the pre-push hook applies the same
+privacy rules to changed text in every commit the destination has yet to see.
+A later deletion cannot make an earlier version safe to push. The privacy
+checks report a rule and location without copying the matched text.
 The rendered checker also owns headings, metadata, links, feed/sitemap structure and
 parity, draft absence and revision bytes. OG checks inspect image headers, not
 pixel decoding. GitHub Pages serves the artifact built by the main workflow and
