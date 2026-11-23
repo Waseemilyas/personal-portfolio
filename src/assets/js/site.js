@@ -328,30 +328,75 @@
     var clipboard = navigator.clipboard;
     if (!window.isSecureContext || typeof clipboard?.writeText !== "function") return;
     document.querySelectorAll(".email-row").forEach(function (row) {
-      var button = row.querySelector("button.copy-email");
-      var manual = row.querySelector("details");
-      var field = manual?.querySelector("input");
-      var status = row.querySelector('[role="status"]');
-      if (!(button instanceof HTMLButtonElement) || !manual || !field || !status) return;
-      if (manual.open || manual.contains(document.activeElement)) return;
-      bindCopy(clipboard, button, manual, field, status);
+      var parts = copyParts(row, "button.copy-email");
+      if (parts) bindCopy(clipboard, parts, "email address");
+    });
+  }
+
+  /* Share this note / case study (partials/share-link.njk). The manual copy disclosure
+     works at first paint. Where the browser has a share sheet (phones, and most desktop
+     Safari and Chromium on Windows and macOS) the button opens it with the page's title
+     and canonical address; otherwise, where it can copy, the button copies that address. */
+  function setupShareLink() {
+    var clipboard = navigator.clipboard;
+    var canShare = window.isSecureContext && typeof navigator.share === "function";
+    var canCopy = window.isSecureContext && typeof clipboard?.writeText === "function";
+    if (!canShare && !canCopy) return;
+    document.querySelectorAll(".share-row").forEach(function (row) {
+      var parts = copyParts(row, "button.share-link");
+      if (!parts) return;
+      if (canShare) bindShare(parts);
+      else bindCopy(clipboard, parts, "link");
     });
   }
 
   /**
-   * @param {Clipboard} clipboard
-   * @param {HTMLButtonElement} button
-   * @param {HTMLDetailsElement} manual
-   * @param {HTMLInputElement} field
-   * @param {Element} status
+   * The one-click button, the manual disclosure, its read-only field and the status line
+   * of a copy row, or null when any is missing or the visitor has already started copying.
+   * @param {Element} row @param {string} buttonSelector
+   * @returns {{button: HTMLButtonElement, manual: HTMLDetailsElement, field: HTMLInputElement, status: Element} | null}
    */
-  function bindCopy(clipboard, button, manual, field, status) {
+  function copyParts(row, buttonSelector) {
+    var button = row.querySelector(buttonSelector);
+    var manual = row.querySelector("details");
+    var field = manual?.querySelector("input");
+    var status = row.querySelector('[role="status"]');
+    if (!(button instanceof HTMLButtonElement) || !manual || !(field instanceof HTMLInputElement) || !status) return null;
+    if (manual.open || manual.contains(document.activeElement)) return null;
+    return { button: button, manual: manual, field: field, status: status };
+  }
+
+  /**
+   * Give the visitor the manual path: open the disclosure, select the value if the
+   * button had focus, and say why.
+   * @param {{button: HTMLButtonElement, manual: HTMLDetailsElement, field: HTMLInputElement, status: Element}} parts
+   * @param {string} message
+   */
+  function showManualCopy(parts, message) {
+    parts.manual.hidden = false;
+    parts.manual.open = true;
+    if (document.activeElement === parts.button) {
+      parts.field.focus();
+      parts.field.select();
+    }
+    parts.button.hidden = true;
+    parts.status.textContent = message;
+  }
+
+  /**
+   * @param {Clipboard} clipboard
+   * @param {{button: HTMLButtonElement, manual: HTMLDetailsElement, field: HTMLInputElement, status: Element}} parts
+   * @param {string} what what is copied, in words: "email address" or "link"
+   */
+  function bindCopy(clipboard, parts, what) {
+    var button = parts.button;
+    var status = parts.status;
     var label = button.textContent || "";
     /** @type {number | undefined} */
     var timer;
     var pending = false;
     button.hidden = false;
-    manual.hidden = true;
+    parts.manual.hidden = true;
     button.addEventListener("click", function () {
       void copy();
     });
@@ -360,16 +405,9 @@
       if (pending) return;
       pending = true;
       try {
-        await clipboard.writeText(field.value);
+        await clipboard.writeText(parts.field.value);
       } catch {
-        manual.hidden = false;
-        manual.open = true;
-        if (document.activeElement === button) {
-          field.focus();
-          field.select();
-        }
-        button.hidden = true;
-        status.textContent = "Could not copy automatically. Select and copy the email address.";
+        showManualCopy(parts, "Could not copy automatically. Select and copy the " + what + ".");
         return;
       } finally {
         pending = false;
@@ -377,12 +415,42 @@
       }
       button.textContent = "Copied ✓";
       button.setAttribute("data-copied", "");
-      status.textContent = "Email address copied.";
+      status.textContent = what.charAt(0).toUpperCase() + what.slice(1) + " copied.";
       timer = window.setTimeout(function () {
         button.textContent = label;
         button.removeAttribute("data-copied");
         status.textContent = "";
       }, 2500);
+    }
+  }
+
+  /**
+   * @param {{button: HTMLButtonElement, manual: HTMLDetailsElement, field: HTMLInputElement, status: Element}} parts
+   */
+  function bindShare(parts) {
+    var button = parts.button;
+    var pending = false;
+    button.textContent = "Share link";
+    button.hidden = false;
+    parts.manual.hidden = true;
+    button.addEventListener("click", function () {
+      void share();
+    });
+
+    async function share() {
+      if (pending) return;
+      pending = true;
+      parts.status.textContent = "";
+      try {
+        var heading = document.querySelector("main h1");
+        await navigator.share({ title: (heading?.textContent || document.title).trim(), url: parts.field.value });
+      } catch (error) {
+        // Closing the share sheet is a choice, not a failure.
+        if (typeof error === "object" && error !== null && "name" in error && error.name === "AbortError") return;
+        showManualCopy(parts, "Could not open sharing. Select and copy the link.");
+      } finally {
+        pending = false;
+      }
     }
   }
 
@@ -630,6 +698,7 @@
   setupReveals();
   setupArticleContents();
   setupCopyEmail();
+  setupShareLink();
   setupPageTransitions();
   setupArticlePrefetch();
 })();

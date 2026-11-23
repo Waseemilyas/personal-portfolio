@@ -1,0 +1,23 @@
+{#- Pass an article on: the page's canonical address, with the native share sheet where
+    the browser has one, one-click copy where it can copy, and a manual copy disclosure
+    that works with no script at all. site.js swaps the controls; it never changes the row's
+    contents otherwise. Set shareHeading before including it. -#}
+{%- set shareUrl = site.url + page.url %}
+<section class="reading-share" aria-labelledby="reading-share-title">
+  <h2 id="reading-share-title">{{ shareHeading }}</h2>
+  <div class="share-row">
+    <span class="share-url">{{ shareUrl | replace("https://", "") }}</span>
+    <button class="btn btn-ghost copy-email share-link" type="button" hidden>Copy link</button>
+    <details class="copy-email-manual">
+      <summary class="btn btn-ghost copy-email">Copy link<span class="visually-hidden"> manually</span></summary>
+      <div class="copy-email-help">
+        <p id="share-copy-instructions">Select and copy this link, then paste it wherever you want to send it.</p>
+        <input type="text" value="{{ shareUrl }}" aria-label="Link to this page" aria-describedby="share-copy-instructions" readonly>
+      </div>
+    </details>
+    <span class="visually-hidden" role="status"></span>
+  </div>
+  {%- if shareFeed %}
+  <p class="share-feed">New notes also arrive in the <a href="/notes/feed.xml" type="application/atom+xml">Atom feed</a>, for any feed reader.</p>
+  {%- endif %}
+</section>
