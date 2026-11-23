@@ -64,6 +64,10 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("readableDate", (d) =>
     new Date(d).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })
   );
+  // Compact date for Home's note rows, where it sits in the mono reference column.
+  eleventyConfig.addFilter("shortDate", (d) =>
+    new Date(d).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" })
+  );
 
   const slugify = eleventyConfig.getFilter("slugify");
   eleventyConfig.addFilter("articleSections", (html) => articleSections(html, slugify));

@@ -197,11 +197,35 @@ description: "Waseem Ilyas runs Automancer, a UK automation consultancy helping 
   </div>
 </section>
 
+<!-- ========== NOTES (console) ========== -->
+{%- set latestNotes = collections.notes.slice(0, 3) %}
+{%- if latestNotes.length %}
+<section class="console section" id="notes-teaser" aria-labelledby="notes-title">
+  <div class="shell">
+    <div class="section-head" data-cal>
+      <span class="ref">NOTES·06</span>
+      <h2 id="notes-title">Notes</h2>
+      <p>Occasional writing on AI, automation, and building useful things.</p>
+    </div>
+    <div class="worklist" data-cal>
+      {%- for note in latestNotes %}
+      <a class="workcard notecard" href="{{ note.url }}">
+        <span class="ref"><time datetime="{{ note.date | isoDate }}">{{ note.date | shortDate }}</time><span class="read-time">{{ note.data.readingMinutes }} min read</span></span>
+        <div><h3>{{ note.data.title }}</h3>{%- if note.data.summary %}<span class="kick">{{ note.data.summary }}</span>{%- endif %}</div>
+        <span class="go">Read →</span>
+      </a>
+      {%- endfor %}
+    </div>
+    <p class="section-more" data-cal><a href="/notes/"><span>All notes</span><span aria-hidden="true">→</span></a></p>
+  </div>
+</section>
+{%- endif %}
+
 <!-- ========== CONTACT (console) ========== -->
 <section class="console section" id="contact-teaser" aria-label="Contact">
   <div class="shell">
     <div class="section-head" data-cal>
-      <span class="ref">SAY·06</span>
+      <span class="ref">SAY·07</span>
       <h2>Get in touch</h2>
     </div>
     <div class="contact-cta" data-cal>

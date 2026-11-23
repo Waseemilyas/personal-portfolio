@@ -4,7 +4,8 @@ Open Work, follow every case-study card and return to the list. Open Notes, foll
 each article and return. Every case study and note ends with a "Next" card
 (`.nextread`) leading to another published page of the same kind; the rendered
 checker validates its internal target like any other link. All generated case studies and articles are included in
-the two-width page coverage. Read the Atom feed and sitemap; the rendered checker
+the two-width page coverage. Home's Notes section lists the newest three notes; `scripts/home-notes.test.mjs` holds
+them to the Notes index's first rows. Read the Atom feed and sitemap; the rendered checker
 owns XML structure, internal targets and publication parity.
 
 Every note and case study shows the email address before the next article. Check
@@ -27,8 +28,8 @@ Notes also link the Atom feed, in the share section and under the Notes heading.
 | --- | --- | --- |
 | Is a post page written? | `src/notes/posts/posts.11tydata.js` → `eleventyComputed.permalink` | `false` for drafts; independent of collection membership. |
 | Can a post enter a note collection? | `src/notes/posts/posts.11tydata.js` → `eleventyComputed.eleventyExcludeFromCollections`; also `eleventy.config.js` → `collections.notes` | Both reject drafts. The explicit collection is filtered and sorted newest first. |
-| Which public outputs consume the collection? | `src/notes/index.njk` (`collections.notes`); `src/notes/feed.njk` (`collections.notes`); `src/sitemap.njk` (`collections.notes`) | Listing rows, Atom entries/updated timestamp, and note URLs. These do not each implement draft policy. |
+| Which public outputs consume the collection? | `src/notes/index.njk` (`collections.notes`); `src/index.njk` (Home's Notes section, the first three of `collections.notes`); `src/notes/feed.njk` (`collections.notes`); `src/sitemap.njk` (`collections.notes`) | Listing rows, Home's newest-notes rows, Atom entries/updated timestamp, and note URLs. These do not each implement draft policy. |
 | What changes publication? | Post front matter `draft`; the two owners above | Changing front matter affects effective directory data. Changing only the collection filter cannot enable page output; changing only permalink cannot remove a draft from collection consumers. Keep both collection guards aligned. |
 | What happens to old output? | `eleventy.config.js` after a full build, and `scripts/site-check.mjs` | The build removes stale pages and empty route directories. The rendered check rejects draft pages and feed or sitemap references to drafts. |
 
-**Fast entry:** read the directory data file, then the `collections.notes` definition in Eleventy config, then the three consumers. `src/_includes/note.njk` renders a selected post. Confirm a previously published note disappears on the next full build after it becomes a draft or is deleted.
+**Fast entry:** read the directory data file, then the `collections.notes` definition in Eleventy config, then the four consumers. `src/_includes/note.njk` renders a selected post. Confirm a previously published note disappears on the next full build after it becomes a draft or is deleted.
