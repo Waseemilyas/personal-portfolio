@@ -225,7 +225,8 @@ try:
     for listing, prefix in [("/work/", "/work/cs-"), ("/notes/", "/notes/")]:
         run("open", base + listing)
         check_entry_heading()
-        routes = state("Array.from(new Set(Array.from(document.querySelectorAll('main a[href]')).map(a=>a.getAttribute('href')).filter(h=>h.startsWith(" + json.dumps(prefix) + ") && h!==" + json.dumps(listing) + ")))")
+        # Listed entries are article pages; the Notes feed link is not one.
+        routes = state("Array.from(new Set(Array.from(document.querySelectorAll('main a[href]')).map(a=>a.getAttribute('href')).filter(h=>h.startsWith(" + json.dumps(prefix) + ") && h.endsWith('/') && h!==" + json.dumps(listing) + ")))")
         assert routes, "Expected published entries in " + listing
         for route in routes:
             navigate(route, "click", 'main a[href="' + route + '"]')
